@@ -185,7 +185,7 @@ const Answers = ({
 
         {!shouldHideText && media && (
           <div className="max-h-[22vh] sm:max-h-[26vh] md:max-h-[30vh] flex items-center justify-center shrink min-h-0 overflow-hidden">
-            <QuestionMedia media={media} alt={question} className="max-h-full w-auto object-contain" />
+            <QuestionMedia media={media} alt={question} className="max-h-full max-w-full object-contain" />
           </div>
         )}
       </div>

@@ -49,7 +49,7 @@ const Slide = ({ data: { question, text, media } }: Props) => {
                 ? "max-h-[30vh] sm:max-h-[35vh] w-auto" 
                 : "max-h-[35vh] md:max-h-[50vh] w-full md:max-w-[45%]"
             )}>
-              <QuestionMedia media={media} alt={question} className="max-h-full w-auto object-contain" />
+              <QuestionMedia media={media} alt={question} className="max-h-full max-w-full object-contain" />
             </div>
           )}
 
