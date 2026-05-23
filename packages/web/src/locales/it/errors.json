@@ -2,7 +2,8 @@
   "auth": {
     "invalidInviteCode": "Codice di invito non valido",
     "usernameTooLong": "Il nome utente non può superare i 20 caratteri",
-    "usernameTooShort": "Il nome utente non può avere meno di 4 caratteri"
+    "usernameTooShort": "Il nome utente non può avere meno di 4 caratteri",
+    "usernameTaken": "Il nome utente è già preso"
   },
   "game": {
     "expired": "Partita terminata",
@@ -34,7 +35,7 @@
     "questionEmpty": "La domanda non può essere vuota",
     "subjectEmpty": "Il soggetto non può essere vuoto",
     "tooFewAnswers": "Una domanda deve avere almeno 2 risposte",
-    "tooManyAnswers": "Una domanda non può avere più di 4 risposte"
+    "tooManyAnswers": "Una domanda non può avere più di 7 risposte"
   },
   "route": {
     "back": "Torna alla home",

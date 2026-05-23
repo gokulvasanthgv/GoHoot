@@ -2,7 +2,8 @@
   "auth": {
     "invalidInviteCode": "Ungültiger Einladungscode",
     "usernameTooLong": "Der Benutzername darf nicht mehr als 20 Zeichen haben",
-    "usernameTooShort": "Der Benutzername muss mindestens 4 Zeichen haben"
+    "usernameTooShort": "Der Benutzername muss mindestens 4 Zeichen haben",
+    "usernameTaken": "Benutzername ist bereits vergeben"
   },
   "game": {
     "expired": "Spiel abgelaufen",
@@ -34,7 +35,7 @@
     "questionEmpty": "Die Frage darf nicht leer sein",
     "subjectEmpty": "Das Thema darf nicht leer sein",
     "tooFewAnswers": "Eine Frage muss mindestens 2 Antworten haben",
-    "tooManyAnswers": "Eine Frage darf nicht mehr als 4 Antworten haben"
+    "tooManyAnswers": "Eine Frage darf nicht mehr als 7 Antworten haben"
   },
   "route": {
     "back": "Zurück zur Startseite",

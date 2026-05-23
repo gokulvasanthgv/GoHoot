@@ -1,5 +1,6 @@
 import { MEDIA_TYPES } from "@razzia/common/constants"
 import type { QuestionMedia } from "@razzia/common/types/game"
+import { getYoutubeId } from "@razzia/web/components/QuestionMedia"
 import {
   ANSWERS_COLORS,
   ANSWERS_LABELS,
@@ -29,6 +30,17 @@ const MediaPreview = ({ media }: { media?: QuestionMedia }) => {
   }
 
   if (media?.type === MEDIA_TYPES.VIDEO) {
+    const youtubeId = getYoutubeId(media.url)
+    if (youtubeId) {
+      return (
+        <img
+          src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`}
+          alt=""
+          className="h-16 w-24 rounded-lg object-cover md:h-38 md:w-full"
+        />
+      )
+    }
+
     return (
       <div className="flex h-16 w-24 items-center justify-center rounded-lg bg-gray-200 md:h-38 md:w-full">
         <Video className="size-6 text-gray-400 md:size-10" />
@@ -58,13 +70,14 @@ const ResultModalAnswers = () => {
   const noAnswerCount = totalPlayers - answeredCount
 
   const rows: AnswerRow[] = [
-    ...questionResult.answers.map((label, ai) => ({
+    ...(questionResult.answers || []).map((label, ai) => ({
       label,
-      count: questionResult.playerAnswers.filter((pa) => pa.answerId === ai)
-        .length,
-      isCorrect: questionResult.solutions.includes(ai),
-      color: ANSWERS_COLORS[ai % 4],
-      answerLabel: ANSWERS_LABELS[ai % 4],
+      count: questionResult.playerAnswers.filter((pa) =>
+        pa.answerIds?.includes(ai),
+      ).length,
+      isCorrect: (questionResult.solutions || []).includes(ai),
+      color: ANSWERS_COLORS[ai % ANSWERS_COLORS.length],
+      answerLabel: ANSWERS_LABELS[ai % ANSWERS_LABELS.length],
     })),
     {
       label: t("manager:result.noAnswer"),

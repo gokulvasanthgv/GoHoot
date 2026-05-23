@@ -31,7 +31,7 @@ function RouteComponent() {
     navigate({ to: "/manager" })
   })
 
-  if (!isConnected || !config) {
+  if (!config) {
     return (
       <div className="flex h-svh items-center justify-center bg-gray-50">
         <Loader className="text-background max-h-23" />
@@ -39,5 +39,15 @@ function RouteComponent() {
     )
   }
 
-  return <Outlet />
+  return (
+    <div className="relative flex h-full w-full flex-col">
+      {!isConnected && (
+        <div className="absolute top-0 right-0 left-0 z-50 animate-pulse bg-amber-500 py-1.5 text-center text-xs font-semibold text-white shadow-md">
+          Connection lost. Reconnecting to server... Unsaved changes will sync
+          once reconnected.
+        </div>
+      )}
+      <Outlet />
+    </div>
+  )
 }

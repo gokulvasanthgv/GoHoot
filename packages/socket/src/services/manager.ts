@@ -19,6 +19,10 @@ class Manager {
     return this.loggedClients.has(getClientId(socket))
   }
 
+  isLoggedClientId(clientId: string) {
+    return this.loggedClients.has(clientId)
+  }
+
   login(socket: Socket) {
     this.loggedClients.add(getClientId(socket))
   }

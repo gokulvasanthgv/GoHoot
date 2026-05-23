@@ -93,7 +93,21 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
       return
     }
 
-    socket.emit(EVENTS.GAME.SUCCESS_ROOM, game.gameId)
+    const existingPlayer = game.players.find((p) => p.clientId === clientId)
+    if (existingPlayer) {
+      socket.emit(EVENTS.GAME.SUCCESS_ROOM, {
+        gameId: game.gameId,
+        alreadyJoined: true,
+        username: existingPlayer.username,
+      })
+
+      return
+    }
+
+    socket.emit(EVENTS.GAME.SUCCESS_ROOM, {
+      gameId: game.gameId,
+      alreadyJoined: false,
+    })
   })
 
   socket.on(EVENTS.PLAYER.LOGIN, ({ gameId, data }) =>
@@ -104,14 +118,19 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
     withGame(gameId, socket, (game) => game.kickPlayer(socket, playerId)),
   )
 
-  socket.on(EVENTS.MANAGER.START_GAME, ({ gameId }) =>
-    withGame(gameId, socket, (game) => game.start(socket)),
+  socket.on(EVENTS.MANAGER.START_GAME, ({ gameId, mode, options }) =>
+    withGame(gameId, socket, (game) => game.start(socket, mode, options)),
   )
 
   socket.on(EVENTS.PLAYER.SELECTED_ANSWER, ({ gameId, data }) =>
-    withGame(gameId, socket, (game) =>
-      game.selectAnswer(socket, data.answerKey),
-    ),
+    withGame(gameId, socket, (game) => {
+      const keys = Array.isArray(data.answerKey)
+        ? data.answerKey
+        : typeof data.answerKey === "number"
+          ? [data.answerKey]
+          : []
+      game.selectAnswer(socket, keys)
+    }),
   )
 
   socket.on(EVENTS.MANAGER.ABORT_QUIZ, ({ gameId }) =>
@@ -124,6 +143,14 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
 
   socket.on(EVENTS.MANAGER.SHOW_LEADERBOARD, ({ gameId }) =>
     withGame(gameId, socket, (game) => game.showLeaderboard()),
+  )
+
+  socket.on(EVENTS.MANAGER.GO_TO_QUESTION, ({ gameId, index }) =>
+    withGame(gameId, socket, (game) => game.goToQuestion(socket, index)),
+  )
+
+  socket.on(EVENTS.MANAGER.END_GAME, ({ gameId }) =>
+    withGame(gameId, socket, (game) => game.endGame(socket)),
   )
 
   socket.on(EVENTS.MANAGER.LEAVE, ({ gameId }) => {

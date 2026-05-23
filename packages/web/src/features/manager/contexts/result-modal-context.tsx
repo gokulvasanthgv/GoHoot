@@ -36,13 +36,23 @@ export const ResultModalProvider = ({ children, result, onClose }: Props) => {
   const total = result.questions.length
   const totalPlayers = result.players.length
 
+  const isAnswerCorrect = (answerIds: number[] | null, qr: QuestionResult) => {
+    if (!answerIds || answerIds.length === 0) return false
+    if (qr.type === "puzzle") {
+      const totalAnswers = qr.answers?.length ?? 0
+      if (answerIds.length !== totalAnswers) return false
+      return answerIds.every((val, index) => val === index)
+    }
+    const solutions = qr.solutions || []
+    return answerIds.every((id) => solutions.includes(id))
+  }
+
   const answeredCount = questionResult.playerAnswers.filter(
-    (pa) => pa.answerId !== null,
+    (pa) => pa.answerIds !== null && pa.answerIds.length > 0,
   ).length
 
-  const correctCount = questionResult.playerAnswers.filter(
-    (pa) =>
-      pa.answerId !== null && questionResult.solutions.includes(pa.answerId),
+  const correctCount = questionResult.playerAnswers.filter((pa) =>
+    isAnswerCorrect(pa.answerIds, questionResult),
   ).length
 
   const correctPct =
@@ -50,9 +60,10 @@ export const ResultModalProvider = ({ children, result, onClose }: Props) => {
 
   const maxAnswerCount = Math.max(
     1,
-    ...questionResult.answers.map(
+    ...(questionResult.answers || []).map(
       (_, ai) =>
-        questionResult.playerAnswers.filter((pa) => pa.answerId === ai).length,
+        questionResult.playerAnswers.filter((pa) => pa.answerIds?.includes(ai))
+          .length,
     ),
   )
 

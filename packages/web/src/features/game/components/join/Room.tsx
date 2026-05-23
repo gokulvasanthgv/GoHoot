@@ -7,7 +7,7 @@ import {
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
-import { useSearch } from "@tanstack/react-router"
+import { useSearch, useNavigate } from "@tanstack/react-router"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -19,12 +19,28 @@ const Room = () => {
   const hasJoinedRef = useRef(false)
   const { t } = useTranslation()
 
+  const navigate = useNavigate()
+
   const handleJoin = () => {
     socket.emit(EVENTS.PLAYER.JOIN, invitation.replace(/\s/gu, ""))
   }
 
-  useEvent(EVENTS.GAME.SUCCESS_ROOM, (gameId) => {
-    join(gameId)
+  useEvent(EVENTS.GAME.SUCCESS_ROOM, (payload) => {
+    if (typeof payload === "string") {
+      join(payload)
+
+      return
+    }
+
+    const { gameId, alreadyJoined, username } = payload
+    if (alreadyJoined && username) {
+      join(gameId)
+      const store = usePlayerStore.getState()
+      store.login(username)
+      navigate({ to: "/party/$gameId", params: { gameId } })
+    } else {
+      join(gameId)
+    }
   })
 
   useEffect(() => {

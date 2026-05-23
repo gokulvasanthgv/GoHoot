@@ -18,6 +18,7 @@
     "delete": "Delete result",
     "deleteConfirm": "Delete result for \"{{name}}\"? This cannot be undone.",
     "deleted": "Result deleted",
+    "export": "Export results",
     "noAnswer": "No answer",
     "none": "No results yet, finish a game to see reports here",
     "paginationOf": " of ",

@@ -1,12 +1,12 @@
 import clsx from "clsx"
-import { type PropsWithChildren } from "react"
+import { type HTMLAttributes } from "react"
 import { twMerge } from "tailwind-merge"
 
-type Props = {
+type Props = HTMLAttributes<HTMLDivElement> & {
   className?: string
-} & PropsWithChildren
+}
 
-const Card = ({ children, className }: Props) => (
+const Card = ({ children, className, ...props }: Props) => (
   <div
     className={twMerge(
       clsx(
@@ -14,6 +14,7 @@ const Card = ({ children, className }: Props) => (
         className,
       ),
     )}
+    {...props}
   >
     {children}
   </div>

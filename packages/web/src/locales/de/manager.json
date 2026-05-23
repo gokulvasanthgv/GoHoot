@@ -18,6 +18,7 @@
     "delete": "Ergebnis löschen",
     "deleteConfirm": "Ergebnis für \"{{name}}\" löschen? Dies kann nicht rückgängig gemacht werden.",
     "deleted": "Ergebnis gelöscht",
+    "export": "Ergebnisse exportieren",
     "noAnswer": "Keine Antwort",
     "none": "Noch keine Ergebnisse, beende ein Spiel, um Berichte hier zu sehen",
     "paginationOf": " von ",

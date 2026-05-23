@@ -18,6 +18,7 @@
     "delete": "Eliminar resultado",
     "deleteConfirm": "¿Eliminar el resultado de \"{{name}}\"? Esta acción no se puede deshacer.",
     "deleted": "Resultado eliminado",
+    "export": "Exportar resultados",
     "noAnswer": "Sin respuesta",
     "none": "Aún no hay resultados, termina una partida para ver los informes aquí",
     "paginationOf": " de ",

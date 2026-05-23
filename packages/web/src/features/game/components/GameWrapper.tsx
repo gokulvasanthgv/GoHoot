@@ -1,4 +1,5 @@
 import { EVENTS } from "@razzia/common/constants"
+import { STATUS } from "@razzia/common/types/game/status"
 import type { Status } from "@razzia/common/types/game/status"
 import background from "@razzia/web/assets/background.png"
 import Button from "@razzia/web/components/Button"
@@ -9,6 +10,7 @@ import {
 } from "@razzia/web/features/game/contexts/socket-context"
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
 import { useQuestionStore } from "@razzia/web/features/game/stores/question"
+import { useManagerStore } from "@razzia/web/features/game/stores/manager"
 import { MANAGER_SKIP_BTN } from "@razzia/web/features/game/utils/constants"
 import clsx from "clsx"
 import { type PropsWithChildren, useEffect, useState } from "react"
@@ -29,7 +31,8 @@ const GameWrapper = ({
   onBack,
   manager,
 }: Props) => {
-  const { isConnected } = useSocket()
+  const { socket, isConnected } = useSocket()
+  const { gameId, inviteCode } = useManagerStore()
   const { player } = usePlayerStore()
   const { questionStates, setQuestionStates } = useQuestionStore()
   const { t } = useTranslation()
@@ -54,7 +57,9 @@ const GameWrapper = ({
   }, [statusName])
 
   const handleNext = () => {
-    setIsDisabled(true)
+    if (statusName !== STATUS.SHOW_ROOM) {
+      setIsDisabled(true)
+    }
     onNext?.()
   }
 
@@ -79,37 +84,81 @@ const GameWrapper = ({
         ) : (
           <>
             <div className="flex w-full justify-between p-4">
-              {questionStates && (
-                <div className="flex items-center rounded-md bg-white p-2 px-4 text-lg font-bold text-black">
-                  {`${questionStates.current} / ${questionStates.total}`}
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {manager && questionStates && questionStates.current > 1 && (
+                  <Button
+                    onClick={() => {
+                      const index = questionStates.current - 2
+                      socket.emit(EVENTS.MANAGER.GO_TO_QUESTION, {
+                        gameId: gameId ?? "",
+                        index,
+                      })
+                    }}
+                    className="bg-white px-4 font-bold text-black hover:bg-gray-200"
+                  >
+                    ←
+                  </Button>
+                )}
+                {questionStates && (
+                  <div className="flex items-center rounded-md bg-white p-2 px-4 text-lg font-bold text-black">
+                    {`${questionStates.current} / ${questionStates.total}`}
+                  </div>
+                )}
+              </div>
 
-              {manager && next && (
-                <Button
-                  className={clsx(
-                    "bg-white px-4 text-black hover:bg-gray-200",
-                    {
-                      "pointer-events-none": isDisabled,
-                    },
-                  )}
-                  onClick={handleNext}
-                >
-                  {t(next)}
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {manager && next && (
+                  <Button
+                    className={clsx(
+                      "bg-white px-4 text-black hover:bg-gray-200",
+                      {
+                        "pointer-events-none": isDisabled,
+                      },
+                    )}
+                    onClick={handleNext}
+                  >
+                    {t(next)}
+                  </Button>
+                )}
 
-              {manager && onBack && (
-                <Button
-                  onClick={onBack}
-                  className="bg-white px-4 text-black hover:bg-gray-200"
-                >
-                  {t("common:exit")}
-                </Button>
-              )}
+                {manager && onBack && (
+                  <Button
+                    onClick={onBack}
+                    className="bg-white px-4 text-black hover:bg-gray-200"
+                  >
+                    {t("common:exit")}
+                  </Button>
+                )}
+              </div>
             </div>
 
             {children}
+
+            {manager &&
+              statusName &&
+              statusName !== STATUS.FINISHED &&
+              statusName !== STATUS.SHOW_ROOM &&
+              statusName !== STATUS.WAIT &&
+              statusName !== STATUS.SHOW_START && (
+                <div className="fixed bottom-4 right-4 z-50">
+                  <Button
+                    onClick={() => {
+                      socket.emit(EVENTS.MANAGER.END_GAME, {
+                        gameId: gameId ?? "",
+                      })
+                    }}
+                    className="bg-red-600 px-4 font-bold text-white shadow-lg hover:bg-red-700 active:scale-95"
+                  >
+                    {t("game:endQuiz")}
+                  </Button>
+                </div>
+              )}
+
+            {manager && inviteCode && (
+              <div className="fixed bottom-4 left-4 z-50 rounded bg-black/60 px-3 py-1.5 text-xs font-semibold text-white shadow-md backdrop-blur-sm">
+                Game PIN: <span className="font-bold tracking-wider">{inviteCode}</span>
+              </div>
+            )}
 
             {!manager && (
               <div className="z-50 flex items-center justify-between bg-white px-4 py-2 text-lg font-bold text-white">

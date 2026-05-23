@@ -5,21 +5,25 @@ export const questionMediaValidator = z.object({
   type: z
     .enum([MEDIA_TYPES.IMAGE, MEDIA_TYPES.VIDEO, MEDIA_TYPES.AUDIO])
     .optional(),
-  url: z.url("errors:quizz.invalidMediaUrl"),
+  url: z.string().min(1, "errors:quizz.invalidMediaUrl"),
 })
 
 const questionValidator = z.object({
+  type: z.enum(["quiz", "slide", "puzzle"]).optional().default("quiz"),
   question: z.string().min(1, "errors:quizz.questionEmpty"),
+  text: z.string().optional(),
   media: questionMediaValidator.optional(),
   answers: z
     .array(z.string().min(1, "errors:quizz.answerEmpty"))
     .min(2, "errors:quizz.tooFewAnswers")
-    .max(4, "errors:quizz.tooManyAnswers"),
+    .max(7, "errors:quizz.tooManyAnswers")
+    .optional(),
   solutions: z
-    .union([z.number().int().min(0), z.array(z.number().int().min(0)).min(1)])
-    .transform((v) => (Array.isArray(v) ? v : [v])),
-  cooldown: z.number().int().min(3).max(15),
-  time: z.number().int().min(5).max(120),
+    .union([z.number().int().min(0), z.array(z.number().int().min(0))])
+    .optional()
+    .transform((v) => (v === undefined ? [] : Array.isArray(v) ? v : [v])),
+  cooldown: z.number().int().min(3).max(15).optional().default(5),
+  time: z.number().int().min(5).max(120).optional().default(20),
 })
 
 export const quizzValidator = z.object({

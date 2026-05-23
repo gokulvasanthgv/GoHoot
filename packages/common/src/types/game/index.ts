@@ -11,7 +11,7 @@ export interface Player {
 
 export interface Answer {
   playerId: string
-  answerId: number
+  answerIds: number[]
   points: number
 }
 
@@ -24,11 +24,15 @@ export interface QuestionMedia {
   url: string
 }
 
+export type QuestionType = "quiz" | "slide" | "puzzle"
+
 export interface Question {
+  type?: QuestionType
   question: string
+  text?: string
   media?: QuestionMedia
-  answers: string[]
-  solutions: number[]
+  answers?: string[]
+  solutions?: number[]
   cooldown: number
   time: number
 }
@@ -52,7 +56,7 @@ export interface GameUpdateQuestion {
 
 export interface PlayerAnswerRecord {
   playerName: string
-  answerId: number | null
+  answerIds: number[] | null
 }
 
 export type QuestionResult = Question & {
@@ -71,6 +75,7 @@ export interface GameResult {
   date: string
   players: GameResultPlayer[]
   questions: QuestionResult[]
+  mode?: "classic" | "accuracy"
 }
 
 export interface GameResultMeta {
@@ -78,4 +83,5 @@ export interface GameResultMeta {
   subject: string
   date: string
   playerCount: number
+  mode?: "classic" | "accuracy"
 }

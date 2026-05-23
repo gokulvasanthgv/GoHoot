@@ -49,6 +49,10 @@ export const usePlayerStore = create<PlayerStore<StatusDataMap>>((set) => ({
       gameId,
       player: { ...state.player, points: 0 },
     }))
+    if (gameId) {
+      localStorage.setItem("active_game_id", gameId)
+      document.cookie = `active_game_id=${encodeURIComponent(gameId)}; path=/; max-age=31536000; SameSite=Lax`
+    }
   },
 
   updatePoints: (points) =>
@@ -58,5 +62,9 @@ export const usePlayerStore = create<PlayerStore<StatusDataMap>>((set) => ({
 
   setStatus: (name, data) => set({ status: createStatus(name, data) }),
 
-  reset: () => set(initialState),
+  reset: () => {
+    localStorage.removeItem("active_game_id")
+    document.cookie = "active_game_id=; path=/; max-age=-1; SameSite=Lax"
+    set(initialState)
+  },
 }))

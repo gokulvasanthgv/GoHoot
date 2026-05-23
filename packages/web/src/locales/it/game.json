@@ -23,5 +23,8 @@
   "usernamePlaceholder": "Nome utente qui",
   "waitingForAnswers": "In attesa delle risposte dei giocatori",
   "waitingForPlayers": "In attesa di giocatori",
-  "wrong": "Peccato"
+  "wrong": "Peccato",
+  "goToQuestion": "Vai alla domanda precedente",
+  "selectQuestion": "Seleziona una domanda precedente",
+  "endQuiz": "Termina quiz"
 }

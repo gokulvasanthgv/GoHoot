@@ -27,28 +27,50 @@ const ResultModalTable = () => {
       </thead>
       <tbody className="divide-y divide-gray-100">
         {questionResult.playerAnswers.map((pa, i) => {
-          const isCorrect =
-            pa.answerId !== null &&
-            questionResult.solutions.includes(pa.answerId)
-          const answerLabel =
-            pa.answerId !== null ? ANSWERS_LABELS[pa.answerId % 4] : null
+          const isCorrect = (() => {
+            const answerIds = pa.answerIds
+            if (!answerIds || answerIds.length === 0) return false
+            if (questionResult.type === "puzzle") {
+              const totalAnswers = questionResult.answers?.length ?? 0
+              if (answerIds.length !== totalAnswers) return false
+              return answerIds.every((val, index) => val === index)
+            }
+            const solutions = questionResult.solutions || []
+            return answerIds.every((id) => solutions.includes(id))
+          })()
 
           return (
             <tr key={i} className="hover:bg-gray-50">
               <td className="px-5 py-2.5 font-medium">{pa.playerName}</td>
               <td className="px-4 py-2.5">
-                {pa.answerId !== null && answerLabel ? (
-                  <span
-                    className={clsx(
-                      "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-white",
-                      ANSWERS_COLORS[pa.answerId % 4],
-                    )}
-                  >
-                    <span className="font-bold">{answerLabel}</span>
-                    <span className="max-w-30 truncate">
-                      {questionResult.answers[pa.answerId]}
-                    </span>
-                  </span>
+                {pa.answerIds && pa.answerIds.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {pa.answerIds.map((val) => {
+                      const label =
+                        questionResult.type === "puzzle"
+                          ? `${val + 1}`
+                          : ANSWERS_LABELS[val % ANSWERS_LABELS.length]
+                      const color =
+                        questionResult.type === "puzzle"
+                          ? "bg-slate-500 text-white"
+                          : ANSWERS_COLORS[val % ANSWERS_COLORS.length]
+                      const text = questionResult.answers?.[val] || ""
+                      return (
+                        <span
+                          key={val}
+                          className={clsx(
+                            "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-white",
+                            color,
+                          )}
+                        >
+                          <span className="font-bold">{label}</span>
+                          {text && (
+                            <span className="max-w-30 truncate">{text}</span>
+                          )}
+                        </span>
+                      )
+                    })}
+                  </div>
                 ) : (
                   <span className="text-xs text-gray-400">—</span>
                 )}

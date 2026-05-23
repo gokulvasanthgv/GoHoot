@@ -1,6 +1,7 @@
 services:
-  razzia:
-    image: ralex91/razzia:latest
+  gohoot:
+    image: gohoot:latest
+    build: .
     ports:
       - "3000:3000"
     volumes:

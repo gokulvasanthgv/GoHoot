@@ -31,17 +31,20 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: 8855,
     host: "0.0.0.0",
     proxy: {
       "/ws": {
         target: "http://localhost:3001",
         ws: true,
       },
+      "/uploads": {
+        target: "http://localhost:3001",
+      },
     },
   },
   preview: {
-    port: 3000,
+    port: 8855,
     host: "0.0.0.0",
   },
   build: {

@@ -23,17 +23,33 @@ interface SocketContextValue {
   reconnect: () => void
 }
 
+const getCookie = (name: string): string | null => {
+  const matches = document.cookie.match(new RegExp(
+    "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, "\\$1") + "=([^;]*)"
+  ))
+  return matches ? decodeURIComponent(matches[1]) : null
+}
+
+const setCookie = (name: string, value: string, maxAge = 31536000) => {
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax`
+}
+
 const getClientId = (): string => {
   try {
-    const stored = localStorage.getItem("client_id")
+    const cookieStored = getCookie("client_id")
+    if (cookieStored) {
+      return cookieStored
+    }
 
-    if (stored) {
-      return stored
+    const localStorageStored = localStorage.getItem("client_id")
+    if (localStorageStored) {
+      setCookie("client_id", localStorageStored)
+      return localStorageStored
     }
 
     const newId = uuid()
     localStorage.setItem("client_id", newId)
-
+    setCookie("client_id", newId)
     return newId
   } catch {
     return uuid()

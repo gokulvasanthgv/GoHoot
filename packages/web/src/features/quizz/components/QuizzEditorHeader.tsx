@@ -12,13 +12,33 @@ import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 
 const QuizzEditorHeader = () => {
-  const { quizzId, subject, setSubject, questions } = useQuizzEditor()
+  const { quizzId, subject, setSubject, questions, setGlobalTimer } =
+    useQuizzEditor()
   const { socket } = useSocket()
   const navigate = useNavigate()
   const { t } = useTranslation()
 
   const handleChangeSubject = (e: ChangeEvent<HTMLInputElement>) => {
     setSubject(e.target.value)
+  }
+
+  const handleSetGlobalTimer = () => {
+    const rawVal = prompt(
+      "Enter a time limit in seconds for all questions (between 5 and 120):",
+      "20",
+    )
+    if (rawVal === null) return
+
+    const parsed = parseInt(rawVal, 10)
+    if (isNaN(parsed) || parsed < 5 || parsed > 120) {
+      toast.error(
+        "Invalid timer duration. Please enter a number between 5 and 120.",
+      )
+      return
+    }
+
+    setGlobalTimer(parsed)
+    toast.success(`Successfully set timer to ${parsed}s for all questions.`)
   }
 
   const handleSave = () => {
@@ -56,6 +76,12 @@ const QuizzEditorHeader = () => {
       </div>
 
       <div className="flex gap-2">
+        <Button
+          className="text-md border border-gray-200 bg-gray-100 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-200"
+          onClick={handleSetGlobalTimer}
+        >
+          Set Global Timer
+        </Button>
         <Button
           className="text-md bg-gray-200 px-4 py-2 font-semibold text-gray-600"
           onClick={() => navigate({ to: "/manager" })}

@@ -18,19 +18,44 @@ export class PlayerManager {
   join(socket: Socket, username: string): void {
     const clientId = socket.handshake.auth.clientId as string
 
-    if (this.findByClientId(clientId)) {
-      socket.emit(
-        EVENTS.GAME.ERROR_MESSAGE,
-        "errors:game.playerAlreadyConnected",
-      )
-
-      return
-    }
-
     const result = usernameValidator.safeParse(username)
 
     if (result.error) {
       socket.emit(EVENTS.GAME.ERROR_MESSAGE, result.error.issues[0].message)
+
+      return
+    }
+
+    const normalizedUsername = username.trim().toLowerCase()
+    const nameExists = this.players.some(
+      (p) => p.username.trim().toLowerCase() === normalizedUsername && p.clientId !== clientId,
+    )
+
+    if (nameExists) {
+      socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:auth.usernameTaken")
+
+      return
+    }
+
+    const existingPlayer = this.findByClientId(clientId)
+    if (existingPlayer) {
+      if (existingPlayer.connected && existingPlayer.id !== socket.id) {
+        const oldSocket = this.io.sockets.sockets.get(existingPlayer.id)
+        if (oldSocket) {
+          oldSocket.leave(this.gameId)
+          oldSocket.emit(EVENTS.GAME.RESET, "errors:game.sessionTakenOver")
+        }
+      }
+
+      existingPlayer.username = username
+      socket.join(this.gameId)
+      const oldSocketId = existingPlayer.id
+      this.updateSocketId(oldSocketId, socket.id)
+      existingPlayer.connected = true
+
+      this.io.to(this.getManagerId()).emit(EVENTS.MANAGER.NEW_PLAYER, existingPlayer)
+      this.io.to(this.gameId).emit(EVENTS.GAME.TOTAL_PLAYERS, this.players.length)
+      socket.emit(EVENTS.GAME.SUCCESS_JOIN, this.gameId)
 
       return
     }

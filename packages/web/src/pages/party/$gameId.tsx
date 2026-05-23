@@ -14,6 +14,7 @@ import {
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
+import { useEffect } from "react"
 
 const PlayerGamePage = () => {
   const navigate = useNavigate()
@@ -22,6 +23,12 @@ const PlayerGamePage = () => {
   const { status, setPlayer, setGameId, setStatus, reset } = usePlayerStore()
   const { setQuestionStates } = useQuestionStore()
   const { t } = useTranslation()
+
+  useEffect(() => {
+    if (socket.connected && gameIdParam && !status) {
+      socket.emit(EVENTS.PLAYER.RECONNECT, { gameId: gameIdParam })
+    }
+  }, [socket.connected, gameIdParam, socket, status])
 
   useEvent("connect", () => {
     if (gameIdParam) {

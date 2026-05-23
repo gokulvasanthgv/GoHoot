@@ -20,7 +20,7 @@ RUN pnpm build
 # ---- RUNNER ----
 FROM alpine:3.23 AS runner
 
-RUN apk add --no-cache nginx nodejs supervisor
+RUN apk add --no-cache nginx nodejs supervisor imagemagick
 
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/supervisord.conf /etc/supervisord.conf

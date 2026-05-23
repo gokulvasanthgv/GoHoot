@@ -18,6 +18,7 @@
     "delete": "Supprimer le résultat",
     "deleteConfirm": "Supprimer le résultat \"{{name}}\" ? Cette action est irréversible.",
     "deleted": "Résultat supprimé",
+    "export": "Exporter les résultats",
     "noAnswer": "Sans réponse",
     "none": "Aucun résultat pour l'instant, terminez une partie pour voir les rapports",
     "paginationOf": " sur ",

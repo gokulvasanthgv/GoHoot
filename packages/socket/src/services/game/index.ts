@@ -153,10 +153,12 @@ class Game {
   }
 
   private reconnectManager(socket: Socket) {
-    if (this._manager.connected) {
-      socket.emit(EVENTS.GAME.RESET, "errors:game.managerAlreadyConnected")
-
-      return
+    if (this._manager.connected && this._manager.id !== socket.id) {
+      const oldSocket = this.io.sockets.sockets.get(this._manager.id)
+      if (oldSocket) {
+        oldSocket.leave(this.gameId)
+        oldSocket.emit(EVENTS.GAME.RESET, "errors:game.sessionTakenOver")
+      }
     }
 
     socket.join(this.gameId)
@@ -171,6 +173,7 @@ class Game {
 
     socket.emit(EVENTS.MANAGER.SUCCESS_RECONNECT, {
       gameId: this.gameId,
+      inviteCode: this.inviteCode,
       currentQuestion: this.round.getReconnectInfo(),
       status,
       players: this.playerManager.getAll(),
@@ -189,10 +192,12 @@ class Game {
       return
     }
 
-    if (player.connected) {
-      socket.emit(EVENTS.GAME.RESET, "errors:game.playerAlreadyConnected")
-
-      return
+    if (player.connected && player.id !== socket.id) {
+      const oldSocket = this.io.sockets.sockets.get(player.id)
+      if (oldSocket) {
+        oldSocket.leave(this.gameId)
+        oldSocket.emit(EVENTS.GAME.RESET, "errors:game.sessionTakenOver")
+      }
     }
 
     socket.join(this.gameId)
@@ -255,12 +260,12 @@ class Game {
     this.cooldown.abort()
   }
 
-  async start(socket: Socket) {
-    await this.round.start(socket)
+  async start(socket: Socket, mode?: "classic" | "accuracy", options?: { shuffleQuestions?: boolean, doubleTime?: boolean }) {
+    await this.round.start(socket, mode, options)
   }
 
-  selectAnswer(socket: Socket, answerId: number) {
-    this.round.selectAnswer(socket, answerId)
+  selectAnswer(socket: Socket, answerIds: number[]) {
+    this.round.selectAnswer(socket, answerIds)
   }
 
   nextRound(socket: Socket) {
@@ -273,6 +278,14 @@ class Game {
 
   showLeaderboard() {
     this.round.showLeaderboard()
+  }
+
+  goToQuestion(socket: Socket, index: number) {
+    this.round.goToQuestion(socket, index)
+  }
+
+  endGame(socket: Socket) {
+    this.round.endGame(socket)
   }
 }
 

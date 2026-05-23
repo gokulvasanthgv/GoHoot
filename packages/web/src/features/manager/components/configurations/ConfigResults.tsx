@@ -58,6 +58,7 @@ const ConfigResults = () => {
               <p className="text-xs text-gray-400">
                 {formatDate(r.date)} -{" "}
                 {t("manager:result.playerCount", { count: r.playerCount })}
+                {r.mode && ` · ${r.mode === "accuracy" ? "Accuracy Mode" : "Classic Mode"}`}
               </p>
             </button>
             <AlertDialog

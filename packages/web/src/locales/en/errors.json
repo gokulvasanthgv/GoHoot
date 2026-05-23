@@ -2,7 +2,8 @@
   "auth": {
     "invalidInviteCode": "Invalid invite code",
     "usernameTooLong": "Username cannot exceed 20 characters",
-    "usernameTooShort": "Username cannot be less than 4 characters"
+    "usernameTooShort": "Username cannot be less than 4 characters",
+    "usernameTaken": "Username is already taken"
   },
   "game": {
     "expired": "Game expired",
@@ -34,7 +35,7 @@
     "questionEmpty": "Question cannot be empty",
     "subjectEmpty": "Subject cannot be empty",
     "tooFewAnswers": "A question must have at least 2 answers",
-    "tooManyAnswers": "A question cannot have more than 4 answers"
+    "tooManyAnswers": "A question cannot have more than 7 answers"
   },
   "route": {
     "back": "Go back home",

@@ -39,6 +39,8 @@ export const EVENTS = {
     NEXT_QUESTION: "manager:nextQuestion",
     SHOW_LEADERBOARD: "manager:showLeaderboard",
     GET_CONFIG: "manager:getConfig",
+    GO_TO_QUESTION: "manager:goToQuestion",
+    END_GAME: "manager:endGame",
     LOGOUT: "manager:logout",
     UNAUTHORIZED: "manager:unauthorized",
   },
@@ -51,6 +53,7 @@ export const EVENTS = {
     UPDATE_SUCCESS: "quizz:updateSuccess",
     DELETE: "quizz:delete",
     ERROR: "quizz:error",
+    UPLOAD_MEDIA: "quizz:uploadMedia",
   },
   RESULTS: {
     GET: "results:get",

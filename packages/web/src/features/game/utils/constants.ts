@@ -8,6 +8,7 @@ import Question from "@razzia/web/features/game/components/states/Question"
 import Responses from "@razzia/web/features/game/components/states/Responses"
 import Result from "@razzia/web/features/game/components/states/Result"
 import Room from "@razzia/web/features/game/components/states/Room"
+import Slide from "@razzia/web/features/game/components/states/Slide"
 import Start from "@razzia/web/features/game/components/states/Start"
 import Wait from "@razzia/web/features/game/components/states/Wait"
 
@@ -18,9 +19,12 @@ export const ANSWERS_COLORS = [
   "bg-[#56B4E9] text-white",
   "bg-[#3DBFA0] text-white",
   "bg-[#CC79A7] text-white",
+  "bg-[#9B59B6] text-white",
+  "bg-[#E74C3C] text-white",
+  "bg-[#1ABC9C] text-white",
 ]
 
-export const ANSWERS_LABELS = ["A", "B", "C", "D"]
+export const ANSWERS_LABELS = ["A", "B", "C", "D", "E", "F", "G"]
 
 export const GAME_STATES = {
   status: {
@@ -41,6 +45,7 @@ export const GAME_STATE_COMPONENTS = {
   [STATUS.SHOW_RESULT]: Result,
   [STATUS.SHOW_PREPARED]: Prepared,
   [STATUS.FINISHED]: PlayerFinished,
+  [STATUS.SHOW_SLIDE]: Slide,
 }
 
 export const GAME_STATE_COMPONENTS_MANAGER = {
@@ -72,6 +77,7 @@ export const MANAGER_SKIP_EVENTS = {
   [STATUS.SELECT_ANSWER]: EVENTS.MANAGER.ABORT_QUIZ,
   [STATUS.SHOW_RESPONSES]: EVENTS.MANAGER.SHOW_LEADERBOARD,
   [STATUS.SHOW_LEADERBOARD]: EVENTS.MANAGER.NEXT_QUESTION,
+  [STATUS.SHOW_SLIDE]: EVENTS.MANAGER.NEXT_QUESTION,
 } as const satisfies Partial<
   Record<keyof typeof GAME_STATE_COMPONENTS_MANAGER, string>
 >
@@ -94,4 +100,5 @@ export const MANAGER_SKIP_BTN = {
   [STATUS.SHOW_LEADERBOARD]: "common:next",
   [STATUS.FINISHED]: "common:exit",
   [STATUS.WAIT]: null,
+  [STATUS.SHOW_SLIDE]: "common:next",
 }

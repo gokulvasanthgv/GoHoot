@@ -23,6 +23,7 @@ interface QuizzEditorContextType {
   removeQuestion: (_index: number) => void
   reorderQuestions: (_from: number, _to: number) => void
   updateQuestion: (_index: number, _updates: Partial<QuestionWithId>) => void
+  setGlobalTimer: (_time: number) => void
 }
 
 const QuizzEditorContext = createContext<QuizzEditorContextType | null>(null)
@@ -96,6 +97,12 @@ export const QuizzEditorProvider = ({
     )
   }
 
+  const setGlobalTimer = (time: number) => {
+    setQuestions((prev) =>
+      prev.map((q) => (q.type !== "slide" ? { ...q, time } : q)),
+    )
+  }
+
   return (
     <QuizzEditorContext.Provider
       value={{
@@ -110,6 +117,7 @@ export const QuizzEditorProvider = ({
         removeQuestion,
         reorderQuestions,
         updateQuestion,
+        setGlobalTimer,
       }}
     >
       {children}

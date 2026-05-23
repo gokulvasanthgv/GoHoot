@@ -1,4 +1,4 @@
-import logo from "@razzia/web/assets/logo.svg"
+import logo from "@razzia/web/assets/gohoot-logo.webp"
 import GithubIcon from "@razzia/web/components/GithubIcon"
 import type { PropsWithChildren } from "react"
 
@@ -20,7 +20,7 @@ const Background = ({ children }: PropsWithChildren) => (
     >
       <GithubIcon size={14} />
       {/* oxlint-disable-next-line no-undef */}
-      Razzia - v{__APP_VERSION__}
+      GoHoot - v{__APP_VERSION__}
     </a>
   </section>
 )

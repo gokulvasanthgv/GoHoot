@@ -7,6 +7,7 @@ import {
   updateQuizz,
 } from "@razzia/socket/services/config"
 import manager, { emitConfig } from "@razzia/socket/services/manager"
+import { uploadMedia } from "@razzia/socket/services/upload"
 
 export const quizzSocketHandlers = ({ socket }: SocketContext) => {
   socket.on(
@@ -68,6 +69,23 @@ export const quizzSocketHandlers = ({ socket }: SocketContext) => {
           error instanceof Error ? error.message : "errors:quizz.failedToUpdate"
         socket.emit(EVENTS.QUIZZ.ERROR, message)
       }
+    }),
+  )
+
+  socket.on(
+    EVENTS.QUIZZ.UPLOAD_MEDIA,
+    manager.withAuth(socket, ({ filename, fileType, data }, callback) => {
+      ;(async () => {
+        try {
+          const result = await uploadMedia(filename, fileType, data)
+          callback(result)
+        } catch (error) {
+          console.error("Failed to upload media:", error)
+          callback({ success: false, error: "errors:quizz.uploadFailed" })
+        }
+      })().catch((err) => {
+        console.error("Unhandled socket upload promise error:", err)
+      })
     }),
   )
 }

@@ -104,6 +104,11 @@ export interface ClientToServerEvents {
   [EVENTS.MANAGER.ABORT_QUIZ]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.NEXT_QUESTION]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.SHOW_LEADERBOARD]: (_message: MessageGameId) => void
+  [EVENTS.MANAGER.GO_TO_QUESTION]: (_message: {
+    gameId: string
+    index: number
+  }) => void
+  [EVENTS.MANAGER.END_GAME]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.GET_CONFIG]: () => void
   [EVENTS.MANAGER.LOGOUT]: () => void
 
@@ -112,6 +117,14 @@ export interface ClientToServerEvents {
   [EVENTS.QUIZZ.SAVE]: (_quizz: unknown) => void
   [EVENTS.QUIZZ.UPDATE]: (_data: QuizzWithId) => void
   [EVENTS.QUIZZ.DELETE]: (_id: string) => void
+  [EVENTS.QUIZZ.UPLOAD_MEDIA]: (
+    _payload: { filename: string; fileType: string; data: Buffer },
+    _callback: (_response: {
+      success: boolean
+      url?: string
+      error?: string
+    }) => void,
+  ) => void
 
   // Player actions
   [EVENTS.PLAYER.JOIN]: (_inviteCode: string) => void
@@ -121,7 +134,7 @@ export interface ClientToServerEvents {
   [EVENTS.PLAYER.RECONNECT]: (_message: { gameId: string }) => void
   [EVENTS.PLAYER.LEAVE]: (_message: { gameId: string }) => void
   [EVENTS.PLAYER.SELECTED_ANSWER]: (
-    _message: MessageWithoutStatus<{ answerKey: number }>,
+    _message: MessageWithoutStatus<{ answerKey: number | number[] }>,
   ) => void
 
   // Results actions
