@@ -46,8 +46,8 @@ const Slide = ({ data: { question, text, media } }: Props) => {
             <div className={clsx(
               "flex items-center justify-center min-h-0 shrink overflow-hidden",
               isLandscape 
-                ? "max-h-[30vh] sm:max-h-[35vh] w-auto" 
-                : "max-h-[35vh] md:max-h-[50vh] w-full md:max-w-[45%]"
+                ? "h-[30vh] sm:h-[35vh] w-auto" 
+                : "h-[35vh] md:h-[50vh] w-full md:max-w-[45%]"
             )}>
               <QuestionMedia media={media} alt={question} className="max-h-full max-w-full object-contain" />
             </div>
