@@ -65,7 +65,7 @@ Or using Docker directly:
 docker run -d \
   -p 3000:3000 \
   -v ./config:/app/config \
-  gohoot:latest
+  gokulvasanthd/gohoot:latest
 ```
 
 **Configuration Volume:**
