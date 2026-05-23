@@ -7,6 +7,7 @@ type Props = PropsWithChildren &
     label: string
     correct?: boolean
     largeLabelOnly?: boolean
+    fontSizeClass?: string
   }
 
 const AnswerButton = ({
@@ -15,6 +16,7 @@ const AnswerButton = ({
   children,
   correct,
   largeLabelOnly,
+  fontSizeClass,
   ...otherProps
 }: Props) => {
   const CorrectIcon = correct ? Check : X
@@ -41,7 +43,7 @@ const AnswerButton = ({
   return (
     <button
       className={clsx(
-        "relative flex items-center gap-3 rounded-2xl px-4 py-3 sm:px-5 sm:py-4 md:py-5 lg:py-6 text-left cursor-pointer select-none touch-manipulation active:scale-[0.98] transition-all duration-100 w-full h-full",
+        "relative flex items-center gap-2 sm:gap-3 rounded-2xl px-3 py-2 sm:px-5 sm:py-4 text-left cursor-pointer select-none touch-manipulation active:scale-[0.98] transition-all duration-100 w-full h-full overflow-hidden",
         className,
       )}
       {...otherProps}
@@ -49,7 +51,10 @@ const AnswerButton = ({
       <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-black/20 text-sm font-extrabold sm:size-8 sm:rounded-xl md:size-10 md:text-lg lg:size-12 lg:text-xl">
         {label}
       </span>
-      <p className="w-full flex-1 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-extrabold break-words drop-shadow-md leading-normal">
+      <p className={clsx(
+        "w-full flex-1 font-extrabold break-words drop-shadow-md leading-tight max-h-full overflow-y-auto pr-1",
+        fontSizeClass || "text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl"
+      )}>
         {children}
       </p>
       {correct !== undefined && (

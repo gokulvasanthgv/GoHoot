@@ -155,10 +155,21 @@ const Answers = ({
     return "text-sm sm:text-base md:text-lg lg:text-xl font-bold"
   }
 
+  const maxAnswerLength = Math.max(...answers.map((a) => a.length))
+
+  const getOptionFontSizeClass = (maxLen: number) => {
+    if (maxLen < 20) return "text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl"
+    if (maxLen < 45) return "text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl"
+    if (maxLen < 75) return "text-[11px] sm:text-xs md:text-sm lg:text-base xl:text-lg"
+    return "text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base"
+  }
+
+  const optionFontSizeClass = getOptionFontSizeClass(maxAnswerLength)
+
   return (
     <div className="flex h-full flex-1 flex-col justify-between p-2 sm:p-4 select-none min-h-0">
       <div className={clsx("mx-auto flex w-full max-w-7xl flex-col items-center justify-center gap-2 px-4 min-h-0 shrink mb-2",
-        type === "puzzle" ? "shrink-0 py-1" : "flex-1"
+        (type === "puzzle" || !media) ? "shrink-0 py-1" : "flex-1"
       )}>
         <div className={clsx(
           "w-full overflow-y-auto px-2 shrink-0 flex items-center justify-center mb-1",
@@ -249,6 +260,7 @@ const Answers = ({
               <AnswerButton
                 key={key}
                 largeLabelOnly={shouldHideText}
+                fontSizeClass={optionFontSizeClass}
                 className={clsx(
                   ANSWERS_COLORS[key],
                   multiSelect &&
