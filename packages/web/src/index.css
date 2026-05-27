@@ -183,3 +183,97 @@ button:not(:disabled),
 .animate-bounce-custom {
   animation: bounceCustom 1.2s infinite ease-in-out;
 }
+
+@keyframes quizGlowWave {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    transform: translateY(-20px) scale(1.2);
+    box-shadow: 0 20px 30px rgba(255, 255, 255, 0.35);
+  }
+}
+
+.animate-quiz-wave {
+  animation: quizGlowWave 1.4s infinite ease-in-out;
+}
+
+@keyframes tfBalanceA {
+  0%, 100% {
+    transform: translateY(-8px) rotate(-4deg) scale(1.04);
+    box-shadow: 0 20px 30px rgba(255, 255, 255, 0.15);
+  }
+  50% {
+    transform: translateY(8px) rotate(4deg) scale(0.96);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@keyframes tfBalanceB {
+  0%, 100% {
+    transform: translateY(8px) rotate(4deg) scale(0.96);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    transform: translateY(-8px) rotate(-4deg) scale(1.04);
+    box-shadow: 0 20px 30px rgba(255, 255, 255, 0.15);
+  }
+}
+
+.animate-tf-balance-a {
+  animation: tfBalanceA 2.2s infinite ease-in-out;
+}
+
+.animate-tf-balance-b {
+  animation: tfBalanceB 2.2s infinite ease-in-out;
+}
+
+.puzzle-container-card {
+  transform: perspective(1000px) rotateX(12deg) rotateY(-12deg) rotateZ(2deg);
+  transform-style: preserve-3d;
+}
+
+@keyframes puzzleTile1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(8px, 0) scale(0.97); }
+  50% { transform: translate(8px, 8px) scale(1.03); }
+  75% { transform: translate(0, 8px) scale(0.97); }
+}
+
+@keyframes puzzleTile2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(0, 8px) scale(0.97); }
+  50% { transform: translate(-8px, 8px) scale(1.03); }
+  75% { transform: translate(-8px, 0) scale(0.97); }
+}
+
+@keyframes puzzleTile3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(0, -8px) scale(0.97); }
+  50% { transform: translate(8px, -8px) scale(1.03); }
+  75% { transform: translate(8px, 0) scale(0.97); }
+}
+
+@keyframes puzzleTile4 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(-8px, 0) scale(0.97); }
+  50% { transform: translate(-8px, -8px) scale(1.03); }
+  75% { transform: translate(0, -8px) scale(0.97); }
+}
+
+.animate-puzzle-tile-1 {
+  animation: puzzleTile1 2.4s infinite ease-in-out;
+}
+
+.animate-puzzle-tile-2 {
+  animation: puzzleTile2 2.4s infinite ease-in-out;
+}
+
+.animate-puzzle-tile-3 {
+  animation: puzzleTile3 2.4s infinite ease-in-out;
+}
+
+.animate-puzzle-tile-4 {
+  animation: puzzleTile4 2.4s infinite ease-in-out;
+}

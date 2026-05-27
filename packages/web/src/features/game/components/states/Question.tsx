@@ -51,26 +51,70 @@ const Question = ({ data: { question, media, cooldown, answersCount, type } }: P
         {type !== "slide" && (
           <div className="flex flex-col items-center gap-2 mt-4 shrink-0 anim-show">
             <span className="text-sm font-semibold uppercase tracking-widest text-white/60">
-              {type === "true_or_false" ? "True or False" : `${count} Options`}
+              {type === "true_or_false" ? "True or False" : type === "puzzle" ? "Puzzle" : `${count} Options`}
             </span>
-            <div className="flex gap-3">
-              {Array.from({ length: count }).map((_, i) => (
+            {type === "true_or_false" ? (
+              <div className="flex gap-4 sm:gap-6 mt-2 justify-center">
                 <div
-                  key={i}
                   className={clsx(
-                    "flex size-10 items-center justify-center rounded-full text-lg font-bold shadow-lg border border-white/10 text-white animate-bounce-custom",
-                    ANSWERS_COLORS[i]
+                    "flex h-16 w-24 sm:h-20 sm:w-32 items-center justify-center rounded-2xl text-xl sm:text-2xl font-black shadow-2xl border border-white/20 text-white animate-tf-balance-a",
+                    ANSWERS_COLORS[0]
                   )}
-                  style={{
-                    animationDelay: `${i * 0.15}s`,
-                    animationDuration: "1.0s",
-                    animationIterationCount: "infinite"
-                  }}
                 >
-                  {ANSWERS_LABELS[i]}
+                  {ANSWERS_LABELS[0]}
                 </div>
-              ))}
-            </div>
+                <div
+                  className={clsx(
+                    "flex h-16 w-24 sm:h-20 sm:w-32 items-center justify-center rounded-2xl text-xl sm:text-2xl font-black shadow-2xl border border-white/20 text-white animate-tf-balance-b",
+                    ANSWERS_COLORS[1]
+                  )}
+                >
+                  {ANSWERS_LABELS[1]}
+                </div>
+              </div>
+            ) : type === "puzzle" ? (
+              <div className="puzzle-container-card mt-2 rounded-2xl bg-slate-900/80 p-4 border border-slate-700/50 backdrop-blur-md shadow-2xl">
+                <div className="grid grid-cols-2 gap-3 min-w-[140px] sm:min-w-[180px]">
+                  {Array.from({ length: count }).map((_, i) => {
+                    const animClass =
+                      i === 0 ? "animate-puzzle-tile-1" :
+                      i === 1 ? "animate-puzzle-tile-2" :
+                      i === 2 ? "animate-puzzle-tile-3" :
+                      i === 3 ? "animate-puzzle-tile-4" : "animate-bounce-custom"
+
+                    return (
+                      <div
+                        key={i}
+                        className={clsx(
+                          "flex size-12 sm:size-16 items-center justify-center rounded-xl text-lg sm:text-xl font-black shadow-lg border border-white/10 text-white",
+                          ANSWERS_COLORS[i],
+                          animClass
+                        )}
+                      >
+                        {ANSWERS_LABELS[i]}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-3 mt-2 justify-center">
+                {Array.from({ length: count }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={clsx(
+                      "flex size-10 sm:size-12 items-center justify-center rounded-full text-base sm:text-lg font-black shadow-lg border border-white/15 text-white animate-quiz-wave",
+                      ANSWERS_COLORS[i]
+                    )}
+                    style={{
+                      animationDelay: `${i * 0.12}s`,
+                    }}
+                  >
+                    {ANSWERS_LABELS[i]}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
