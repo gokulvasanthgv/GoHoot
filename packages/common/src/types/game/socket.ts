@@ -132,6 +132,7 @@ export interface ClientToServerEvents {
   [EVENTS.MANAGER.GET_CONFIG]: () => void
   [EVENTS.MANAGER.LOGOUT]: () => void
   [EVENTS.MANAGER.UPDATE_SETTINGS]: (_settings: { defaultWallpaper?: string; defaultAudio?: string }) => void
+  [EVENTS.MANAGER.UPDATE_GAME_SETTINGS]: (_message: { gameId: string; wallpaper?: string; audio?: string }) => void
 
   // Quizz actions
   [EVENTS.QUIZZ.GET]: (_id: string) => void

@@ -19,8 +19,8 @@ const registry = Registry.getInstance()
 class Game {
   readonly gameId: string
   readonly inviteCode: string
-  readonly wallpaper?: string
-  readonly audio?: string
+  wallpaper?: string
+  audio?: string
 
   private readonly io: Server
   private readonly _manager: {
@@ -150,6 +150,18 @@ class Game {
     if (this.playerManager.kick(socket, playerId)) {
       this.playerStatus.delete(playerId)
     }
+  }
+
+  updateSettings(wallpaper?: string, audio?: string) {
+    if (wallpaper !== undefined) this.wallpaper = wallpaper
+    if (audio !== undefined) this.audio = audio
+
+    this.io.to(this.gameId).emit(EVENTS.GAME.STATUS, {
+      name: this.lastBroadcastStatus?.name ?? STATUS.WAIT,
+      data: this.lastBroadcastStatus?.data ?? { text: "game:waitingForPlayers" },
+      wallpaper: this.wallpaper,
+      audio: this.audio,
+    })
   }
 
   // Reconnect

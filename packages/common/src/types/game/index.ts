@@ -35,6 +35,7 @@ export interface Question {
   solutions?: number[]
   cooldown: number
   time: number
+  doublePoints?: boolean
 }
 
 export interface Quizz {

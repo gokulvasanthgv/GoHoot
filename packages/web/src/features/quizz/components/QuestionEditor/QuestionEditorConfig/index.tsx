@@ -2,14 +2,14 @@ import ConfigField from "@razzia/web/features/quizz/components/QuestionEditor/Qu
 import ConfigNumberInput from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigNumberInput"
 import ConfigSection from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigSection"
 import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
-import { Clock, Timer, Layout, AlignLeft } from "lucide-react"
+import { Clock, Timer, Layout, AlignLeft, Sparkles } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 const QuestionEditorConfig = () => {
   const { currentQuestion, currentIndex, updateQuestion } = useQuizzEditor()
   const { t } = useTranslation()
 
-  const handleUpdateQuestion = (key: string) => (value: string | number) => {
+  const handleUpdateQuestion = (key: string) => (value: string | number | boolean) => {
     updateQuestion(currentIndex, { [key]: value })
   }
 
@@ -106,6 +106,28 @@ const QuestionEditorConfig = () => {
             />
             <ConfigField.Description>
               {t("quizz:question.config.answerTimeHint")}
+            </ConfigField.Description>
+          </ConfigField>
+
+          <ConfigField>
+            <ConfigField.Label
+              icon={<Sparkles className="size-4 text-indigo-500" />}
+              label="Points Modifier"
+            />
+            <div className="flex items-center mt-2.5">
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!!currentQuestion.doublePoints}
+                  onChange={(e) => handleUpdateQuestion("doublePoints")(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                <span className="ml-3 text-sm font-semibold text-gray-700">Double Points</span>
+              </label>
+            </div>
+            <ConfigField.Description>
+              Award 2x score multiplier for correct answers.
             </ConfigField.Description>
           </ConfigField>
         </ConfigSection>

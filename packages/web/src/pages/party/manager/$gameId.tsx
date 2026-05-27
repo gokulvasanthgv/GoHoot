@@ -23,8 +23,8 @@ import { Trophy, Zap, Shuffle, Timer, Check, Settings, EyeOff } from "lucide-rea
 const ManagerGamePage = () => {
   const navigate = useNavigate()
   const { gameId: gameIdParam } = useParams({ from: "/party/manager/$gameId" })
-  const { socket } = useSocket()
-  const { gameId, status, setGameId, setInviteCode, setStatus, setPlayers, reset, setWallpaper, setAudio } =
+  const { socket, clientId } = useSocket()
+  const { gameId, status, setGameId, setInviteCode, setStatus, setPlayers, reset, setWallpaper, setAudio, wallpaper, audio } =
     useManagerStore()
   const { setQuestionStates } = useQuestionStore()
   const { t } = useTranslation()
@@ -35,6 +35,99 @@ const ManagerGamePage = () => {
   const [doubleTime, setDoubleTime] = useState(false)
   const [shuffleAnswers, setShuffleAnswers] = useState(false)
   const [hideTextOnClient, setHideTextOnClient] = useState(false)
+
+  const [isUploadingWallpaper, setIsUploadingWallpaper] = useState(false)
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false)
+
+  const handleWallpaperUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file.")
+      return
+    }
+
+    setIsUploadingWallpaper(true)
+    const url = `/uploads?filename=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}&clientId=${encodeURIComponent(clientId ?? "")}`
+
+    fetch(url, {
+      method: "POST",
+      body: file,
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Upload failed")
+        return res.json()
+      })
+      .then((response: { success: boolean; url?: string; error?: string }) => {
+        setIsUploadingWallpaper(false)
+        if (response.success && response.url) {
+          socket.emit(EVENTS.MANAGER.UPDATE_GAME_SETTINGS, {
+            gameId: gameId ?? "",
+            wallpaper: response.url,
+          })
+          toast.success("Wallpaper updated successfully")
+        } else {
+          toast.error(response.error || "Upload failed")
+        }
+      })
+      .catch(() => {
+        setIsUploadingWallpaper(false)
+        toast.error("Upload failed")
+      })
+  }
+
+  const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith("audio/")) {
+      toast.error("Please upload an audio file.")
+      return
+    }
+
+    setIsUploadingAudio(true)
+    const url = `/uploads?filename=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}&clientId=${encodeURIComponent(clientId ?? "")}`
+
+    fetch(url, {
+      method: "POST",
+      body: file,
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Upload failed")
+        return res.json()
+      })
+      .then((response: { success: boolean; url?: string; error?: string }) => {
+        setIsUploadingAudio(false)
+        if (response.success && response.url) {
+          socket.emit(EVENTS.MANAGER.UPDATE_GAME_SETTINGS, {
+            gameId: gameId ?? "",
+            audio: response.url,
+          })
+          toast.success("Background music updated successfully")
+        } else {
+          toast.error(response.error || "Upload failed")
+        }
+      })
+      .catch(() => {
+        setIsUploadingAudio(false)
+        toast.error("Upload failed")
+      })
+  }
+
+  const handleWallpaperChange = (val: string) => {
+    socket.emit(EVENTS.MANAGER.UPDATE_GAME_SETTINGS, {
+      gameId: gameId ?? "",
+      wallpaper: val,
+    })
+  }
+
+  const handleAudioChange = (val: string) => {
+    socket.emit(EVENTS.MANAGER.UPDATE_GAME_SETTINGS, {
+      gameId: gameId ?? "",
+      audio: val,
+    })
+  }
 
   const confirmStartGame = () => {
     socket.emit(EVENTS.MANAGER.START_GAME, {
@@ -215,6 +308,63 @@ const ManagerGamePage = () => {
                       Flat score (1000 pts) per correct answer. Same rank for matching scores.
                     </span>
                   </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-700 block mb-3">
+                  Background & Music
+                </label>
+                <div className="space-y-4 rounded-xl border border-gray-150 p-4 bg-gray-50/50">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-gray-500 block">
+                      Quiz Wallpaper
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={wallpaper || ""}
+                        onChange={(e) => handleWallpaperChange(e.target.value)}
+                        placeholder="Wallpaper image URL..."
+                        className="flex-1 rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-705 outline-none hover:border-gray-300 focus:border-indigo-500"
+                      />
+                      <label className="shrink-0 flex items-center justify-center rounded-lg bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-600 hover:bg-indigo-100 cursor-pointer transition select-none active:scale-95">
+                        {isUploadingWallpaper ? "Uploading..." : "Upload"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleWallpaperUpload}
+                          className="hidden"
+                          disabled={isUploadingWallpaper}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-gray-500 block">
+                      Background Music
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={audio || ""}
+                        onChange={(e) => handleAudioChange(e.target.value)}
+                        placeholder="Background music URL..."
+                        className="flex-1 rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-705 outline-none hover:border-gray-300 focus:border-indigo-500"
+                      />
+                      <label className="shrink-0 flex items-center justify-center rounded-lg bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-600 hover:bg-indigo-100 cursor-pointer transition select-none active:scale-95">
+                        {isUploadingAudio ? "Uploading..." : "Upload"}
+                        <input
+                          type="file"
+                          accept="audio/*"
+                          onChange={handleAudioUpload}
+                          className="hidden"
+                          disabled={isUploadingAudio}
+                        />
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </div>
 

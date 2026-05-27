@@ -284,6 +284,7 @@ export class RoundManager {
       type: question.type ?? "quiz",
       hideTextOnClient: this.options.hideTextOnClient,
       answersCount: question.type === "true_or_false" ? 2 : (question.answers?.length ?? 0),
+      doublePoints: !!question.doublePoints,
     })
 
     await sleep(question.cooldown)
@@ -379,6 +380,7 @@ export class RoundManager {
         let points = 0
 
         if (playerAnswer) {
+          const pointsMultiplier = question.doublePoints ? 2 : 1
           if (question.type === "puzzle") {
             const hasCorrectAnswers =
               playerAnswer.answerIds.length === (question.answers?.length ?? 0)
@@ -388,7 +390,7 @@ export class RoundManager {
                 .map((idx) => this.currentShuffleMap![idx])
                 .every((val, index) => val === index)
             isCorrect = isOrderCorrect
-            points = isCorrect ? Math.round(playerAnswer.points) : 0
+            points = isCorrect ? Math.round(playerAnswer.points * pointsMultiplier) : 0
           } else {
             const submitted = playerAnswer.answerIds
             const solutions = question.solutions ?? []
@@ -401,7 +403,7 @@ export class RoundManager {
               const totalSolutions = solutions.length
               isCorrect = true
               points = Math.round(
-                playerAnswer.points * (correctCount / totalSolutions),
+                playerAnswer.points * (correctCount / totalSolutions) * pointsMultiplier,
               )
             } else {
               isCorrect = false

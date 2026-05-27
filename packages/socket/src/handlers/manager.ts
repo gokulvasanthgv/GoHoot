@@ -2,8 +2,11 @@ import { EVENTS } from "@razzia/common/constants"
 import type { SocketContext } from "@razzia/socket/handlers/types"
 import { getGameConfig, saveGameConfig } from "@razzia/socket/services/config"
 import manager, { emitConfig } from "@razzia/socket/services/manager"
+import Registry from "@razzia/socket/services/registry"
 
 export const managerSocketHandlers = ({ socket }: SocketContext) => {
+  const registry = Registry.getInstance()
+
   socket.on(
     EVENTS.MANAGER.GET_CONFIG,
     manager.withAuth(socket, () => {
@@ -24,6 +27,13 @@ export const managerSocketHandlers = ({ socket }: SocketContext) => {
         console.error("Failed to update settings:", err)
         socket.emit(EVENTS.MANAGER.ERROR_MESSAGE, "errors:failedToSaveSettings")
       }
+    }),
+  )
+
+  socket.on(
+    EVENTS.MANAGER.UPDATE_GAME_SETTINGS,
+    manager.withAuth(socket, ({ gameId, wallpaper, audio }: { gameId: string; wallpaper?: string; audio?: string }) => {
+      registry.getGameById(gameId)?.updateSettings(wallpaper, audio)
     }),
   )
 

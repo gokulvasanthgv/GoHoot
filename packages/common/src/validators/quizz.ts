@@ -24,6 +24,7 @@ const questionValidator = z.object({
     .transform((v) => (v === undefined ? [] : Array.isArray(v) ? v : [v])),
   cooldown: z.number().int().min(3).max(15).optional().default(5),
   time: z.number().int().min(5).max(120).optional().default(20),
+  doublePoints: z.boolean().optional(),
 })
 
 export const quizzValidator = z.object({

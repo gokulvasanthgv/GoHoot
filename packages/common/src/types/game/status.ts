@@ -31,6 +31,7 @@ export interface CommonStatusDataMap {
     type?: QuestionType
     hideTextOnClient?: boolean
     answersCount?: number
+    doublePoints?: boolean
   }
   SELECT_ANSWER: {
     question: string

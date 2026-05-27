@@ -44,6 +44,7 @@ export const EVENTS = {
     LOGOUT: "manager:logout",
     UNAUTHORIZED: "manager:unauthorized",
     UPDATE_SETTINGS: "manager:updateSettings",
+    UPDATE_GAME_SETTINGS: "manager:updateGameSettings",
   },
   QUIZZ: {
     GET: "quizz:get",

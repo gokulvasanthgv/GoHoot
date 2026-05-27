@@ -4,12 +4,13 @@ import { SFX, ANSWERS_COLORS, ANSWERS_LABELS } from "@razzia/web/features/game/u
 import { useEffect } from "react"
 import useSound from "use-sound"
 import clsx from "clsx"
+import { Sparkles } from "lucide-react"
 
 interface Props {
   data: CommonStatusDataMap["SHOW_QUESTION"]
 }
 
-const Question = ({ data: { question, media, cooldown, answersCount, type } }: Props) => {
+const Question = ({ data: { question, media, cooldown, answersCount, type, doublePoints } }: Props) => {
   const [sfxShow] = useSound(SFX.SHOW_SOUND, { volume: 0.5 })
 
   useEffect(() => {
@@ -39,6 +40,14 @@ const Question = ({ data: { question, media, cooldown, answersCount, type } }: P
             {question}
           </h2>
         </div>
+
+        {doublePoints && (
+          <div className="animate-double-points shrink-0 my-1 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 px-6 py-2 rounded-full font-black text-white text-sm sm:text-base tracking-wider shadow-[0_0_20px_rgba(245,158,11,0.5)] border border-yellow-300/30 flex items-center gap-2 select-none uppercase">
+            <Sparkles className="size-4 animate-spin-slow text-yellow-100" />
+            Double Points
+            <Sparkles className="size-4 animate-spin-slow text-yellow-100" />
+          </div>
+        )}
 
         {media?.type === MEDIA_TYPES.IMAGE && (
           <img
