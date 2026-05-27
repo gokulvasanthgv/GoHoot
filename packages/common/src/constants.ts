@@ -43,6 +43,7 @@ export const EVENTS = {
     END_GAME: "manager:endGame",
     LOGOUT: "manager:logout",
     UNAUTHORIZED: "manager:unauthorized",
+    UPDATE_SETTINGS: "manager:updateSettings",
   },
   QUIZZ: {
     GET: "quizz:get",

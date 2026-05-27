@@ -40,6 +40,15 @@
   "tabs": {
     "play": "Play",
     "quizz": "Quizz",
-    "results": "Results"
+    "results": "Results",
+    "settings": "Settings"
+  },
+  "settings": {
+    "defaultWallpaper": "Default Wallpaper",
+    "defaultAudio": "Default Background Music",
+    "upload": "Upload File",
+    "uploading": "Uploading...",
+    "save": "Save Settings",
+    "saved": "Settings saved successfully"
   }
 }

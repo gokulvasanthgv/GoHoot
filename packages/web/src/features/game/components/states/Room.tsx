@@ -10,23 +10,44 @@ import { useManagerStore } from "@razzia/web/features/game/stores/manager"
 import { useOnClickOutside } from "@razzia/web/hooks/useOnClickOutside"
 import { Maximize2, X } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import useSound from "use-sound"
 
 interface Props {
   data: ManagerStatusDataMap["SHOW_ROOM"]
 }
 
 const Room = ({ data: { text, inviteCode } }: Props) => {
-  const { gameId } = useManagerStore()
+  const { gameId, players, volume, isMuted, audio } = useManagerStore()
   const { socket } = useSocket()
   const webUrl = window.location.origin
-  const { players } = useManagerStore()
   const [playerList, setPlayerList] = useState<Player[]>(players)
   const [totalPlayers, setTotalPlayers] = useState(0)
   const [qrOpen, setQrOpen] = useState(false)
   const qrContentRef = useRef<HTMLDivElement>(null)
   const { t } = useTranslation()
+
+  const musicSource = audio || "/sounds/answersMusic.mp3"
+
+  const [playMusic, { stop: stopMusic, sound }] = useSound(musicSource, {
+    volume: isMuted ? 0 : volume,
+    interrupt: true,
+    loop: true,
+  })
+
+  useEffect(() => {
+    playMusic()
+    return () => {
+      stopMusic()
+    }
+  }, [playMusic, stopMusic])
+
+  useEffect(() => {
+    if (sound) {
+      sound.volume(isMuted ? 0 : volume)
+    }
+  }, [sound, volume, isMuted])
 
   useOnClickOutside({ ref: qrContentRef, handler: () => setQrOpen(false) })
 

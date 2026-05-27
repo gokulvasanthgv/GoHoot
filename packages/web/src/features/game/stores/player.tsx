@@ -14,6 +14,8 @@ interface PlayerStore<T> {
   gameId: string | null
   player: PlayerState | null
   status: Status<T> | null
+  wallpaper: string | null
+  audio: string | null
 
   setGameId: (_gameId: string | null) => void
 
@@ -23,6 +25,8 @@ interface PlayerStore<T> {
   updatePoints: (_points: number) => void
 
   setStatus: <K extends keyof T>(_name: K, _data: T[K]) => void
+  setWallpaper: (_wallpaper: string | null) => void
+  setAudio: (_audio: string | null) => void
 
   reset: () => void
 }
@@ -31,6 +35,8 @@ const initialState = {
   gameId: null,
   player: null,
   status: null,
+  wallpaper: null,
+  audio: null,
 }
 
 export const usePlayerStore = create<PlayerStore<StatusDataMap>>((set) => ({
@@ -61,6 +67,8 @@ export const usePlayerStore = create<PlayerStore<StatusDataMap>>((set) => ({
     })),
 
   setStatus: (name, data) => set({ status: createStatus(name, data) }),
+  setWallpaper: (wallpaper) => set({ wallpaper }),
+  setAudio: (audio) => set({ audio }),
 
   reset: () => {
     localStorage.removeItem("active_game_id")

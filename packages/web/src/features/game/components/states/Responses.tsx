@@ -1,5 +1,7 @@
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
 import AnswerButton from "@razzia/web/features/game/components/AnswerButton"
+import QuestionMedia from "@razzia/web/components/QuestionMedia"
+import { useManagerStore } from "@razzia/web/features/game/stores/manager"
 import {
   ANSWERS_COLORS,
   ANSWERS_LABELS,
@@ -15,17 +17,21 @@ interface Props {
 }
 
 const Responses = ({
-  data: { question, answers, responses, solutions, type },
+  data: { question, answers, responses, solutions, type, media },
 }: Props) => {
   const [percentages, setPercentages] = useState<Record<string, string>>({})
   const [isMusicPlaying, setIsMusicPlaying] = useState(false)
+  const [showMedia, setShowMedia] = useState(false)
+
+  const { audio: managerAudio, volume, isMuted } = useManagerStore()
+  const musicSource = managerAudio || SFX.ANSWERS.MUSIC
 
   const [sfxResults] = useSound(SFX.RESULTS_SOUND, {
     volume: 0.2,
   })
 
-  const [playMusic, { stop: stopMusic }] = useSound(SFX.ANSWERS.MUSIC, {
-    volume: 0.2,
+  const [playMusic, { stop: stopMusic, sound }] = useSound(musicSource, {
+    volume: isMuted ? 0 : volume,
     onplay: () => {
       setIsMusicPlaying(true)
     },
@@ -33,6 +39,12 @@ const Responses = ({
       setIsMusicPlaying(false)
     },
   })
+
+  useEffect(() => {
+    if (sound) {
+      sound.volume(isMuted ? 0 : volume)
+    }
+  }, [sound, volume, isMuted])
 
   useEffect(() => {
     stopMusic()
@@ -73,16 +85,35 @@ const Responses = ({
   return (
     <div className="flex h-full flex-1 flex-col justify-between p-2 sm:p-4 select-none min-h-0">
       <div className="mx-auto flex w-full max-w-7xl flex-initial shrink-0 flex-col items-center justify-center gap-2 px-4 min-h-0 mb-2">
-        <div className="w-full max-h-[18vh] sm:max-h-[22vh] overflow-y-auto px-2 shrink-0 flex items-center justify-center mb-1">
+        <div className="w-full max-h-[18vh] sm:max-h-[22vh] overflow-y-auto px-2 shrink-0 flex items-center justify-between mb-1">
+          <div className="w-24 shrink-0"></div>
           <h2 className={clsx(
-            "text-center text-white drop-shadow-lg leading-tight w-full break-words",
+            "text-center text-white drop-shadow-lg leading-tight flex-1 break-words",
             getFontSizeClass(question.length)
           )}>
             {question}
           </h2>
+          {media ? (
+            <button
+              onClick={() => setShowMedia((prev) => !prev)}
+              className="ml-4 shrink-0 rounded-lg bg-white px-3 py-1.5 text-sm font-bold text-black hover:bg-gray-200 shadow-md active:scale-95 transition-all duration-100"
+            >
+              {showMedia ? "Show Chart" : "Show Media"}
+            </button>
+          ) : (
+            <div className="w-24 shrink-0"></div>
+          )}
         </div>
 
-        {isPuzzle ? (
+        {showMedia && media ? (
+          <div className="h-[22vh] sm:h-[26vh] md:h-[30vh] flex items-center justify-center shrink min-h-0 overflow-hidden mt-4 w-full">
+            <QuestionMedia
+              media={media}
+              alt={question}
+              className="max-h-full max-w-full object-contain rounded-lg shadow-md"
+            />
+          </div>
+        ) : isPuzzle ? (
           <div className="mt-4 grid flex-1 max-h-[25vh] min-h-[120px] w-full max-w-lg grid-cols-2 gap-4 px-2">
             <div className="flex h-full w-full flex-col justify-end self-end">
               <div
@@ -150,7 +181,7 @@ const Responses = ({
             ))}
           </div>
         ) : (
-          <div className="mx-auto w-full max-w-7xl grid grid-cols-2 auto-rows-fr gap-2 px-2 text-xl font-extrabold text-white sm:text-2xl md:text-3xl flex-1 min-h-0 pb-4">
+          <div className="mx-auto w-full max-w-7xl grid grid-cols-2 auto-rows-fr gap-2 px-2 text-xl font-extrabold text-white sm:text-2xl md:text-3xl flex-1 h-0 pb-4">
             {answers.map((answer, key) => (
               <AnswerButton
                 key={key}

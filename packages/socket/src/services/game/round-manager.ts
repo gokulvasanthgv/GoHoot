@@ -131,7 +131,7 @@ export class RoundManager {
 
     if (this.options.shuffleAnswers) {
       this.questions.forEach((q) => {
-        if (q.type === "slide" || q.type === "puzzle" || !q.answers || q.answers.length <= 1) {
+        if (q.type === "slide" || q.type === "puzzle" || q.type === "true_or_false" || !q.answers || q.answers.length <= 1) {
           return
         }
 
@@ -283,6 +283,7 @@ export class RoundManager {
       cooldown: question.cooldown,
       type: question.type ?? "quiz",
       hideTextOnClient: this.options.hideTextOnClient,
+      answersCount: question.type === "true_or_false" ? 2 : (question.answers?.length ?? 0),
     })
 
     await sleep(question.cooldown)

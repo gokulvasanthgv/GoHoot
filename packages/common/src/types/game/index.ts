@@ -24,7 +24,7 @@ export interface QuestionMedia {
   url: string
 }
 
-export type QuestionType = "quiz" | "slide" | "puzzle"
+export type QuestionType = "quiz" | "slide" | "puzzle" | "true_or_false"
 
 export interface Question {
   type?: QuestionType
@@ -40,6 +40,8 @@ export interface Question {
 export interface Quizz {
   subject: string
   questions: Question[]
+  wallpaper?: string
+  incompatible?: boolean
 }
 
 export type QuizzWithId = Quizz & { id: string }
@@ -47,6 +49,7 @@ export type QuizzWithId = Quizz & { id: string }
 export interface QuizzMeta {
   id: string
   subject: string
+  incompatible?: boolean
 }
 
 export interface GameUpdateQuestion {

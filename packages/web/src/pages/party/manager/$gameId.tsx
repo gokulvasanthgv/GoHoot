@@ -24,7 +24,7 @@ const ManagerGamePage = () => {
   const navigate = useNavigate()
   const { gameId: gameIdParam } = useParams({ from: "/party/manager/$gameId" })
   const { socket } = useSocket()
-  const { gameId, inviteCode, status, setGameId, setInviteCode, setStatus, setPlayers, reset } =
+  const { gameId, status, setGameId, setInviteCode, setStatus, setPlayers, reset, setWallpaper, setAudio } =
     useManagerStore()
   const { setQuestionStates } = useQuestionStore()
   const { t } = useTranslation()
@@ -38,7 +38,7 @@ const ManagerGamePage = () => {
 
   const confirmStartGame = () => {
     socket.emit(EVENTS.MANAGER.START_GAME, {
-      gameId,
+      gameId: gameId ?? "",
       mode: gameMode,
       options: {
         shuffleQuestions,
@@ -50,9 +50,11 @@ const ManagerGamePage = () => {
     setShowPreGameMenu(false)
   }
 
-  useEvent(EVENTS.GAME.STATUS, ({ name, data }) => {
+  useEvent(EVENTS.GAME.STATUS, ({ name, data, wallpaper, audio }) => {
     if (name in GAME_STATE_COMPONENTS_MANAGER) {
       setStatus(name, data)
+      setWallpaper(wallpaper ?? null)
+      setAudio(audio ?? null)
     }
   })
 
@@ -76,6 +78,8 @@ const ManagerGamePage = () => {
       status: reconnectStatus,
       players,
       currentQuestion,
+      wallpaper,
+      audio,
     }) => {
       setGameId(reconnectGameId)
       if (reconnectInviteCode) {
@@ -84,6 +88,8 @@ const ManagerGamePage = () => {
       setStatus(reconnectStatus.name, reconnectStatus.data)
       setPlayers(players)
       setQuestionStates(currentQuestion)
+      setWallpaper(wallpaper ?? null)
+      setAudio(audio ?? null)
     },
   )
 

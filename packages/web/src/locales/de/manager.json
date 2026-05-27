@@ -40,6 +40,15 @@
   "tabs": {
     "play": "Spielen",
     "quizz": "Quiz",
-    "results": "Ergebnisse"
+    "results": "Ergebnisse",
+    "settings": "Einstellungen"
+  },
+  "settings": {
+    "defaultWallpaper": "Standard-Hintergrundbild",
+    "defaultAudio": "Standard-Hintergrundmusik",
+    "upload": "Datei hochladen",
+    "uploading": "Wird hochgeladen...",
+    "save": "Einstellungen speichern",
+    "saved": "Einstellungen erfolgreich gespeichert"
   }
 }

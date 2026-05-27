@@ -14,14 +14,18 @@ const QuestionEditorConfig = () => {
   }
 
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newType = e.target.value as "quiz" | "slide" | "puzzle"
+    const newType = e.target.value as "quiz" | "slide" | "puzzle" | "true_or_false"
     const updates: any = { type: newType }
     if (newType === "slide") {
       updates.answers = undefined
       updates.solutions = undefined
+    } else if (newType === "true_or_false") {
+      updates.answers = ["True", "False"]
+      updates.solutions = [0]
     } else if (
       !currentQuestion.answers ||
-      currentQuestion.answers.length === 0
+      currentQuestion.answers.length === 0 ||
+      currentQuestion.type === "true_or_false"
     ) {
       updates.answers = ["", ""]
       updates.solutions = [0]
@@ -44,6 +48,7 @@ const QuestionEditorConfig = () => {
             className="w-full rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-700 outline-none hover:border-gray-300 focus:border-indigo-500"
           >
             <option value="quiz">Quiz Question</option>
+            <option value="true_or_false">True or False</option>
             <option value="puzzle">Puzzle Question</option>
             <option value="slide">Information Slide</option>
           </select>

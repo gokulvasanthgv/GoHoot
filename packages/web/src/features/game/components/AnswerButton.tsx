@@ -1,6 +1,6 @@
 import clsx from "clsx"
 import { Check, X } from "lucide-react"
-import type { ButtonHTMLAttributes, PropsWithChildren } from "react"
+import { type ButtonHTMLAttributes, type PropsWithChildren, useLayoutEffect, useRef } from "react"
 
 type Props = PropsWithChildren &
   ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -20,6 +20,53 @@ const AnswerButton = ({
   ...otherProps
 }: Props) => {
   const CorrectIcon = correct ? Check : X
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const textRef = useRef<HTMLParagraphElement>(null)
+
+  useLayoutEffect(() => {
+    const button = buttonRef.current
+    const text = textRef.current
+    if (!button || !text || largeLabelOnly) return
+
+    const adjustFontSize = () => {
+      const origOverflow = text.style.overflow
+      text.style.overflow = "hidden"
+      let min = 8
+      let max = 32
+      let optimal = min
+
+      while (min <= max) {
+        const mid = Math.floor((min + max) / 2)
+        text.style.setProperty("font-size", `${mid}px`, "important")
+
+        const isOverflowing =
+          text.scrollHeight > text.clientHeight ||
+          button.scrollHeight > button.clientHeight ||
+          text.scrollWidth > text.clientWidth
+
+        if (isOverflowing) {
+          max = mid - 1
+        } else {
+          optimal = mid
+          min = mid + 1
+        }
+      }
+
+      text.style.setProperty("font-size", `${optimal}px`, "important")
+      text.style.overflow = origOverflow
+    }
+
+    const observer = new ResizeObserver(() => {
+      adjustFontSize()
+    })
+
+    observer.observe(button)
+    adjustFontSize()
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [children, largeLabelOnly])
 
   if (largeLabelOnly) {
     return (
@@ -42,6 +89,7 @@ const AnswerButton = ({
 
   return (
     <button
+      ref={buttonRef}
       className={clsx(
         "relative flex items-center gap-2 sm:gap-3 rounded-2xl px-3 py-2 sm:px-5 sm:py-4 text-left cursor-pointer select-none touch-manipulation active:scale-[0.98] transition-all duration-100 w-full h-full overflow-hidden",
         className,
@@ -51,10 +99,13 @@ const AnswerButton = ({
       <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-black/20 text-sm font-extrabold sm:size-8 sm:rounded-xl md:size-10 md:text-lg lg:size-12 lg:text-xl">
         {label}
       </span>
-      <p className={clsx(
-        "w-full flex-1 font-extrabold break-words drop-shadow-md leading-tight max-h-full overflow-y-auto pr-1",
-        fontSizeClass || "text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl"
-      )}>
+      <p
+        ref={textRef}
+        className={clsx(
+          "w-full flex-1 font-extrabold break-words drop-shadow-md leading-tight max-h-full overflow-y-auto pr-1",
+          fontSizeClass || "text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl"
+        )}
+      >
         {children}
       </p>
       {correct !== undefined && (

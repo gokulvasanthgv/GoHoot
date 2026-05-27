@@ -30,6 +30,7 @@ export interface CommonStatusDataMap {
     cooldown: number
     type?: QuestionType
     hideTextOnClient?: boolean
+    answersCount?: number
   }
   SELECT_ANSWER: {
     question: string

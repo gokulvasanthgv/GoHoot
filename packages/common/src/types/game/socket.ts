@@ -35,8 +35,14 @@ export interface ServerToClientEvents {
   [EVENTS.GAME.STATUS]: (_data: {
     name: Status
     data: StatusDataMap[Status]
+    wallpaper?: string
+    audio?: string
   }) => void
-  [EVENTS.GAME.SUCCESS_ROOM]: (_data: string) => void
+  [EVENTS.GAME.SUCCESS_ROOM]: (_data: string | {
+    gameId: string
+    alreadyJoined: boolean
+    username?: string
+  }) => void
   [EVENTS.GAME.SUCCESS_JOIN]: (_gameId: string) => void
   [EVENTS.GAME.TOTAL_PLAYERS]: (_count: number) => void
   [EVENTS.GAME.ERROR_MESSAGE]: (_message: string) => void
@@ -55,15 +61,20 @@ export interface ServerToClientEvents {
     status: { name: Status; data: StatusDataMap[Status] }
     player: { username: string; points: number }
     currentQuestion: GameUpdateQuestion
+    wallpaper?: string
+    audio?: string
   }) => void
   [EVENTS.PLAYER.UPDATE_LEADERBOARD]: (_data: { leaderboard: Player[] }) => void
 
   // Manager events
   [EVENTS.MANAGER.SUCCESS_RECONNECT]: (_data: {
     gameId: string
+    inviteCode?: string
     status: { name: Status; data: StatusDataMap[Status] }
     players: Player[]
     currentQuestion: GameUpdateQuestion
+    wallpaper?: string
+    audio?: string
   }) => void
   [EVENTS.MANAGER.CONFIG]: (_config: ManagerConfig) => void
   [EVENTS.QUIZZ.DATA]: (_quizz: QuizzWithId) => void
@@ -100,7 +111,16 @@ export interface ClientToServerEvents {
     gameId: string
     playerId: string
   }) => void
-  [EVENTS.MANAGER.START_GAME]: (_message: MessageGameId) => void
+  [EVENTS.MANAGER.START_GAME]: (_message: {
+    gameId: string
+    mode?: "classic" | "accuracy"
+    options?: {
+      shuffleQuestions?: boolean
+      doubleTime?: boolean
+      shuffleAnswers?: boolean
+      hideTextOnClient?: boolean
+    }
+  }) => void
   [EVENTS.MANAGER.ABORT_QUIZ]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.NEXT_QUESTION]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.SHOW_LEADERBOARD]: (_message: MessageGameId) => void
@@ -111,6 +131,7 @@ export interface ClientToServerEvents {
   [EVENTS.MANAGER.END_GAME]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.GET_CONFIG]: () => void
   [EVENTS.MANAGER.LOGOUT]: () => void
+  [EVENTS.MANAGER.UPDATE_SETTINGS]: (_settings: { defaultWallpaper?: string; defaultAudio?: string }) => void
 
   // Quizz actions
   [EVENTS.QUIZZ.GET]: (_id: string) => void

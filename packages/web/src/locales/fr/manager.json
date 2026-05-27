@@ -40,6 +40,15 @@
   "tabs": {
     "play": "Jouer",
     "quizz": "Quizz",
-    "results": "Résultats"
+    "results": "Résultats",
+    "settings": "Paramètres"
+  },
+  "settings": {
+    "defaultWallpaper": "Fond d'écran par défaut",
+    "defaultAudio": "Musique de fond par défaut",
+    "upload": "Télécharger le fichier",
+    "uploading": "Téléchargement...",
+    "save": "Enregistrer les paramètres",
+    "saved": "Paramètres enregistrés avec succès"
   }
 }

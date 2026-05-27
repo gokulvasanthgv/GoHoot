@@ -15,6 +15,8 @@ interface QuizzEditorContextType {
   quizzId: string | null
   subject: string
   setSubject: (_subject: string) => void
+  wallpaper: string
+  setWallpaper: (_wallpaper: string) => void
   questions: QuestionWithId[]
   currentIndex: number
   currentQuestion: QuestionWithId
@@ -52,6 +54,9 @@ export const QuizzEditorProvider = ({
 }: QuizzEditorProviderProps) => {
   const [subject, setSubject] = useState(
     initialData?.subject ?? "Untitled Quizz",
+  )
+  const [wallpaper, setWallpaper] = useState(
+    initialData?.wallpaper ?? "",
   )
   const [questions, setQuestions] = useState<QuestionWithId[]>(
     initialData
@@ -109,6 +114,8 @@ export const QuizzEditorProvider = ({
         quizzId: initialData?.id ?? null,
         subject,
         setSubject,
+        wallpaper,
+        setWallpaper,
         questions,
         currentIndex,
         currentQuestion,

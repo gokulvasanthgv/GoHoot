@@ -9,12 +9,12 @@ export const questionMediaValidator = z.object({
 })
 
 const questionValidator = z.object({
-  type: z.enum(["quiz", "slide", "puzzle"]).optional().default("quiz"),
+  type: z.enum(["quiz", "slide", "puzzle", "true_or_false"]).optional().default("quiz"),
   question: z.string().min(1, "errors:quizz.questionEmpty"),
   text: z.string().optional(),
   media: questionMediaValidator.optional(),
   answers: z
-    .array(z.string().min(1, "errors:quizz.answerEmpty"))
+    .array(z.string().min(1, "errors:quizz.answerEmpty").max(65, "errors:quizz.answerTooLong"))
     .min(2, "errors:quizz.tooFewAnswers")
     .max(7, "errors:quizz.tooManyAnswers")
     .optional(),
@@ -29,6 +29,7 @@ const questionValidator = z.object({
 export const quizzValidator = z.object({
   subject: z.string().min(1, "errors:quizz.subjectEmpty"),
   questions: z.array(questionValidator).min(1, "errors:quizz.noQuestions"),
+  wallpaper: z.string().optional(),
 })
 
 export type QuizzValidated = z.infer<typeof quizzValidator>

@@ -12,7 +12,7 @@ import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 
 const QuizzEditorHeader = () => {
-  const { quizzId, subject, setSubject, questions, setGlobalTimer } =
+  const { quizzId, subject, setSubject, questions, setGlobalTimer, wallpaper } =
     useQuizzEditor()
   const { socket } = useSocket()
   const navigate = useNavigate()
@@ -43,9 +43,9 @@ const QuizzEditorHeader = () => {
 
   const handleSave = () => {
     if (quizzId) {
-      socket.emit(EVENTS.QUIZZ.UPDATE, { id: quizzId, subject, questions })
+      socket.emit(EVENTS.QUIZZ.UPDATE, { id: quizzId, subject, questions, wallpaper })
     } else {
-      socket.emit(EVENTS.QUIZZ.SAVE, { subject, questions })
+      socket.emit(EVENTS.QUIZZ.SAVE, { subject, questions, wallpaper })
     }
   }
 

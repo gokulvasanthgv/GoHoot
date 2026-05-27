@@ -15,16 +15,21 @@ const QuestionEditorAnswers = () => {
     return null
   }
 
+  const isTrueOrFalse = currentQuestion.type === "true_or_false"
+
   const updateAnswer = (index: number, value: string) => {
+    if (isTrueOrFalse) return
     const next = [...(currentQuestion.answers || [])]
     next[index] = value
     updateQuestion(currentIndex, { answers: next })
   }
 
-  const answersList = currentQuestion.answers || []
+  const answersList = isTrueOrFalse
+    ? ["True", "False"]
+    : currentQuestion.answers || []
 
   const addAnswer = () => {
-    if (answersList.length >= 7) {
+    if (answersList.length >= 7 || isTrueOrFalse) {
       return
     }
 
@@ -32,7 +37,7 @@ const QuestionEditorAnswers = () => {
   }
 
   const removeAnswer = () => {
-    if (answersList.length <= 2) {
+    if (answersList.length <= 2 || isTrueOrFalse) {
       return
     }
 
@@ -49,6 +54,11 @@ const QuestionEditorAnswers = () => {
   }
 
   const toggleSolution = (index: number) => {
+    if (isTrueOrFalse) {
+      updateQuestion(currentIndex, { solutions: [index] })
+      return
+    }
+
     const current = currentQuestion.solutions || []
 
     if (current.includes(index)) {
@@ -71,14 +81,14 @@ const QuestionEditorAnswers = () => {
         <div className="flex gap-2">
           <button
             onClick={removeAnswer}
-            disabled={answersList.length <= 2}
+            disabled={answersList.length <= 2 || isTrueOrFalse}
             className="flex size-7 items-center justify-center rounded-lg bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-40"
           >
             <Minus className="size-4" />
           </button>
           <button
             onClick={addAnswer}
-            disabled={answersList.length >= 7}
+            disabled={answersList.length >= 7 || isTrueOrFalse}
             className="flex size-7 items-center justify-center rounded-lg bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-40"
           >
             <Plus className="size-4" />
@@ -110,6 +120,8 @@ const QuestionEditorAnswers = () => {
                   }
                   value={answer}
                   onChange={(e) => updateAnswer(i, e.target.value)}
+                  maxLength={65}
+                  readOnly={isTrueOrFalse}
                 />
                 {!isPuzzle && (
                   <button

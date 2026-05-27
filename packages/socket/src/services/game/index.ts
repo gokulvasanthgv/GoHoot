@@ -6,7 +6,7 @@ import {
   type Status,
   type StatusDataMap,
 } from "@razzia/common/types/game/status"
-import { saveResult } from "@razzia/socket/services/config"
+import { saveResult, getGameConfig } from "@razzia/socket/services/config"
 import { CooldownTimer } from "@razzia/socket/services/game/cooldown-timer"
 import { PlayerManager } from "@razzia/socket/services/game/player-manager"
 import { RoundManager } from "@razzia/socket/services/game/round-manager"
@@ -19,6 +19,8 @@ const registry = Registry.getInstance()
 class Game {
   readonly gameId: string
   readonly inviteCode: string
+  readonly wallpaper?: string
+  readonly audio?: string
 
   private readonly io: Server
   private readonly _manager: {
@@ -54,6 +56,10 @@ class Game {
       clientId,
       connected: true,
     }
+
+    const gameConfig = getGameConfig()
+    this.wallpaper = quizz.wallpaper || gameConfig.defaultWallpaper
+    this.audio = gameConfig.defaultAudio
 
     this.cooldown = new CooldownTimer(io, this.gameId)
 
@@ -107,7 +113,11 @@ class Game {
   private broadcastStatus<T extends Status>(status: T, data: StatusDataMap[T]) {
     const statusData = { name: status, data }
     this.lastBroadcastStatus = statusData
-    this.io.to(this.gameId).emit(EVENTS.GAME.STATUS, statusData)
+    this.io.to(this.gameId).emit(EVENTS.GAME.STATUS, {
+      ...statusData,
+      wallpaper: this.wallpaper,
+      audio: this.audio,
+    })
   }
 
   private sendStatus<T extends Status>(
@@ -123,7 +133,11 @@ class Game {
       this.playerStatus.set(target, statusData)
     }
 
-    this.io.to(target).emit(EVENTS.GAME.STATUS, statusData)
+    this.io.to(target).emit(EVENTS.GAME.STATUS, {
+      ...statusData,
+      wallpaper: this.wallpaper,
+      audio: this.audio,
+    })
   }
 
   // Player actions
@@ -177,6 +191,8 @@ class Game {
       currentQuestion: this.round.getReconnectInfo(),
       status,
       players: this.playerManager.getAll(),
+      wallpaper: this.wallpaper,
+      audio: this.audio,
     })
     socket.emit(EVENTS.GAME.TOTAL_PLAYERS, this.playerManager.count())
 
@@ -224,6 +240,8 @@ class Game {
       currentQuestion: this.round.getReconnectInfo(),
       status,
       player: { username: player.username, points: player.points },
+      wallpaper: this.wallpaper,
+      audio: this.audio,
     })
     socket.emit(EVENTS.GAME.TOTAL_PLAYERS, this.playerManager.count())
 

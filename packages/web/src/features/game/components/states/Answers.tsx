@@ -45,11 +45,27 @@ const Answers = ({
     volume: 0.1,
   })
 
-  const [playMusic, { stop: stopMusic }] = useSound(SFX.ANSWERS.MUSIC, {
-    volume: 0.2,
+  const managerAudio = useManagerStore((state) => state.audio)
+  const playerAudio = usePlayerStore((state) => state.audio)
+  const activeAudio = isManager ? managerAudio : playerAudio
+  const musicSource = activeAudio || SFX.ANSWERS.MUSIC
+
+  const managerVolume = useManagerStore((state) => state.volume)
+  const managerMuted = useManagerStore((state) => state.isMuted)
+  const volume = isManager ? managerVolume : 0.2
+  const isMuted = isManager ? managerMuted : false
+
+  const [playMusic, { stop: stopMusic, sound }] = useSound(musicSource, {
+    volume: isMuted ? 0 : volume,
     interrupt: true,
     loop: true,
   })
+
+  useEffect(() => {
+    if (sound) {
+      sound.volume(isMuted ? 0 : volume)
+    }
+  }, [sound, volume, isMuted])
 
   useEffect(() => {
     if (type === "puzzle") {
@@ -78,18 +94,7 @@ const Answers = ({
     sfxPop()
   }
 
-  const movePuzzleItem = (index: number, direction: number) => {
-    const nextIndex = index + direction
-    if (nextIndex < 0 || nextIndex >= puzzleItems.length) return
 
-    setPuzzleItems((prev) => {
-      const items = [...prev]
-      const [moved] = items.splice(index, 1)
-      items.splice(nextIndex, 0, moved)
-      return items
-    })
-    sfxPop()
-  }
 
   const handleDragEnd = (result: any) => {
     if (!result.destination) return
@@ -135,7 +140,6 @@ const Answers = ({
     return () => {
       stopMusic()
     }
-    // oxlint-disable-next-line
   }, [playMusic])
 
   useEvent(EVENTS.GAME.COOLDOWN, (sec) => {

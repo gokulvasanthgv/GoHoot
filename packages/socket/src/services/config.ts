@@ -11,6 +11,12 @@ import { resolve } from "path"
 
 interface GameConfig {
   managerPassword: string
+  defaultWallpaper?: string
+  defaultAudio?: string
+}
+
+export const saveGameConfig = (config: GameConfig): void => {
+  fs.writeFileSync(getPath("game.json"), JSON.stringify(config, null, 2))
 }
 
 const inContainerPath = process.env.CONFIG_PATH
@@ -73,7 +79,34 @@ export const getGameConfig = (): GameConfig => {
 }
 
 export const getQuizzMeta = () =>
-  getQuizz().map(({ id, subject }) => ({ id, subject }))
+  getQuizz().map(({ id, subject, incompatible }) => ({ id, subject, incompatible }))
+
+export const loadQuizz = (id: string): QuizzWithId => {
+  const filePath = getPath(`quizz/${id}.json`)
+
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Quizz "${id}" not found`)
+  }
+
+  const data = fs.readFileSync(filePath, "utf-8")
+  const parsed = JSON.parse(data)
+  const result = quizzValidator.safeParse(parsed)
+
+  if (!result.success) {
+    if (parsed && typeof parsed.subject === "string" && Array.isArray(parsed.questions)) {
+      return {
+        id,
+        subject: parsed.subject,
+        questions: parsed.questions,
+        wallpaper: parsed.wallpaper,
+        incompatible: true
+      } as any
+    }
+    throw new Error(`Invalid quizz "${id}"`)
+  }
+
+  return { id, ...result.data }
+}
 
 export const getQuizzById = (id: string) => {
   const filePath = getPath(`quizz/${id}.json`)
@@ -107,10 +140,25 @@ export const getQuizz = () => {
     const quizz: QuizzWithId[] = files.flatMap((file) => {
       const data = fs.readFileSync(getPath(`quizz/${file}`), "utf-8")
       const id = file.replace(".json", "")
-      const result = quizzValidator.safeParse(JSON.parse(data))
+      let parsed: any
+      try {
+        parsed = JSON.parse(data)
+      } catch {
+        return []
+      }
+
+      const result = quizzValidator.safeParse(parsed)
 
       if (!result.success) {
-        console.warn(`Invalid quizz config "${file}":`, result.error.issues)
+        if (parsed && typeof parsed.subject === "string" && Array.isArray(parsed.questions)) {
+          return [{
+            id,
+            subject: parsed.subject,
+            questions: parsed.questions,
+            wallpaper: parsed.wallpaper,
+            incompatible: true
+          } as any]
+        }
 
         return []
       }

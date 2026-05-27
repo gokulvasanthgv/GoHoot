@@ -14,6 +14,10 @@ interface ManagerStore<T> {
   inviteCode: string | null
   status: Status<T> | null
   players: Player[]
+  wallpaper: string | null
+  audio: string | null
+  volume: number
+  isMuted: boolean
 
   setConfig: (_config: ManagerConfig) => void
   setGameId: (_gameId: string | null) => void
@@ -21,6 +25,10 @@ interface ManagerStore<T> {
   setStatus: <K extends keyof T>(_name: K, _data: T[K]) => void
   resetStatus: () => void
   setPlayers: (_players: Player[]) => void
+  setWallpaper: (_wallpaper: string | null) => void
+  setAudio: (_audio: string | null) => void
+  setVolume: (_volume: number) => void
+  setIsMuted: (_isMuted: boolean) => void
 
   reset: () => void
 }
@@ -31,6 +39,10 @@ const initialState = {
   inviteCode: null,
   status: null,
   players: [],
+  wallpaper: null,
+  audio: null,
+  volume: 0.2,
+  isMuted: false,
 }
 
 export const useManagerStore = create<ManagerStore<StatusDataMap>>((set) => ({
@@ -45,6 +57,10 @@ export const useManagerStore = create<ManagerStore<StatusDataMap>>((set) => ({
   resetStatus: () => set({ status: null }),
 
   setPlayers: (players) => set({ players }),
+  setWallpaper: (wallpaper) => set({ wallpaper }),
+  setAudio: (audio) => set({ audio }),
+  setVolume: (volume) => set({ volume }),
+  setIsMuted: (isMuted) => set({ isMuted }),
 
   reset: () => set(initialState),
 }))

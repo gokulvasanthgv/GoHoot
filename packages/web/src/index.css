@@ -168,3 +168,18 @@ button:not(:disabled),
     transform: scale(1);
   }
 }
+
+@keyframes bounceCustom {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    transform: translateY(-16px) scale(1.15);
+    box-shadow: 0 20px 25px -5px rgba(255, 255, 255, 0.25);
+  }
+}
+
+.animate-bounce-custom {
+  animation: bounceCustom 1.2s infinite ease-in-out;
+}
