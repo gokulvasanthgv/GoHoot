@@ -52,6 +52,10 @@ export const EVENTS = {
     DELETE_USER: "manager:deleteUser",
     GET_CURRENT_USER: "manager:getCurrentUser",
     CURRENT_USER: "manager:currentUser",
+    CHANGE_PASSWORD: "manager:changePassword",
+    ADMIN_RESET_PASSWORD: "manager:adminResetPassword",
+    FORGOT_PASSWORD: "manager:forgotPassword",
+    DISMISS_NOTIFICATION: "manager:dismissNotification",
   },
   QUIZZ: {
     GET: "quizz:get",

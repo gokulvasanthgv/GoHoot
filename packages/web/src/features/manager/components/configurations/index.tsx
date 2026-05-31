@@ -2,7 +2,7 @@ import { EVENTS } from "@razzia/common/constants"
 import type { ManagerConfig } from "@razzia/common/types/manager"
 import Card from "@razzia/web/components/Card"
 import LanguageSwitcher from "@razzia/web/components/LanguageSwitcher"
-import { useSocket } from "@razzia/web/features/game/contexts/socket-context"
+import { useEvent, useSocket } from "@razzia/web/features/game/contexts/socket-context"
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
 import { useUserStore } from "@razzia/web/features/game/stores/user"
 import ConfigManageQuizz from "@razzia/web/features/manager/components/configurations/ConfigManageQuizz"
@@ -13,7 +13,8 @@ import ConfigUsers from "@razzia/web/features/manager/components/configurations/
 import ConfigTrash from "@razzia/web/features/manager/components/configurations/ConfigTrash"
 import ConfigTabButton from "@razzia/web/features/manager/components/configurations/ConfigTabButton"
 import { ConfigProvider } from "@razzia/web/features/manager/contexts/config-context"
-import { LogOut, ChevronLeft, ChevronRight } from "lucide-react"
+import { LogOut, ChevronLeft, ChevronRight, Bell } from "lucide-react"
+import toast from "react-hot-toast"
 import { useState, useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "@tanstack/react-router"
@@ -31,6 +32,39 @@ const Configurations = ({ data }: Props) => {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const tabsRef = useRef<HTMLDivElement>(null)
+
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [notificationsList, setNotificationsList] = useState<any[]>(data.notifications || [])
+  const [resettingReqId, setResettingReqId] = useState<string | null>(null)
+  const [resetPasswordValue, setResetPasswordValue] = useState("")
+
+  useEvent("manager:notifications", (reqs: any[]) => {
+    setNotificationsList(reqs)
+  })
+
+  useEvent("manager:adminPasswordResetSuccess", () => {
+    toast.success("User password reset successful")
+  })
+
+  const handleDismissNotification = (requestId: string) => {
+    socket.emit("manager:dismissNotification", { requestId })
+    toast.success("Request dismissed")
+  }
+
+  const handleNotificationReset = (username: string, requestId: string) => {
+    if (resetPasswordValue.length < 4) {
+      toast.error("Password must be at least 4 characters")
+      return
+    }
+    const userObj = data.users?.find(u => u.username.toLowerCase() === username.toLowerCase())
+    if (userObj) {
+      socket.emit(EVENTS.MANAGER.ADMIN_RESET_PASSWORD, { userId: userObj.id, newPassword: resetPasswordValue })
+      setResettingReqId(null)
+      setResetPasswordValue("")
+    } else {
+      toast.error("User not found in system")
+    }
+  }
 
   const scrollTabs = (direction: "left" | "right") => {
     if (tabsRef.current) {
@@ -107,6 +141,91 @@ const Configurations = ({ data }: Props) => {
               Join Game
             </button>
             <LanguageSwitcher />
+
+            {user?.role === "admin" && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative rounded-sm p-1.5 text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition cursor-pointer"
+                  title="Notifications"
+                >
+                  <Bell className="size-4" />
+                  {notificationsList.length > 0 && (
+                    <span className="absolute top-1 right-1 flex h-2 w-2 items-center justify-center rounded-full bg-red-500 ring-1 ring-white">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
+                    </span>
+                  )}
+                </button>
+
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 rounded-lg bg-white shadow-xl ring-1 ring-black/5 z-50 p-4 border border-gray-100 max-h-80 overflow-y-auto">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-2 mb-3">
+                      <h4 className="font-bold text-gray-800 text-sm">Reset Requests</h4>
+                      <span className="text-xs text-gray-400 font-medium">{notificationsList.length} pending</span>
+                    </div>
+                    {notificationsList.length === 0 ? (
+                      <p className="text-xs text-gray-400 text-center py-4">No pending requests</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {notificationsList.map((req) => (
+                          <div key={req.id} className="flex flex-col gap-2 p-2 bg-gray-50 rounded-lg text-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-gray-700">{req.username}</span>
+                              <span className="text-[10px] text-gray-400">{new Date(req.createdAt).toLocaleTimeString()}</span>
+                            </div>
+                            {resettingReqId === req.id ? (
+                              <div className="flex items-center gap-2 mt-1">
+                                <input
+                                  type="password"
+                                  value={resetPasswordValue}
+                                  onChange={(e) => setResetPasswordValue(e.target.value)}
+                                  placeholder="New password"
+                                  className="flex-1 px-2 py-1 border border-gray-200 rounded text-[10px] bg-white focus:outline-none"
+                                />
+                                <button
+                                  onClick={() => handleNotificationReset(req.username, req.id)}
+                                  className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-[10px] font-bold"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setResettingReqId(null)
+                                    setResetPasswordValue("")
+                                  }}
+                                  className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-[10px] font-medium"
+                                >
+                                  X
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 justify-end mt-1">
+                                <button
+                                  onClick={() => {
+                                    setResettingReqId(req.id)
+                                    setResetPasswordValue("")
+                                  }}
+                                  className="px-2 py-1 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-md transition"
+                                >
+                                  Reset Pass
+                                </button>
+                                <button
+                                  onClick={() => handleDismissNotification(req.id)}
+                                  className="px-2 py-1 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition"
+                                >
+                                  Dismiss
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <button
               className="rounded-sm p-1.5 text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition"
               onClick={handleLogout}

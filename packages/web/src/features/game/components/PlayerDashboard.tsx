@@ -6,11 +6,12 @@ import { useEvent, useSocket } from "@razzia/web/features/game/contexts/socket-c
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
 import { useUserStore } from "@razzia/web/features/game/stores/user"
 import { useNavigate } from "@tanstack/react-router"
-import { LogOut, LayoutDashboard, Play, CheckCircle2, XCircle, ArrowRight, Award, History, Info, ChevronDown, ChevronUp } from "lucide-react"
+import { LogOut, LayoutDashboard, Play, CheckCircle2, XCircle, ArrowRight, Award, History, Info, ChevronDown, ChevronUp, User, Lock } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { motion, AnimatePresence } from "motion/react"
 import ResultModal from "@razzia/web/features/manager/components/ResultModal"
+import toast from "react-hot-toast"
 
 const PlayerDashboard = () => {
   const { socket } = useSocket()
@@ -19,11 +20,14 @@ const PlayerDashboard = () => {
   const navigate = useNavigate()
   const { t } = useTranslation()
 
-  const [activeTab, setActiveTab] = useState<"join" | "performance">("join")
+  const [activeTab, setActiveTab] = useState<"join" | "performance" | "profile">("join")
   const [invitation, setInvitation] = useState("")
   const [attendedQuizzes, setAttendedQuizzes] = useState<any[]>([])
   const [expandedQuizId, setExpandedQuizId] = useState<string | null>(null)
   const [selectedResult, setSelectedResult] = useState<any | null>(null)
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
 
   useEffect(() => {
     socket.emit(EVENTS.RESULTS.PLAYER_DASHBOARD)
@@ -39,8 +43,35 @@ const PlayerDashboard = () => {
     setSelectedResult(data)
   })
 
+  useEvent("manager:passwordChanged", (res: any) => {
+    if (res.success) {
+      toast.success("Password changed successfully")
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+    } else {
+      toast.error(t(res.error) || "Failed to change password")
+    }
+  })
+
   const handleOpenReport = (id: string) => {
     socket.emit(EVENTS.RESULTS.GET, id)
+  }
+
+  const handleChangePassword = () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error("All fields are required")
+      return
+    }
+    if (newPassword.length < 4) {
+      toast.error("New password must be at least 4 characters")
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match")
+      return
+    }
+    socket.emit(EVENTS.MANAGER.CHANGE_PASSWORD, { currentPassword, newPassword })
   }
 
   useEvent(EVENTS.GAME.SUCCESS_ROOM, (payload) => {
@@ -129,6 +160,17 @@ const PlayerDashboard = () => {
           <Award className="size-4" />
           {t("game:performanceTab", "Performance")}
         </button>
+        <button
+          onClick={() => setActiveTab("profile")}
+          className={`flex-1 py-2.5 text-center text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            activeTab === "profile"
+              ? "bg-white text-gray-800 shadow-sm"
+              : "text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          <User className="size-4" />
+          {t("game:profileTab", "Profile")}
+        </button>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto p-6">
@@ -153,7 +195,7 @@ const PlayerDashboard = () => {
                 </Button>
               </Card>
             </motion.div>
-          ) : (
+          ) : activeTab === "performance" ? (
             <motion.div
               key="performance"
               initial={{ opacity: 0, y: 10 }}
@@ -266,6 +308,55 @@ const PlayerDashboard = () => {
                   <p className="text-xs text-gray-400 mt-1">Join live rooms or complete private sessions</p>
                 </div>
               )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="profile"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.2 }}
+              className="flex flex-col items-center justify-center h-full gap-4"
+            >
+              <Card className="w-full max-w-sm p-6 shadow-md border border-gray-100 bg-white rounded-xl">
+                <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">Change Password</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Current Password</label>
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">New Password</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Confirm New Password</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                  <Button
+                    className="w-full shadow-md flex items-center justify-center gap-2 mt-2"
+                    onClick={handleChangePassword}
+                  >
+                    <Lock className="size-4" />
+                    Save Password
+                  </Button>
+                </div>
+              </Card>
             </motion.div>
           )}
         </AnimatePresence>

@@ -166,6 +166,80 @@ class UserService {
     const { passwordHash, salt, ...safeUser } = user
     return safeUser
   }
+
+  changePassword(userId: string, current: string, newPass: string): { success: boolean; error?: string } {
+    this.ensureLoaded()
+    if (this.users === null) return { success: false, error: "errors:auth.changeFailed" }
+    const user = this.users.find(u => u.id === userId)
+    if (!user) return { success: false, error: "errors:auth.userNotFound" }
+    const valid = this.verifyPassword(current, user.passwordHash, user.salt)
+    if (!valid) return { success: false, error: "errors:auth.invalidCurrentPassword" }
+    const { hash, salt } = this.hashPassword(newPass)
+    user.passwordHash = hash
+    user.salt = salt
+    this.saveUsers()
+    return { success: true }
+  }
+
+  adminChangePassword(userId: string, newPass: string): boolean {
+    this.ensureLoaded()
+    if (this.users === null) return false
+    const user = this.users.find(u => u.id === userId)
+    if (!user) return false
+    const { hash, salt } = this.hashPassword(newPass)
+    user.passwordHash = hash
+    user.salt = salt
+    this.saveUsers()
+    return true
+  }
+
+  requestPasswordReset(username: string): { success: boolean; error?: string } {
+    this.ensureLoaded()
+    if (this.users === null) return { success: false, error: "errors:auth.requestFailed" }
+    const normalized = username.trim().toLowerCase()
+    const user = this.users.find(u => u.username.toLowerCase() === normalized)
+    if (!user) return { success: false, error: "errors:auth.userNotFound" }
+
+    const filepath = getPath("notifications.json")
+    let requests: any[] = []
+    if (fs.existsSync(filepath)) {
+      try {
+        requests = JSON.parse(fs.readFileSync(filepath, "utf-8"))
+      } catch (e) {}
+    }
+
+    const alreadyExists = requests.some(r => r.username.toLowerCase() === normalized)
+    if (!alreadyExists) {
+      requests.push({
+        id: uuid(),
+        username: user.username,
+        createdAt: new Date().toISOString()
+      })
+      fs.writeFileSync(filepath, JSON.stringify(requests, null, 2))
+    }
+    return { success: true }
+  }
+
+  getForgotPasswordRequests(): any[] {
+    const filepath = getPath("notifications.json")
+    if (fs.existsSync(filepath)) {
+      try {
+        return JSON.parse(fs.readFileSync(filepath, "utf-8"))
+      } catch (e) {}
+    }
+    return []
+  }
+
+  dismissPasswordReset(id: string): void {
+    const filepath = getPath("notifications.json")
+    if (fs.existsSync(filepath)) {
+      try {
+        let requests = JSON.parse(fs.readFileSync(filepath, "utf-8"))
+        requests = requests.filter((r: any) => r.id !== id)
+        fs.writeFileSync(filepath, JSON.stringify(requests, null, 2))
+      } catch (e) {}
+    }
+  }
 }
 
 const userService = new UserService()

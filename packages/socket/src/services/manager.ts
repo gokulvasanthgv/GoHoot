@@ -19,12 +19,14 @@ export const emitConfig = (socket: SocketContext["socket"]) => {
   let results: any[] = []
   let trash: any[] = []
   let users: any[] = []
+  let notifications: any[] = []
 
   if (user.role === "admin") {
     quizz = getQuizzMeta()
     results = getResultsMeta()
     trash = getTrashQuizzesMeta()
     users = UserService.getAllUsers()
+    notifications = UserService.getForgotPasswordRequests()
   } else if (user.role === "quizmaster") {
     quizz = getQuizzMeta().filter(q => q.creatorId === user.id)
     results = getResultsMeta().filter(r => r.creatorId === user.id)
@@ -38,6 +40,7 @@ export const emitConfig = (socket: SocketContext["socket"]) => {
     results,
     trash,
     users,
+    notifications,
     defaultWallpaper: gameConfig.defaultWallpaper,
     defaultAudio: gameConfig.defaultAudio,
     user

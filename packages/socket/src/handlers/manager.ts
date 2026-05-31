@@ -5,7 +5,7 @@ import manager, { emitConfig } from "@razzia/socket/services/manager"
 import Registry from "@razzia/socket/services/registry"
 import UserService from "@razzia/socket/services/user"
 
-export const managerSocketHandlers = ({ socket }: SocketContext) => {
+export const managerSocketHandlers = ({ io, socket }: SocketContext) => {
   const registry = Registry.getInstance()
 
   socket.on(
@@ -45,6 +45,7 @@ export const managerSocketHandlers = ({ socket }: SocketContext) => {
   )
 
   socket.on(EVENTS.MANAGER.LOGOUT, () => {
+    socket.leave("admins")
     manager.logout(socket)
     socket.emit(EVENTS.MANAGER.CURRENT_USER, null)
   })
@@ -54,6 +55,9 @@ export const managerSocketHandlers = ({ socket }: SocketContext) => {
       const result = UserService.signIn("admin", password)
       if (result.success && result.user) {
         manager.login(socket, result.user)
+        if (result.user.role === "admin") {
+          socket.join("admins")
+        }
         socket.emit(EVENTS.MANAGER.CURRENT_USER, result.user)
         emitConfig(socket)
       } else {
@@ -69,6 +73,9 @@ export const managerSocketHandlers = ({ socket }: SocketContext) => {
     const result = UserService.signUp(username, password)
     if (result.success && result.user) {
       manager.login(socket, result.user)
+      if (result.user.role === "admin") {
+        socket.join("admins")
+      }
       socket.emit(EVENTS.MANAGER.CURRENT_USER, result.user)
       emitConfig(socket)
     } else {
@@ -80,6 +87,9 @@ export const managerSocketHandlers = ({ socket }: SocketContext) => {
     const result = UserService.signIn(username, password)
     if (result.success && result.user) {
       manager.login(socket, result.user)
+      if (result.user.role === "admin") {
+        socket.join("admins")
+      }
       socket.emit(EVENTS.MANAGER.CURRENT_USER, result.user)
       emitConfig(socket)
     } else {
@@ -89,6 +99,9 @@ export const managerSocketHandlers = ({ socket }: SocketContext) => {
 
   socket.on(EVENTS.MANAGER.GET_CURRENT_USER, () => {
     const user = manager.getUser(socket)
+    if (user && user.role === "admin") {
+      socket.join("admins")
+    }
     socket.emit(EVENTS.MANAGER.CURRENT_USER, user || null)
   })
 
@@ -120,4 +133,59 @@ export const managerSocketHandlers = ({ socket }: SocketContext) => {
       socket.emit(EVENTS.MANAGER.UNAUTHORIZED)
     }
   })
+
+  socket.on(EVENTS.MANAGER.CHANGE_PASSWORD, manager.withAuth(socket, ({ currentPassword, newPassword }) => {
+    const user = manager.getUser(socket)
+    if (!user) return
+    const res = UserService.changePassword(user.id, currentPassword, newPassword)
+    if (res.success) {
+      socket.emit(EVENTS.MANAGER.CURRENT_USER, manager.getUser(socket))
+      socket.emit("manager:passwordChanged", { success: true })
+    } else {
+      socket.emit("manager:passwordChanged", { success: false, error: res.error })
+    }
+  }))
+
+  socket.on(EVENTS.MANAGER.ADMIN_RESET_PASSWORD, manager.withAuth(socket, ({ userId, newPassword }) => {
+    const user = manager.getUser(socket)
+    if (!user || user.role !== "admin") {
+      socket.emit(EVENTS.MANAGER.ERROR_MESSAGE, "errors:unauthorized")
+      return
+    }
+    const targetUser = UserService.getUserById(userId)
+    const success = UserService.adminChangePassword(userId, newPassword)
+    if (success) {
+      if (targetUser) {
+        const reqs = UserService.getForgotPasswordRequests()
+        const targetReq = reqs.find((r: any) => r.username.toLowerCase() === targetUser.username.toLowerCase())
+        if (targetReq) {
+          UserService.dismissPasswordReset(targetReq.id)
+        }
+      }
+      io.to("admins").emit("manager:notifications", UserService.getForgotPasswordRequests())
+      emitConfig(socket)
+      socket.emit("manager:adminPasswordResetSuccess")
+    }
+  }))
+
+  socket.on(EVENTS.MANAGER.FORGOT_PASSWORD, ({ username }) => {
+    const res = UserService.requestPasswordReset(username)
+    if (res.success) {
+      io.to("admins").emit("manager:notifications", UserService.getForgotPasswordRequests())
+      socket.emit("manager:forgotPasswordSuccess", { success: true })
+    } else {
+      socket.emit("manager:forgotPasswordSuccess", { success: false, error: res.error })
+    }
+  })
+
+  socket.on(EVENTS.MANAGER.DISMISS_NOTIFICATION, manager.withAuth(socket, ({ requestId }) => {
+    const user = manager.getUser(socket)
+    if (!user || user.role !== "admin") {
+      socket.emit(EVENTS.MANAGER.UNAUTHORIZED)
+      return
+    }
+    UserService.dismissPasswordReset(requestId)
+    io.to("admins").emit("manager:notifications", UserService.getForgotPasswordRequests())
+    emitConfig(socket)
+  }))
 }
