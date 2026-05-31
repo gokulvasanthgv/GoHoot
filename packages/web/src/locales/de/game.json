@@ -6,6 +6,8 @@
     "time": "Zeit"
   },
   "joinInstruction": "Tritt dem Spiel bei auf",
+  "joinTab": "Beitreten",
+  "performanceTab": "Leistung",
   "leaderboard": "Bestenliste",
   "pinLabel": "PIN-Code",
   "playersJoined": "Verbundene Spieler: ",

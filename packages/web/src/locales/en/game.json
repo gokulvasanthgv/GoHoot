@@ -6,6 +6,8 @@
     "time": "Time"
   },
   "joinInstruction": "Join the game at",
+  "joinTab": "Join",
+  "performanceTab": "Performance",
   "leaderboard": "Leaderboard",
   "pinLabel": "PIN Code",
   "playersJoined": "Players Joined: ",

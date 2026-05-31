@@ -6,6 +6,8 @@
     "time": "Temps"
   },
   "joinInstruction": "Rejoins la partie sur",
+  "joinTab": "Rejoindre",
+  "performanceTab": "Performance",
   "leaderboard": "Classement",
   "pinLabel": "Code PIN",
   "playersJoined": "Joueurs connectés : ",
