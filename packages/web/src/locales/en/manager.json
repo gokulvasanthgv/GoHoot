@@ -2,6 +2,10 @@
   "configurationsTitle": "Configurations",
   "logout": "Logout",
   "passwordPlaceholder": "Password",
+  "signIn": "Sign In",
+  "signUp": "Sign Up",
+  "username": "Username",
+  "usernamePlaceholder": "Username",
   "quizz": {
     "create": "Create Quizz",
     "delete": "Delete quizz",
@@ -41,7 +45,9 @@
     "play": "Play",
     "quizz": "Quizz",
     "results": "Results",
-    "settings": "Settings"
+    "settings": "Settings",
+    "trash": "Trash",
+    "users": "Users"
   },
   "settings": {
     "defaultWallpaper": "Default Wallpaper",

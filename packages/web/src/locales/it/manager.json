@@ -2,6 +2,10 @@
   "configurationsTitle": "Configurazioni",
   "logout": "Disconnetti",
   "passwordPlaceholder": "Password",
+  "signIn": "Accedi",
+  "signUp": "Registrati",
+  "username": "Nome utente",
+  "usernamePlaceholder": "Nome utente",
   "quizz": {
     "create": "Crea quiz",
     "delete": "Elimina quiz",
@@ -41,7 +45,9 @@
     "play": "Gioca",
     "quizz": "Quiz",
     "results": "Risultati",
-    "settings": "Impostazioni"
+    "settings": "Impostazioni",
+    "trash": "Cestino",
+    "users": "Utenti"
   },
   "settings": {
     "defaultWallpaper": "Sfondo predefinito",

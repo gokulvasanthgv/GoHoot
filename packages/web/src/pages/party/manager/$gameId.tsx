@@ -36,98 +36,6 @@ const ManagerGamePage = () => {
   const [shuffleAnswers, setShuffleAnswers] = useState(false)
   const [hideTextOnClient, setHideTextOnClient] = useState(false)
 
-  const [isUploadingWallpaper, setIsUploadingWallpaper] = useState(false)
-  const [isUploadingAudio, setIsUploadingAudio] = useState(false)
-
-  const handleWallpaperUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file.")
-      return
-    }
-
-    setIsUploadingWallpaper(true)
-    const url = `/uploads?filename=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}&clientId=${encodeURIComponent(clientId ?? "")}`
-
-    fetch(url, {
-      method: "POST",
-      body: file,
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Upload failed")
-        return res.json()
-      })
-      .then((response: { success: boolean; url?: string; error?: string }) => {
-        setIsUploadingWallpaper(false)
-        if (response.success && response.url) {
-          socket.emit(EVENTS.MANAGER.UPDATE_GAME_SETTINGS, {
-            gameId: gameId ?? "",
-            wallpaper: response.url,
-          })
-          toast.success("Wallpaper updated successfully")
-        } else {
-          toast.error(response.error || "Upload failed")
-        }
-      })
-      .catch(() => {
-        setIsUploadingWallpaper(false)
-        toast.error("Upload failed")
-      })
-  }
-
-  const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    if (!file.type.startsWith("audio/")) {
-      toast.error("Please upload an audio file.")
-      return
-    }
-
-    setIsUploadingAudio(true)
-    const url = `/uploads?filename=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}&clientId=${encodeURIComponent(clientId ?? "")}`
-
-    fetch(url, {
-      method: "POST",
-      body: file,
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Upload failed")
-        return res.json()
-      })
-      .then((response: { success: boolean; url?: string; error?: string }) => {
-        setIsUploadingAudio(false)
-        if (response.success && response.url) {
-          socket.emit(EVENTS.MANAGER.UPDATE_GAME_SETTINGS, {
-            gameId: gameId ?? "",
-            audio: response.url,
-          })
-          toast.success("Background music updated successfully")
-        } else {
-          toast.error(response.error || "Upload failed")
-        }
-      })
-      .catch(() => {
-        setIsUploadingAudio(false)
-        toast.error("Upload failed")
-      })
-  }
-
-  const handleWallpaperChange = (val: string) => {
-    socket.emit(EVENTS.MANAGER.UPDATE_GAME_SETTINGS, {
-      gameId: gameId ?? "",
-      wallpaper: val,
-    })
-  }
-
-  const handleAudioChange = (val: string) => {
-    socket.emit(EVENTS.MANAGER.UPDATE_GAME_SETTINGS, {
-      gameId: gameId ?? "",
-      audio: val,
-    })
-  }
 
   const confirmStartGame = () => {
     socket.emit(EVENTS.MANAGER.START_GAME, {
@@ -249,7 +157,7 @@ const ManagerGamePage = () => {
       <AlertDialog.Root open={showPreGameMenu} onOpenChange={setShowPreGameMenu}>
         <AlertDialog.Portal>
           <AlertDialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity" />
-          <AlertDialog.Content className="fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-2xl border border-gray-100 outline-none">
+          <AlertDialog.Content className="fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-2xl border border-gray-100 outline-none max-h-[90vh] overflow-y-auto">
             <div className="flex items-center gap-2.5 border-b border-gray-100 pb-4 mb-5">
               <Settings className="size-6 text-indigo-600" />
               <AlertDialog.Title className="text-xl font-bold text-gray-900">
@@ -262,7 +170,7 @@ const ManagerGamePage = () => {
                 <label className="text-sm font-semibold text-gray-700 block mb-3">
                   Game Mode
                 </label>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <button
                     type="button"
                     onClick={() => setGameMode("classic")}
@@ -313,136 +221,87 @@ const ManagerGamePage = () => {
 
               <div>
                 <label className="text-sm font-semibold text-gray-700 block mb-3">
-                  Background & Music
-                </label>
-                <div className="space-y-4 rounded-xl border border-gray-150 p-4 bg-gray-50/50">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-gray-500 block">
-                      Quiz Wallpaper
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={wallpaper || ""}
-                        onChange={(e) => handleWallpaperChange(e.target.value)}
-                        placeholder="Wallpaper image URL..."
-                        className="flex-1 rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-705 outline-none hover:border-gray-300 focus:border-indigo-500"
-                      />
-                      <label className="shrink-0 flex items-center justify-center rounded-lg bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-600 hover:bg-indigo-100 cursor-pointer transition select-none active:scale-95">
-                        {isUploadingWallpaper ? "Uploading..." : "Upload"}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleWallpaperUpload}
-                          className="hidden"
-                          disabled={isUploadingWallpaper}
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-gray-500 block">
-                      Background Music
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={audio || ""}
-                        onChange={(e) => handleAudioChange(e.target.value)}
-                        placeholder="Background music URL..."
-                        className="flex-1 rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-705 outline-none hover:border-gray-300 focus:border-indigo-500"
-                      />
-                      <label className="shrink-0 flex items-center justify-center rounded-lg bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-600 hover:bg-indigo-100 cursor-pointer transition select-none active:scale-95">
-                        {isUploadingAudio ? "Uploading..." : "Upload"}
-                        <input
-                          type="file"
-                          accept="audio/*"
-                          onChange={handleAudioUpload}
-                          className="hidden"
-                          disabled={isUploadingAudio}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-semibold text-gray-700 block mb-3">
                   Additional Options
                 </label>
-                <div className="space-y-3">
-                  <label className="flex items-center justify-between p-3.5 rounded-xl border border-gray-150 hover:bg-gray-55 cursor-pointer select-none">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-indigo-50 rounded-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <label className="flex flex-col justify-between p-3.5 rounded-xl border border-gray-150 hover:bg-indigo-50/20 cursor-pointer select-none transition-all gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-indigo-50 rounded-lg shrink-0">
                         <Shuffle className="size-4 text-indigo-600" />
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-gray-900">Shuffle questions order</div>
-                        <div className="text-xs text-gray-500">Play questions in a randomized sequence</div>
+                        <div className="text-sm font-semibold text-gray-900 leading-tight">Shuffle questions</div>
+                        <div className="text-xs text-gray-500 mt-1 leading-snug">Play questions in a randomized sequence</div>
                       </div>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={shuffleQuestions}
-                      onChange={(e) => setShuffleQuestions(e.target.checked)}
-                      className="size-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                    />
+                    <div className="flex justify-end">
+                      <input
+                        type="checkbox"
+                        checked={shuffleQuestions}
+                        onChange={(e) => setShuffleQuestions(e.target.checked)}
+                        className="size-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      />
+                    </div>
                   </label>
 
-                  <label className="flex items-center justify-between p-3.5 rounded-xl border border-gray-150 hover:bg-gray-55 cursor-pointer select-none">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-indigo-50 rounded-lg">
+                  <label className="flex flex-col justify-between p-3.5 rounded-xl border border-gray-150 hover:bg-indigo-50/20 cursor-pointer select-none transition-all gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-indigo-50 rounded-lg shrink-0">
                         <Timer className="size-4 text-indigo-600" />
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-gray-900">Double answering time</div>
-                        <div className="text-xs text-gray-500">Provide twice the normal duration for each question</div>
+                        <div className="text-sm font-semibold text-gray-900 leading-tight">Double time</div>
+                        <div className="text-xs text-gray-500 mt-1 leading-snug">Provide twice the normal duration for each question</div>
                       </div>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={doubleTime}
-                      onChange={(e) => setDoubleTime(e.target.checked)}
-                      className="size-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                    />
+                    <div className="flex justify-end">
+                      <input
+                        type="checkbox"
+                        checked={doubleTime}
+                        onChange={(e) => setDoubleTime(e.target.checked)}
+                        className="size-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      />
+                    </div>
                   </label>
 
-                  <label className="flex items-center justify-between p-3.5 rounded-xl border border-gray-150 hover:bg-gray-55 cursor-pointer select-none">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-indigo-50 rounded-lg">
+                  <label className="flex flex-col justify-between p-3.5 rounded-xl border border-gray-150 hover:bg-indigo-50/20 cursor-pointer select-none transition-all gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-indigo-50 rounded-lg shrink-0">
                         <Shuffle className="size-4 text-indigo-600" />
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-gray-900">Shuffle options order</div>
-                        <div className="text-xs text-gray-500">Randomize the order of answers/options for players</div>
+                        <div className="text-sm font-semibold text-gray-900 leading-tight">Shuffle options</div>
+                        <div className="text-xs text-gray-500 mt-1 leading-snug">Randomize the order of answers/options for players</div>
                       </div>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={shuffleAnswers}
-                      onChange={(e) => setShuffleAnswers(e.target.checked)}
-                      className="size-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                    />
+                    <div className="flex justify-end">
+                      <input
+                        type="checkbox"
+                        checked={shuffleAnswers}
+                        onChange={(e) => setShuffleAnswers(e.target.checked)}
+                        className="size-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      />
+                    </div>
                   </label>
 
-                  <label className="flex items-center justify-between p-3.5 rounded-xl border border-gray-150 hover:bg-gray-55 cursor-pointer select-none">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-indigo-50 rounded-lg">
+                  <label className="flex flex-col justify-between p-3.5 rounded-xl border border-gray-150 hover:bg-indigo-50/20 cursor-pointer select-none transition-all gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-indigo-50 rounded-lg shrink-0">
                         <EyeOff className="size-4 text-indigo-600" />
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-gray-900">Hide questions on player screens</div>
-                        <div className="text-xs text-gray-500">Players see only color option buttons without question text</div>
+                        <div className="text-sm font-semibold text-gray-900 leading-tight">Hide questions</div>
+                        <div className="text-xs text-gray-500 mt-1 leading-snug">Players see only color option buttons without question text</div>
                       </div>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={hideTextOnClient}
-                      onChange={(e) => setHideTextOnClient(e.target.checked)}
-                      className="size-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                    />
+                    <div className="flex justify-end">
+                      <input
+                        type="checkbox"
+                        checked={hideTextOnClient}
+                        onChange={(e) => setHideTextOnClient(e.target.checked)}
+                        className="size-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      />
+                    </div>
                   </label>
                 </div>
               </div>

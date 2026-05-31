@@ -7,13 +7,28 @@ import {
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
+import { useUserStore } from "@razzia/web/features/game/stores/user"
 import Configurations from "@razzia/web/features/manager/components/configurations"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useEffect } from "react"
 
 const ManagerConfigPage = () => {
-  const { isConnected } = useSocket()
+  const { socket, isConnected } = useSocket()
   const { setGameId, setInviteCode, setStatus, setConfig, config } = useManagerStore()
+  const { user } = useUserStore()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (isConnected && user === null) {
+      navigate({ to: "/manager" })
+    }
+  }, [isConnected, user, navigate])
+
+  useEffect(() => {
+    if (isConnected && user && !config) {
+      socket.emit(EVENTS.MANAGER.GET_CONFIG)
+    }
+  }, [isConnected, user, config, socket])
 
   useEvent(EVENTS.MANAGER.CONFIG, (data) => {
     setConfig(data)
@@ -29,7 +44,7 @@ const ManagerConfigPage = () => {
     navigate({ to: "/party/manager/$gameId", params: { gameId } })
   })
 
-  if (!isConnected) {
+  if (!isConnected || (user && !config)) {
     return (
       <Background>
         <Loader className="h-23" />
@@ -38,7 +53,7 @@ const ManagerConfigPage = () => {
   }
 
   if (!config) {
-    return navigate({ to: "/manager" })
+    return null
   }
 
   return (

@@ -5,6 +5,7 @@ import { getQuizz } from "@razzia/socket/services/config"
 import Game from "@razzia/socket/services/game"
 import Registry from "@razzia/socket/services/registry"
 import { withGame } from "@razzia/socket/utils/game"
+import manager from "@razzia/socket/services/manager"
 
 export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
   const registry = Registry.getInstance()
@@ -63,6 +64,12 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
   })
 
   socket.on(EVENTS.GAME.CREATE, (quizzId) => {
+    const user = manager.getUser(socket)
+    if (!user || (user.role !== "admin" && user.role !== "quizmaster")) {
+      socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:unauthorized")
+      return
+    }
+
     const quizzList = getQuizz()
     const quizz = quizzList.find((q) => q.id === quizzId)
 
@@ -72,7 +79,12 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
       return
     }
 
-    const game = new Game(io, socket, quizz)
+    if (user.role === "quizmaster" && quizz.creatorId !== user.id) {
+      socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:unauthorized")
+      return
+    }
+
+    const game = new Game(io, socket, quizz, user.id)
     registry.addGame(game)
   })
 

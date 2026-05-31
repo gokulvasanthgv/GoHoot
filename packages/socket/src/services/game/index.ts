@@ -45,7 +45,7 @@ class Game {
     { name: Status; data: StatusDataMap[Status] }
   >()
 
-  constructor(io: Server, socket: Socket, quizz: Quizz) {
+  constructor(io: Server, socket: Socket, quizz: Quizz & { id: string }, creatorId: string) {
     const clientId = socket.handshake.auth.clientId as string
 
     this.io = io
@@ -59,7 +59,7 @@ class Game {
 
     const gameConfig = getGameConfig()
     this.wallpaper = quizz.wallpaper || gameConfig.defaultWallpaper
-    this.audio = gameConfig.defaultAudio
+    this.audio = quizz.audio || gameConfig.defaultAudio
 
     this.cooldown = new CooldownTimer(io, this.gameId)
 
@@ -82,7 +82,25 @@ class Game {
         this.playerStatus.clear()
         this.managerStatus = null
       },
-      onGameFinished: saveResult,
+      onGameFinished: (result) => {
+        result.quizzId = quizz.id
+        result.creatorId = creatorId
+        result.players.forEach((p) => {
+          const gamePlayer = this.playerManager.getAll().find((gp) => gp.username === p.username)
+          if (gamePlayer && gamePlayer.userId) {
+            p.userId = gamePlayer.userId
+          }
+        })
+        result.questions.forEach((q) => {
+          q.playerAnswers.forEach((pa) => {
+            const gamePlayer = this.playerManager.getAll().find((gp) => gp.username === pa.playerName)
+            if (gamePlayer && gamePlayer.userId) {
+              pa.userId = gamePlayer.userId
+            }
+          })
+        })
+        saveResult(result)
+      },
     })
 
     socket.join(this.gameId)

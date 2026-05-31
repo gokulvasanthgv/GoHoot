@@ -53,11 +53,13 @@ const Room = () => {
   }, [pin, isConnected, socket])
 
   return (
-    <Card>
-      <p className="mb-2 text-lg font-semibold">{t("game:pinLabel")}</p>
-      <PinInput value={invitation} onChange={setInvitation} />
-      <Button className="mt-4" onClick={handleJoin}>
-        {t("common:submit")}
+    <Card className="w-full max-w-sm p-6 sm:p-8 bg-white/95 backdrop-blur-md shadow-2xl border border-gray-150 rounded-2xl flex flex-col items-center">
+      <p className="mb-4 text-center font-bold text-gray-700 text-lg uppercase tracking-wide">
+        {t("game:pinLabel") || "PIN Code"}
+      </p>
+      <PinInput value={invitation} onChange={setInvitation} className="w-full justify-center max-w-xs" />
+      <Button className="mt-6 w-full shadow-lg hover:shadow-xl transition-all duration-200 active:scale-98" onClick={handleJoin}>
+        {t("common:submit") || "Join"}
       </Button>
     </Card>
   )

@@ -91,6 +91,9 @@ export interface ServerToClientEvents {
   [EVENTS.MANAGER.ERROR_MESSAGE]: (_message: string) => void
   [EVENTS.MANAGER.PLAYER_KICKED]: (_playerId: string) => void
   [EVENTS.MANAGER.UNAUTHORIZED]: () => void
+  [EVENTS.MANAGER.CURRENT_USER]: (_user: { id: string; username: string; role: "admin" | "quizmaster" | "analyst" | "quizzer" } | null) => void
+  [EVENTS.QUIZZ.TRASH_DATA]: (_trash: any[]) => void
+  [EVENTS.RESULTS.PLAYER_DASHBOARD_DATA]: (_data: { attended: any[]; available?: any[] }) => void
 
   // Quizz events
   [EVENTS.QUIZZ.SAVE_SUCCESS]: (_data: { id: string }) => void
@@ -133,6 +136,12 @@ export interface ClientToServerEvents {
   [EVENTS.MANAGER.LOGOUT]: () => void
   [EVENTS.MANAGER.UPDATE_SETTINGS]: (_settings: { defaultWallpaper?: string; defaultAudio?: string }) => void
   [EVENTS.MANAGER.UPDATE_GAME_SETTINGS]: (_message: { gameId: string; wallpaper?: string; audio?: string }) => void
+  [EVENTS.MANAGER.SIGN_UP]: (_credentials: { username: string; password: string }) => void
+  [EVENTS.MANAGER.SIGN_IN]: (_credentials: { username: string; password: string }) => void
+  [EVENTS.MANAGER.GET_USERS]: () => void
+  [EVENTS.MANAGER.UPDATE_USER_ROLE]: (_data: { userId: string; role: "admin" | "quizmaster" | "analyst" | "quizzer" }) => void
+  [EVENTS.MANAGER.DELETE_USER]: (_userId: string) => void
+  [EVENTS.MANAGER.GET_CURRENT_USER]: () => void
 
   // Quizz actions
   [EVENTS.QUIZZ.GET]: (_id: string) => void
@@ -147,6 +156,10 @@ export interface ClientToServerEvents {
       error?: string
     }) => void,
   ) => void
+  [EVENTS.QUIZZ.GET_TRASH]: () => void
+  [EVENTS.QUIZZ.RESTORE]: (_id: string) => void
+  [EVENTS.QUIZZ.DELETE_PERMANENTLY]: (_id: string) => void
+  [EVENTS.QUIZZ.GET_SOLO]: (_id: string) => void
 
   // Player actions
   [EVENTS.PLAYER.JOIN]: (_inviteCode: string) => void
@@ -162,6 +175,8 @@ export interface ClientToServerEvents {
   // Results actions
   [EVENTS.RESULTS.GET]: (_id: string) => void
   [EVENTS.RESULTS.DELETE]: (_id: string) => void
+  [EVENTS.RESULTS.SAVE_SOLO]: (_result: GameResult) => void
+  [EVENTS.RESULTS.PLAYER_DASHBOARD]: () => void
 
   // Common
   disconnect: () => void

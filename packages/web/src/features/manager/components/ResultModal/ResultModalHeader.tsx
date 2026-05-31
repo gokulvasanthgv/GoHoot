@@ -2,11 +2,13 @@ import { useResultModal } from "@razzia/web/features/manager/contexts/result-mod
 import { ChevronLeft, ChevronRight, X, Download } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { exportResultsToXlsx } from "@razzia/web/features/manager/utils/exportResults"
+import { useUserStore } from "@razzia/web/features/game/stores/user"
 
 const ResultModalHeader = () => {
   const { result, questionIndex, total, goNext, goPrev, onClose } =
     useResultModal()
   const { t } = useTranslation()
+  const { user } = useUserStore()
 
   return (
     <div className="flex shrink-0 items-center gap-3 border-b border-gray-200 px-5 py-3">
@@ -23,13 +25,15 @@ const ResultModalHeader = () => {
         )}
       </h2>
       <div className="flex shrink-0 items-center gap-1">
-        <button
-          onClick={() => exportResultsToXlsx(result)}
-          className="mr-2 flex items-center gap-1 rounded bg-green-600 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-green-700"
-        >
-          <Download className="size-3.5" />
-          {t("manager:result.export")}
-        </button>
+        {user?.role !== "quizzer" && (
+          <button
+            onClick={() => exportResultsToXlsx(result)}
+            className="mr-2 flex items-center gap-1 rounded bg-green-600 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-green-700"
+          >
+            <Download className="size-3.5" />
+            {t("manager:result.export")}
+          </button>
+        )}
         <span className="text-sm text-gray-400">
           {questionIndex + 1}
           {t("manager:result.paginationOf")}

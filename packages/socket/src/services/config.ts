@@ -7,7 +7,8 @@ import type {
 import { quizzValidator } from "@razzia/common/validators/quizz"
 import { normalizeFilename } from "@razzia/socket/utils/game"
 import fs from "fs"
-import { resolve } from "path"
+import { resolve, join } from "path"
+import UserService from "./user"
 
 interface GameConfig {
   managerPassword: string
@@ -78,8 +79,13 @@ export const getGameConfig = (): GameConfig => {
   return {} as GameConfig
 }
 
+const getAdminUserId = (): string => {
+  const admin = UserService.getAllUsers().find(u => u.username === "admin")
+  return admin ? admin.id : ""
+}
+
 export const getQuizzMeta = () =>
-  getQuizz().map(({ id, subject, incompatible }) => ({ id, subject, incompatible }))
+  getQuizz().map(({ id, subject, incompatible, creatorId, deletedAt }) => ({ id, subject, incompatible, creatorId, deletedAt }))
 
 export const loadQuizz = (id: string): QuizzWithId => {
   const filePath = getPath(`quizz/${id}.json`)
@@ -99,13 +105,19 @@ export const loadQuizz = (id: string): QuizzWithId => {
         subject: parsed.subject,
         questions: parsed.questions,
         wallpaper: parsed.wallpaper,
-        incompatible: true
+        incompatible: true,
+        creatorId: parsed.creatorId || getAdminUserId()
       } as any
     }
     throw new Error(`Invalid quizz "${id}"`)
   }
 
-  return { id, ...result.data }
+  const quizData = { id, ...result.data }
+  if (!quizData.creatorId) {
+    quizData.creatorId = getAdminUserId()
+  }
+
+  return quizData
 }
 
 export const getQuizzById = (id: string) => {
@@ -122,7 +134,12 @@ export const getQuizzById = (id: string) => {
     throw new Error(`Invalid quizz "${id}"`)
   }
 
-  return { id, ...result.data }
+  const quizData = { id, ...result.data }
+  if (!quizData.creatorId) {
+    quizData.creatorId = getAdminUserId()
+  }
+
+  return quizData
 }
 
 export const getQuizz = () => {
@@ -156,14 +173,20 @@ export const getQuizz = () => {
             subject: parsed.subject,
             questions: parsed.questions,
             wallpaper: parsed.wallpaper,
-            incompatible: true
+            incompatible: true,
+            creatorId: parsed.creatorId || getAdminUserId()
           } as any]
         }
 
         return []
       }
 
-      return [{ id, ...result.data }]
+      const quizData = { id, ...result.data }
+      if (!quizData.creatorId) {
+        quizData.creatorId = getAdminUserId()
+      }
+
+      return [quizData]
     })
 
     return quizz
@@ -187,7 +210,13 @@ export const updateQuizz = (id: string, data: unknown): { id: string } => {
     throw new Error(`Quizz "${id}" not found`)
   }
 
-  fs.writeFileSync(oldPath, JSON.stringify(result.data, null, 2))
+  const oldQuiz = JSON.parse(fs.readFileSync(oldPath, "utf-8"))
+  const quizData = { ...result.data }
+  if (!quizData.creatorId && oldQuiz.creatorId) {
+    quizData.creatorId = oldQuiz.creatorId
+  }
+
+  fs.writeFileSync(oldPath, JSON.stringify(quizData, null, 2))
 
   return { id }
 }
@@ -239,6 +268,7 @@ export const getResultsMeta = (): GameResultMeta[] => {
         date: result.date,
         playerCount: result.players.length,
         mode: result.mode,
+        creatorId: result.creatorId || getAdminUserId()
       }
     } catch {
       return null
@@ -264,7 +294,11 @@ export const getResultById = (id: string): GameResult => {
     throw new Error(`Result "${id}" not found`)
   }
 
-  return JSON.parse(fs.readFileSync(filePath, "utf-8")) as GameResult
+  const res = JSON.parse(fs.readFileSync(filePath, "utf-8")) as GameResult
+  if (!res.creatorId) {
+    res.creatorId = getAdminUserId()
+  }
+  return res
 }
 
 export const deleteResult = (id: string): void => {
@@ -277,17 +311,142 @@ export const deleteResult = (id: string): void => {
   fs.unlinkSync(filePath)
 }
 
-export const saveQuizz = (data: unknown): { id: string } => {
+export const saveQuizz = (data: unknown, creatorId?: string): { id: string } => {
   const result = quizzValidator.safeParse(data)
 
   if (!result.success) {
     throw new Error(result.error.issues[0].message)
   }
 
-  const id = normalizeFilename(result.data.subject)
+  const quizData = { ...result.data }
+  if (!quizData.creatorId && creatorId) {
+    quizData.creatorId = creatorId
+  }
+
+  const id = normalizeFilename(quizData.subject)
   const filePath = getPath(`quizz/${id}.json`)
 
-  fs.writeFileSync(filePath, JSON.stringify(result.data, null, 2))
+  fs.writeFileSync(filePath, JSON.stringify(quizData, null, 2))
 
   return { id }
+}
+
+export const trashQuizz = (id: string, userId: string): void => {
+  const filePath = getPath(`quizz/${id}.json`)
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Quizz "${id}" not found`)
+  }
+
+  const quiz = JSON.parse(fs.readFileSync(filePath, "utf-8"))
+  quiz.deletedAt = new Date().toISOString()
+  quiz.deletedBy = userId
+
+  const trashPath = getPath("trash")
+  if (!fs.existsSync(trashPath)) {
+    fs.mkdirSync(trashPath)
+  }
+
+  fs.writeFileSync(join(trashPath, `${id}.json`), JSON.stringify(quiz, null, 2))
+  fs.unlinkSync(filePath)
+}
+
+export const getTrashQuizzesMeta = () => {
+  const trashPath = getPath("trash")
+  if (!fs.existsSync(trashPath)) return []
+
+  try {
+    const files = fs.readdirSync(trashPath).filter(f => f.endsWith(".json"))
+    return files.flatMap(file => {
+      try {
+        const id = file.replace(".json", "")
+        const data = fs.readFileSync(join(trashPath, file), "utf-8")
+        const parsed = JSON.parse(data)
+        return [{
+          id,
+          subject: parsed.subject,
+          creatorId: parsed.creatorId || getAdminUserId(),
+          deletedAt: parsed.deletedAt,
+          incompatible: parsed.incompatible
+        }]
+      } catch {
+        return []
+      }
+    })
+  } catch {
+    return []
+  }
+}
+
+export const getTrashQuizzById = (id: string) => {
+  const filePath = getPath(`trash/${id}.json`)
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Trashed quizz "${id}" not found`)
+  }
+  return JSON.parse(fs.readFileSync(filePath, "utf-8"))
+}
+
+export const restoreQuizz = (id: string): void => {
+  const trashFilePath = getPath(`trash/${id}.json`)
+  if (!fs.existsSync(trashFilePath)) {
+    throw new Error(`Trashed quizz "${id}" not found`)
+  }
+
+  const quiz = JSON.parse(fs.readFileSync(trashFilePath, "utf-8"))
+  delete quiz.deletedAt
+  delete quiz.deletedBy
+
+  const quizzDir = getPath("quizz")
+  if (!fs.existsSync(quizzDir)) {
+    fs.mkdirSync(quizzDir)
+  }
+
+  fs.writeFileSync(getPath(`quizz/${id}.json`), JSON.stringify(quiz, null, 2))
+  fs.unlinkSync(trashFilePath)
+}
+
+const isAssetShared = (filename: string, excludeId: string): boolean => {
+  const quizzes = getQuizz()
+  for (const q of quizzes) {
+    if (q.id === excludeId) continue
+    if (JSON.stringify(q).includes(filename)) return true
+  }
+  const trashPath = getPath("trash")
+  if (fs.existsSync(trashPath)) {
+    const files = fs.readdirSync(trashPath).filter(f => f.endsWith(".json"))
+    for (const file of files) {
+      const id = file.replace(".json", "")
+      if (id === excludeId) continue
+      try {
+        const content = fs.readFileSync(join(trashPath, file), "utf-8")
+        if (content.includes(filename)) return true
+      } catch {}
+    }
+  }
+  return false
+}
+
+export const deleteQuizzPermanently = (id: string): void => {
+  const trashFilePath = getPath(`trash/${id}.json`)
+  if (!fs.existsSync(trashFilePath)) {
+    throw new Error(`Trashed quizz "${id}" not found`)
+  }
+
+  const quizContent = fs.readFileSync(trashFilePath, "utf-8")
+  const regex = /\/uploads\/([a-zA-Z0-9_\-]+\.[a-zA-Z0-9]+)/g
+  let match
+  while ((match = regex.exec(quizContent)) !== null) {
+    const filename = match[1]
+    if (!isAssetShared(filename, id)) {
+      const filePath = getPath(join("uploads", filename))
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath)
+        } catch (err) {
+          console.error("Failed to delete asset:", filePath, err)
+        }
+      }
+    }
+  }
+
+  fs.unlinkSync(trashFilePath)
 }

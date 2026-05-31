@@ -45,6 +45,13 @@ export const EVENTS = {
     UNAUTHORIZED: "manager:unauthorized",
     UPDATE_SETTINGS: "manager:updateSettings",
     UPDATE_GAME_SETTINGS: "manager:updateGameSettings",
+    SIGN_UP: "manager:signup",
+    SIGN_IN: "manager:signin",
+    GET_USERS: "manager:getUsers",
+    UPDATE_USER_ROLE: "manager:updateUserRole",
+    DELETE_USER: "manager:deleteUser",
+    GET_CURRENT_USER: "manager:getCurrentUser",
+    CURRENT_USER: "manager:currentUser",
   },
   QUIZZ: {
     GET: "quizz:get",
@@ -56,11 +63,19 @@ export const EVENTS = {
     DELETE: "quizz:delete",
     ERROR: "quizz:error",
     UPLOAD_MEDIA: "quizz:uploadMedia",
+    GET_TRASH: "quizz:getTrash",
+    TRASH_DATA: "quizz:trashData",
+    RESTORE: "quizz:restore",
+    DELETE_PERMANENTLY: "quizz:deletePermanently",
+    GET_SOLO: "quizz:getSolo",
   },
   RESULTS: {
     GET: "results:get",
     DATA: "results:data",
     DELETE: "results:delete",
+    SAVE_SOLO: "results:saveSolo",
+    PLAYER_DASHBOARD: "player:getDashboard",
+    PLAYER_DASHBOARD_DATA: "player:dashboardData",
   },
 } as const
 

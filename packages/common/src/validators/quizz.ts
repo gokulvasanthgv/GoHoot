@@ -31,6 +31,10 @@ export const quizzValidator = z.object({
   subject: z.string().min(1, "errors:quizz.subjectEmpty"),
   questions: z.array(questionValidator).min(1, "errors:quizz.noQuestions"),
   wallpaper: z.string().optional(),
+  audio: z.string().optional(),
+  creatorId: z.string().optional(),
+  deletedAt: z.string().optional(),
+  deletedBy: z.string().optional(),
 })
 
 export type QuizzValidated = z.infer<typeof quizzValidator>

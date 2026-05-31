@@ -17,6 +17,8 @@ interface QuizzEditorContextType {
   setSubject: (_subject: string) => void
   wallpaper: string
   setWallpaper: (_wallpaper: string) => void
+  audio: string
+  setAudio: (_audio: string) => void
   questions: QuestionWithId[]
   currentIndex: number
   currentQuestion: QuestionWithId
@@ -57,6 +59,9 @@ export const QuizzEditorProvider = ({
   )
   const [wallpaper, setWallpaper] = useState(
     initialData?.wallpaper ?? "",
+  )
+  const [audio, setAudio] = useState(
+    initialData?.audio ?? "",
   )
   const [questions, setQuestions] = useState<QuestionWithId[]>(
     initialData
@@ -116,6 +121,8 @@ export const QuizzEditorProvider = ({
         setSubject,
         wallpaper,
         setWallpaper,
+        audio,
+        setAudio,
         questions,
         currentIndex,
         currentQuestion,

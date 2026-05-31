@@ -2,6 +2,7 @@ import { EVENTS } from "@razzia/common/constants"
 import type { Player } from "@razzia/common/types/game"
 import type { Server, Socket } from "@razzia/common/types/game/socket"
 import { usernameValidator } from "@razzia/common/validators/auth"
+import manager from "@razzia/socket/services/manager"
 
 export class PlayerManager {
   private readonly io: Server
@@ -62,6 +63,7 @@ export class PlayerManager {
 
     socket.join(this.gameId)
 
+    const user = manager.getUser(socket)
     const player: Player = {
       id: socket.id,
       clientId,
@@ -69,6 +71,7 @@ export class PlayerManager {
       username,
       points: 0,
       streak: 0,
+      userId: user ? user.id : undefined,
     }
 
     this.players.push(player)

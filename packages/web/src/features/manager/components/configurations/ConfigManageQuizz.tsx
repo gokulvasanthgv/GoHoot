@@ -12,12 +12,21 @@ import { type ChangeEvent, useRef } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 
-const ConfigManageQuizz = () => {
+interface Props {
+  quizzFilter?: { creatorId: string; username: string } | null
+  onClearFilter?: () => void
+}
+
+const ConfigManageQuizz = ({ quizzFilter, onClearFilter }: Props) => {
   const { quizz } = useConfig()
   const { socket } = useSocket()
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { t } = useTranslation()
+
+  const filteredQuizz = quizzFilter
+    ? quizz.filter((q) => q.creatorId === quizzFilter.creatorId)
+    : quizz
 
   useEvent(EVENTS.QUIZZ.ERROR, (message) => {
     toast.error(t(message))
@@ -52,6 +61,17 @@ const ConfigManageQuizz = () => {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {quizzFilter && (
+        <div className="mb-3 flex items-center justify-between bg-primary/10 px-3 py-2 rounded-lg text-xs font-semibold text-primary shrink-0">
+          <span>Showing quizzes by {quizzFilter.username}</span>
+          <button
+            onClick={onClearFilter}
+            className="underline hover:text-primary transition"
+          >
+            Show All
+          </button>
+        </div>
+      )}
       <div className="mb-4 flex shrink-0 gap-2">
         <Button
           className="flex-1"
@@ -75,7 +95,7 @@ const ConfigManageQuizz = () => {
         />
       </div>
       <div className="min-h-0 flex-1 space-y-2 overflow-auto p-0.5">
-        {quizz.map((q) => (
+        {filteredQuizz.map((q) => (
           <div
             key={q.id}
             className="flex h-12 w-full items-center justify-between rounded-md pr-1.5 pl-3 outline outline-gray-300"
@@ -110,9 +130,9 @@ const ConfigManageQuizz = () => {
             </div>
           </div>
         ))}
-        {quizz.length === 0 && (
+        {filteredQuizz.length === 0 && (
           <p className="my-8 text-center text-gray-500">
-            {t("manager:quizz.none")}
+            {quizzFilter ? "No quizzes found for this user" : t("manager:quizz.none")}
           </p>
         )}
       </div>
