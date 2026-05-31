@@ -109,7 +109,7 @@ const PlayerDashboard = () => {
       <div className="flex bg-gray-100/50 p-1 border-b border-gray-100 shrink-0">
         <button
           onClick={() => setActiveTab("join")}
-          className={`flex-1 py-2.5 text-center text-sm font-semibold rounded-lg transition-all flex-none flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2.5 text-center text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
             activeTab === "join"
               ? "bg-white text-gray-800 shadow-sm"
               : "text-gray-400 hover:text-gray-600"
@@ -120,7 +120,7 @@ const PlayerDashboard = () => {
         </button>
         <button
           onClick={() => setActiveTab("performance")}
-          className={`flex-1 py-2.5 text-center text-sm font-semibold rounded-lg transition-all flex-none flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2.5 text-center text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
             activeTab === "performance"
               ? "bg-white text-gray-800 shadow-sm"
               : "text-gray-400 hover:text-gray-600"
