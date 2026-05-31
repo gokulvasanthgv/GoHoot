@@ -125,7 +125,6 @@ const SoloGamePage = () => {
   }
 
   const finishQuiz = () => {
-    if (timerRef.current) clearInterval(timerRef.current)
     setGameState("finished")
     if (!quizz || !user) return
 

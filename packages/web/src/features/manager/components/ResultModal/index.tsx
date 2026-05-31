@@ -5,6 +5,7 @@ import ResultModalStats from "@razzia/web/features/manager/components/ResultModa
 import ResultModalTable from "@razzia/web/features/manager/components/ResultModal/ResultModalTable"
 import { ResultModalProvider } from "@razzia/web/features/manager/contexts/result-modal-context"
 import { useEffect } from "react"
+import { createPortal } from "react-dom"
 
 interface Props {
   result: GameResult
@@ -20,7 +21,7 @@ const ResultModal = ({ result, onClose }: Props) => {
     }
   }, [])
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-4">
       <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
         <ResultModalProvider result={result} onClose={onClose}>
@@ -32,7 +33,8 @@ const ResultModal = ({ result, onClose }: Props) => {
           </div>
         </ResultModalProvider>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
