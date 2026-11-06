@@ -62,11 +62,13 @@ const ConfigManageQuizz = ({ quizzFilter, onClearFilter }: Props) => {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {quizzFilter && (
-        <div className="mb-3 flex items-center justify-between bg-primary/10 px-3 py-2 rounded-lg text-xs font-semibold text-primary shrink-0">
-          <span>Showing quizzes by {quizzFilter.username}</span>
+        <div className="bg-primary/10 mb-3 flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-amber-800">
+          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+            Showing quizzes by {quizzFilter.username}
+          </span>
           <button
             onClick={onClearFilter}
-            className="underline hover:text-primary transition"
+            className="hover:text-primary min-h-11 shrink-0 px-2 underline transition"
           >
             Show All
           </button>
@@ -74,13 +76,13 @@ const ConfigManageQuizz = ({ quizzFilter, onClearFilter }: Props) => {
       )}
       <div className="mb-4 flex shrink-0 gap-2">
         <Button
-          className="flex-1"
+          className="min-h-11 min-w-0 flex-1"
           onClick={() => navigate({ to: "/manager/quizz" })}
         >
           {t("manager:quizz.create")}
         </Button>
         <Button
-          className="aspect-square bg-gray-200 px-3 text-gray-600"
+          className="min-h-11 min-w-11 shrink-0 bg-gray-200 px-3 text-gray-600"
           onClick={() => fileInputRef.current?.click()}
           title={t("manager:quizz.import")}
         >
@@ -98,12 +100,15 @@ const ConfigManageQuizz = ({ quizzFilter, onClearFilter }: Props) => {
         {filteredQuizz.map((q) => (
           <div
             key={q.id}
-            className="flex h-12 w-full items-center justify-between rounded-md pr-1.5 pl-3 outline outline-gray-300"
+            className="flex min-h-16 w-full items-center justify-between gap-3 rounded-md py-2 pr-1.5 pl-3 outline outline-gray-300"
           >
-            <p className="truncate">{q.subject}</p>
-            <div className="flex gap-0.5">
+            <p className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+              {q.subject}
+            </p>
+            <div className="flex shrink-0 gap-0.5">
               <button
-                className="rounded-sm p-2 text-gray-600 hover:bg-gray-600/10"
+                aria-label={`Edit quiz ${q.subject}`}
+                className="flex size-11 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-600/10"
                 onClick={() =>
                   navigate({
                     to: "/manager/quizz/$quizzId",
@@ -116,7 +121,10 @@ const ConfigManageQuizz = ({ quizzFilter, onClearFilter }: Props) => {
 
               <AlertDialog
                 trigger={
-                  <button className="rounded-sm p-2 hover:bg-red-600/10">
+                  <button
+                    aria-label={`Delete quiz ${q.subject}`}
+                    className="flex size-11 items-center justify-center rounded-lg hover:bg-red-600/10"
+                  >
                     <Trash2 className="size-4 stroke-red-500" />
                   </button>
                 }
@@ -132,7 +140,9 @@ const ConfigManageQuizz = ({ quizzFilter, onClearFilter }: Props) => {
         ))}
         {filteredQuizz.length === 0 && (
           <p className="my-8 text-center text-gray-500">
-            {quizzFilter ? "No quizzes found for this user" : t("manager:quizz.none")}
+            {quizzFilter
+              ? "No quizzes found for this user"
+              : t("manager:quizz.none")}
           </p>
         )}
       </div>

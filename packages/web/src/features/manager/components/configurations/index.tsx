@@ -2,7 +2,10 @@ import { EVENTS } from "@razzia/common/constants"
 import type { ManagerConfig } from "@razzia/common/types/manager"
 import Card from "@razzia/web/components/Card"
 import LanguageSwitcher from "@razzia/web/components/LanguageSwitcher"
-import { useEvent, useSocket } from "@razzia/web/features/game/contexts/socket-context"
+import {
+  useEvent,
+  useSocket,
+} from "@razzia/web/features/game/contexts/socket-context"
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
 import { useUserStore } from "@razzia/web/features/game/stores/user"
 import ConfigManageQuizz from "@razzia/web/features/manager/components/configurations/ConfigManageQuizz"
@@ -13,9 +16,9 @@ import ConfigUsers from "@razzia/web/features/manager/components/configurations/
 import ConfigTrash from "@razzia/web/features/manager/components/configurations/ConfigTrash"
 import ConfigTabButton from "@razzia/web/features/manager/components/configurations/ConfigTabButton"
 import { ConfigProvider } from "@razzia/web/features/manager/contexts/config-context"
-import { LogOut, ChevronLeft, ChevronRight, Bell } from "lucide-react"
+import { LogOut, Bell, X } from "lucide-react"
 import toast from "react-hot-toast"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "@tanstack/react-router"
 
@@ -25,16 +28,20 @@ interface Props {
 
 const Configurations = ({ data }: Props) => {
   const [selectedTab, setSelectedTab] = useState(0)
-  const [quizzFilter, setQuizzFilter] = useState<{ creatorId: string; username: string } | null>(null)
+  const [quizzFilter, setQuizzFilter] = useState<{
+    creatorId: string
+    username: string
+  } | null>(null)
   const { reset } = useManagerStore()
   const { user, setUser } = useUserStore()
   const { socket } = useSocket()
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
-  const tabsRef = useRef<HTMLDivElement>(null)
 
   const [showNotifications, setShowNotifications] = useState(false)
-  const [notificationsList, setNotificationsList] = useState<any[]>(data.notifications || [])
+  const [notificationsList, setNotificationsList] = useState<any[]>(
+    data.notifications || [],
+  )
   const [resettingReqId, setResettingReqId] = useState<string | null>(null)
   const [resetPasswordValue, setResetPasswordValue] = useState("")
 
@@ -56,23 +63,18 @@ const Configurations = ({ data }: Props) => {
       toast.error("Password must be at least 4 characters")
       return
     }
-    const userObj = data.users?.find(u => u.username.toLowerCase() === username.toLowerCase())
+    const userObj = data.users?.find(
+      (u) => u.username.toLowerCase() === username.toLowerCase(),
+    )
     if (userObj) {
-      socket.emit(EVENTS.MANAGER.ADMIN_RESET_PASSWORD, { userId: userObj.id, newPassword: resetPasswordValue })
+      socket.emit(EVENTS.MANAGER.ADMIN_RESET_PASSWORD, {
+        userId: userObj.id,
+        newPassword: resetPasswordValue,
+      })
       setResettingReqId(null)
       setResetPasswordValue("")
     } else {
       toast.error("User not found in system")
-    }
-  }
-
-  const scrollTabs = (direction: "left" | "right") => {
-    if (tabsRef.current) {
-      const scrollAmount = 150
-      tabsRef.current.scrollBy({
-        left: direction === "left" ? -scrollAmount : scrollAmount,
-        behavior: "smooth",
-      })
     }
   }
 
@@ -84,19 +86,20 @@ const Configurations = ({ data }: Props) => {
       { nameKey: "manager:tabs.results", component: ConfigResults },
       { nameKey: "manager:tabs.trash", component: ConfigTrash },
       { nameKey: "manager:tabs.users", component: ConfigUsers },
-      { nameKey: "manager:tabs.settings", component: ConfigSettings }
+      { nameKey: "manager:tabs.settings", component: ConfigSettings },
     )
   } else if (user?.role === "quizmaster") {
     activeTabs.push(
       { nameKey: "manager:tabs.play", component: ConfigSelectQuizz },
       { nameKey: "manager:tabs.quizz", component: ConfigManageQuizz },
       { nameKey: "manager:tabs.results", component: ConfigResults },
-      { nameKey: "manager:tabs.trash", component: ConfigTrash }
+      { nameKey: "manager:tabs.trash", component: ConfigTrash },
     )
   } else if (user?.role === "analyst") {
-    activeTabs.push(
-      { nameKey: "manager:tabs.results", component: ConfigResults }
-    )
+    activeTabs.push({
+      nameKey: "manager:tabs.results",
+      component: ConfigResults,
+    })
   }
 
   useEffect(() => {
@@ -119,23 +122,25 @@ const Configurations = ({ data }: Props) => {
 
   return (
     <ConfigProvider data={data}>
-      <Card className="max-h-[80svh] w-full max-w-md">
-        <div className="mb-4 flex items-center justify-between shrink-0">
-          <div className="flex flex-col">
-            <p className="text-lg font-semibold">
+      <Card className="w-full max-w-6xl min-w-0 p-4 sm:p-6 lg:p-8">
+        <div className="relative flex min-w-0 flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold [overflow-wrap:anywhere] sm:text-2xl">
               {t("manager:configurationsTitle")}
-            </p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-xs text-gray-500 font-medium">{user?.username}</span>
-              <span className="inline-block px-1.5 py-0.2 text-[9px] font-bold text-primary bg-primary/10 rounded-full capitalize">
+            </h1>
+            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
+              <span className="text-sm font-medium [overflow-wrap:anywhere] text-gray-500">
+                {user?.username}
+              </span>
+              <span className="bg-primary/10 rounded-full px-2 py-0.5 text-xs font-bold text-amber-800 capitalize">
                 {user?.role}
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <button
               onClick={() => navigate({ to: "/" })}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition"
+              className="focus-visible:outline-primary flex min-h-11 items-center justify-center rounded-lg bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-600 transition hover:bg-indigo-100 focus-visible:outline-2 focus-visible:outline-offset-2"
               title="Join Game"
             >
               Join Game
@@ -143,11 +148,14 @@ const Configurations = ({ data }: Props) => {
             <LanguageSwitcher />
 
             {user?.role === "admin" && (
-              <div className="relative">
+              <div>
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative rounded-sm p-1.5 text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition cursor-pointer"
+                  className="focus-visible:outline-primary relative flex size-11 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2"
                   title="Notifications"
+                  aria-label="Notifications"
+                  aria-expanded={showNotifications}
+                  aria-controls="reset-requests"
                 >
                   <Bell className="size-4" />
                   {notificationsList.length > 0 && (
@@ -158,33 +166,68 @@ const Configurations = ({ data }: Props) => {
                 </button>
 
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 rounded-lg bg-white shadow-xl ring-1 ring-black/5 z-50 p-4 border border-gray-100 max-h-80 overflow-y-auto">
-                    <div className="flex items-center justify-between border-b border-gray-100 pb-2 mb-3">
-                      <h4 className="font-bold text-gray-800 text-sm">Reset Requests</h4>
-                      <span className="text-xs text-gray-400 font-medium">{notificationsList.length} pending</span>
+                  <div
+                    id="reset-requests"
+                    className="absolute top-full right-0 z-50 mt-3 max-h-[min(28rem,65dvh)] w-full max-w-sm overflow-y-auto rounded-xl border border-gray-200 bg-white p-4 shadow-xl"
+                  >
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2">
+                      <div>
+                        <h2 className="text-sm font-bold text-gray-800">
+                          Reset Requests
+                        </h2>
+                        <p className="mt-1 text-xs font-medium text-gray-500">
+                          {notificationsList.length} pending
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        aria-label="Close notifications"
+                        onClick={() => setShowNotifications(false)}
+                        className="focus-visible:outline-primary flex size-11 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2"
+                      >
+                        <X className="size-4" />
+                      </button>
                     </div>
                     {notificationsList.length === 0 ? (
-                      <p className="text-xs text-gray-400 text-center py-4">No pending requests</p>
+                      <p className="py-4 text-center text-xs text-gray-400">
+                        No pending requests
+                      </p>
                     ) : (
                       <div className="space-y-3">
                         {notificationsList.map((req) => (
-                          <div key={req.id} className="flex flex-col gap-2 p-2 bg-gray-50 rounded-lg text-xs">
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-gray-700">{req.username}</span>
-                              <span className="text-[10px] text-gray-400">{new Date(req.createdAt).toLocaleTimeString()}</span>
+                          <div
+                            key={req.id}
+                            className="flex flex-col gap-2 rounded-lg bg-gray-50 p-2 text-xs"
+                          >
+                            <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                              <span className="min-w-0 font-bold [overflow-wrap:anywhere] text-gray-700">
+                                {req.username}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {new Date(req.createdAt).toLocaleTimeString()}
+                              </span>
                             </div>
                             {resettingReqId === req.id ? (
-                              <div className="flex items-center gap-2 mt-1">
+                              <div className="mt-1 grid min-w-0 grid-cols-2 gap-2">
                                 <input
                                   type="password"
                                   value={resetPasswordValue}
-                                  onChange={(e) => setResetPasswordValue(e.target.value)}
+                                  onChange={(e) =>
+                                    setResetPasswordValue(e.target.value)
+                                  }
                                   placeholder="New password"
-                                  className="flex-1 px-2 py-1 border border-gray-200 rounded text-[10px] bg-white focus:outline-none"
+                                  aria-label={`New password for ${req.username}`}
+                                  autoComplete="new-password"
+                                  className="focus-visible:outline-primary col-span-2 min-h-11 w-full min-w-0 rounded-lg border border-gray-200 bg-white px-3 py-2 text-base focus-visible:outline-2 focus-visible:outline-offset-2"
                                 />
                                 <button
-                                  onClick={() => handleNotificationReset(req.username, req.id)}
-                                  className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-[10px] font-bold"
+                                  onClick={() =>
+                                    handleNotificationReset(
+                                      req.username,
+                                      req.id,
+                                    )
+                                  }
+                                  className="min-h-11 rounded-lg bg-green-700 px-3 py-2 text-sm font-bold text-white hover:bg-green-800"
                                 >
                                   Save
                                 </button>
@@ -193,25 +236,27 @@ const Configurations = ({ data }: Props) => {
                                     setResettingReqId(null)
                                     setResetPasswordValue("")
                                   }}
-                                  className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-[10px] font-medium"
+                                  className="min-h-11 rounded-lg bg-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
                                 >
-                                  X
+                                  Cancel
                                 </button>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-2 justify-end mt-1">
+                              <div className="mt-1 flex flex-wrap items-center justify-end gap-2">
                                 <button
                                   onClick={() => {
                                     setResettingReqId(req.id)
                                     setResetPasswordValue("")
                                   }}
-                                  className="px-2 py-1 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-md transition"
+                                  className="bg-primary/10 hover:bg-primary/20 min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-semibold text-amber-800 transition"
                                 >
-                                  Reset Pass
+                                  Reset Password
                                 </button>
                                 <button
-                                  onClick={() => handleDismissNotification(req.id)}
-                                  className="px-2 py-1 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition"
+                                  onClick={() =>
+                                    handleDismissNotification(req.id)
+                                  }
+                                  className="min-h-11 flex-1 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
                                 >
                                   Dismiss
                                 </button>
@@ -227,53 +272,40 @@ const Configurations = ({ data }: Props) => {
             )}
 
             <button
-              className="rounded-sm p-1.5 text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition"
+              className="focus-visible:outline-primary flex size-11 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2"
               onClick={handleLogout}
               title={t("manager:logout")}
+              aria-label={t("manager:logout")}
             >
               <LogOut className="size-4" />
             </button>
           </div>
         </div>
-        <div className="relative flex items-center shrink-0 w-full">
-          <button
-            onClick={() => scrollTabs("left")}
-            className="absolute left-0 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-md border border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50 focus:outline-none transition active:scale-95"
-            type="button"
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-          
-          <div
-            ref={tabsRef}
-            className="flex-1 flex overflow-x-auto rounded-md border border-gray-200 bg-gray-100 p-0.5 scrollbar-none scroll-smooth mx-8"
-          >
-            {activeTabs.map((tab, index) => (
-              <ConfigTabButton
-                key={tab.nameKey}
-                active={index === selectedTab}
-                onClick={handleSelect(index)}
-              >
-                {i18n.exists(tab.nameKey) ? t(tab.nameKey) : tab.nameKey.split(".").pop()}
-              </ConfigTabButton>
-            ))}
-          </div>
-
-          <button
-            onClick={() => scrollTabs("right")}
-            className="absolute right-0 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-md border border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50 focus:outline-none transition active:scale-95"
-            type="button"
-          >
-            <ChevronRight className="size-4" />
-          </button>
-        </div>
-        <hr className="my-4 text-gray-100" />
-        <div className="flex min-h-0 flex-1 flex-col">
+        <nav
+          aria-label={t("manager:configurationsTitle")}
+          className="mt-5 grid min-w-0 grid-cols-2 gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1 sm:grid-cols-[repeat(auto-fit,minmax(8rem,1fr))]"
+        >
+          {activeTabs.map((tab, index) => (
+            <ConfigTabButton
+              key={tab.nameKey}
+              active={index === selectedTab}
+              onClick={handleSelect(index)}
+            >
+              {i18n.exists(tab.nameKey)
+                ? t(tab.nameKey)
+                : tab.nameKey.split(".").pop()}
+            </ConfigTabButton>
+          ))}
+        </nav>
+        <hr className="my-5 text-gray-100" />
+        <div className="flex min-w-0 flex-col">
           <TabComponent
             quizzFilter={quizzFilter}
             onClearFilter={() => setQuizzFilter(null)}
             onOpenQuizzes={(userId: string, username: string) => {
-              const quizIdx = activeTabs.findIndex((t) => t.nameKey === "manager:tabs.quizz")
+              const quizIdx = activeTabs.findIndex(
+                (t) => t.nameKey === "manager:tabs.quizz",
+              )
               if (quizIdx !== -1) {
                 setQuizzFilter({ creatorId: userId, username })
                 setSelectedTab(quizIdx)

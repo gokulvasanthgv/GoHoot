@@ -14,7 +14,8 @@ import { useEffect } from "react"
 
 const ManagerConfigPage = () => {
   const { socket, isConnected } = useSocket()
-  const { setGameId, setInviteCode, setStatus, setConfig, config } = useManagerStore()
+  const { setGameId, setInviteCode, setStatus, setConfig, config } =
+    useManagerStore()
   const { user } = useUserStore()
   const navigate = useNavigate()
 
@@ -46,7 +47,7 @@ const ManagerConfigPage = () => {
 
   if (!isConnected || (user && !config)) {
     return (
-      <Background>
+      <Background variant="dashboard">
         <Loader className="h-23" />
       </Background>
     )
@@ -57,7 +58,7 @@ const ManagerConfigPage = () => {
   }
 
   return (
-    <Background>
+    <Background variant="dashboard">
       <Configurations data={config} />
     </Background>
   )

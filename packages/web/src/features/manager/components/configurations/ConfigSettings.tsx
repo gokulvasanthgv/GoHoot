@@ -17,53 +17,58 @@ const ConfigSettings = () => {
   const [uploadingWallpaper, setUploadingWallpaper] = useState(false)
   const [uploadingAudio, setUploadingAudio] = useState(false)
 
-  const handleFileUpload = (type: "wallpaper" | "audio") => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const handleFileUpload =
+    (type: "wallpaper" | "audio") =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
 
-    if (type === "wallpaper" && !file.type.startsWith("image/")) {
-      toast.error("Please upload an image file.")
-      return
-    }
+      if (type === "wallpaper" && !file.type.startsWith("image/")) {
+        toast.error("Please upload an image file.")
+        return
+      }
 
-    if (type === "audio" && !file.type.startsWith("audio/")) {
-      toast.error("Please upload an audio file.")
-      return
-    }
+      if (type === "audio" && !file.type.startsWith("audio/")) {
+        toast.error("Please upload an audio file.")
+        return
+      }
 
-    const setIsUploading = type === "wallpaper" ? setUploadingWallpaper : setUploadingAudio
-    setIsUploading(true)
+      const setIsUploading =
+        type === "wallpaper" ? setUploadingWallpaper : setUploadingAudio
+      setIsUploading(true)
 
-    const url = `/uploads?filename=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}&clientId=${encodeURIComponent(clientId ?? "")}`
+      const url = `/uploads?filename=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}&clientId=${encodeURIComponent(clientId ?? "")}`
 
-    fetch(url, {
-      method: "POST",
-      body: file,
-    })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Upload failed")
-        }
-        return res.json()
+      fetch(url, {
+        method: "POST",
+        body: file,
       })
-      .then((response: { success: boolean; url?: string; error?: string }) => {
-        setIsUploading(false)
-        if (response.success && response.url) {
-          if (type === "wallpaper") {
-            setWallpaper(response.url)
-          } else {
-            setAudio(response.url)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error("Upload failed")
           }
-          toast.success("File uploaded successfully")
-        } else {
-          toast.error(response.error || "Upload failed")
-        }
-      })
-      .catch(() => {
-        setIsUploading(false)
-        toast.error("Upload failed")
-      })
-  }
+          return res.json()
+        })
+        .then(
+          (response: { success: boolean; url?: string; error?: string }) => {
+            setIsUploading(false)
+            if (response.success && response.url) {
+              if (type === "wallpaper") {
+                setWallpaper(response.url)
+              } else {
+                setAudio(response.url)
+              }
+              toast.success("File uploaded successfully")
+            } else {
+              toast.error(response.error || "Upload failed")
+            }
+          },
+        )
+        .catch(() => {
+          setIsUploading(false)
+          toast.error("Upload failed")
+        })
+    }
 
   const handleSave = () => {
     socket.emit(EVENTS.MANAGER.UPDATE_SETTINGS, {
@@ -77,60 +82,76 @@ const ConfigSettings = () => {
     <div className="flex min-h-0 flex-1 flex-col justify-between">
       <div className="min-h-0 flex-1 space-y-4 overflow-auto p-0.5">
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-semibold text-gray-700">
+          <label
+            htmlFor="default-wallpaper"
+            className="text-sm font-semibold text-gray-700"
+          >
             {t("manager:settings.defaultWallpaper")}
           </label>
           <div className="flex flex-col gap-2">
             <Input
-              variant="sm"
+              id="default-wallpaper"
+              variant="md"
               value={wallpaper}
               onChange={(e) => setWallpaper(e.target.value)}
               placeholder="Paste wallpaper URL..."
-              className="w-full"
+              className="min-h-11 w-full min-w-0"
             />
             <div className="relative">
               <input
                 type="file"
                 accept="image/*"
-                className="absolute inset-0 cursor-pointer opacity-0"
+                aria-label="Upload default wallpaper"
+                className="absolute inset-0 h-full w-full min-w-0 cursor-pointer opacity-0"
                 onChange={handleFileUpload("wallpaper")}
                 disabled={uploadingWallpaper}
               />
               <button
                 type="button"
-                className="w-full rounded-md bg-gray-200 py-1.5 text-center text-xs font-semibold text-gray-700 hover:bg-gray-300 transition duration-150 disabled:opacity-50"
+                disabled={uploadingWallpaper}
+                className="min-h-11 w-full rounded-lg bg-gray-200 px-3 py-2 text-center text-sm font-semibold text-gray-700 transition duration-150 hover:bg-gray-300 disabled:opacity-50"
               >
-                {uploadingWallpaper ? t("manager:settings.uploading") : t("manager:settings.upload")}
+                {uploadingWallpaper
+                  ? t("manager:settings.uploading")
+                  : t("manager:settings.upload")}
               </button>
             </div>
           </div>
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-semibold text-gray-700">
+          <label
+            htmlFor="default-audio"
+            className="text-sm font-semibold text-gray-700"
+          >
             {t("manager:settings.defaultAudio")}
           </label>
           <div className="flex flex-col gap-2">
             <Input
-              variant="sm"
+              id="default-audio"
+              variant="md"
               value={audio}
               onChange={(e) => setAudio(e.target.value)}
               placeholder="Paste audio URL..."
-              className="w-full"
+              className="min-h-11 w-full min-w-0"
             />
             <div className="relative">
               <input
                 type="file"
                 accept="audio/*"
-                className="absolute inset-0 cursor-pointer opacity-0"
+                aria-label="Upload default background music"
+                className="absolute inset-0 h-full w-full min-w-0 cursor-pointer opacity-0"
                 onChange={handleFileUpload("audio")}
                 disabled={uploadingAudio}
               />
               <button
                 type="button"
-                className="w-full rounded-md bg-gray-200 py-1.5 text-center text-xs font-semibold text-gray-700 hover:bg-gray-300 transition duration-150 disabled:opacity-50"
+                disabled={uploadingAudio}
+                className="min-h-11 w-full rounded-lg bg-gray-200 px-3 py-2 text-center text-sm font-semibold text-gray-700 transition duration-150 hover:bg-gray-300 disabled:opacity-50"
               >
-                {uploadingAudio ? t("manager:settings.uploading") : t("manager:settings.upload")}
+                {uploadingAudio
+                  ? t("manager:settings.uploading")
+                  : t("manager:settings.upload")}
               </button>
             </div>
           </div>
