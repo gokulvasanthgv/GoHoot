@@ -25,5 +25,21 @@
   },
   "quizzSaved": "Quizz saved successfully",
   "quizzUpdated": "Quizz updated successfully",
-  "titleQuizzPlaceholder": "Quizz title..."
+  "titleQuizzPlaceholder": "Quizz title...",
+  "answerLength": {
+    "questionWarning": "Question {{number}}: options exceed {{limit}} characters",
+    "optionWarning": "Option {{option}} exceeds {{limit}} characters",
+    "optionLabel": "Option {{option}}",
+    "flaggedQuestions_one": "{{count}} question has oversized options",
+    "flaggedQuestions_other": "{{count}} questions have oversized options",
+    "nextFlaggedQuestion": "Next flagged question",
+    "excess_one": "{{count}} character over the {{limit}}-character limit",
+    "excess_other": "{{count}} characters over the {{limit}}-character limit",
+    "addOption": "Add option",
+    "removeLastOption": "Remove last option",
+    "markCorrect": "Mark option {{option}} as correct",
+    "resetTrueFalse": "Reset oversized options to True / False",
+    "unusedSlideOptions": "This information slide contains unused answer options that exceed the character limit.",
+    "removeUnusedOptions": "Remove unused options"
+  }
 }

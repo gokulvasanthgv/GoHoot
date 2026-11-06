@@ -91,6 +91,8 @@ export const USER_ROLES = ["admin", "quizmaster", "analyst", "quizzer"] as const
 
 export const MAX_ANSWERS = 7
 
+export const MAX_ANSWER_LENGTH = 65
+
 export const MAX_MEDIA_SIZE = 100 * 1024 * 1024
 
 export const MIN_PASSWORD_LENGTH = 8

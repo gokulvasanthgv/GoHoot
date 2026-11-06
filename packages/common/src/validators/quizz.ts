@@ -1,4 +1,8 @@
-import { MAX_ANSWERS, MEDIA_TYPES } from "@razzia/common/constants"
+import {
+  MAX_ANSWER_LENGTH,
+  MAX_ANSWERS,
+  MEDIA_TYPES,
+} from "@razzia/common/constants"
 import { z } from "zod"
 
 export const mediaUrlValidator = z
@@ -51,7 +55,7 @@ export const questionValidator = z
           .string()
           .trim()
           .min(1, "errors:quizz.answerEmpty")
-          .max(65, "errors:quizz.answerTooLong"),
+          .max(MAX_ANSWER_LENGTH, "errors:quizz.answerTooLong"),
       )
       .min(2)
       .max(MAX_ANSWERS)

@@ -216,3 +216,132 @@ test("quiz editing, question reordering, trash, and restore preserve the quiz ID
   await expect(page).toHaveURL(/\/manager\/quizz\/browser-solo$/u)
   await expect(rows.nth(0)).toContainText("The sky is blue")
 })
+
+test("oversized options are flagged, located, and cleared as they are corrected", async ({
+  page,
+}, testInfo) => {
+  await login(page)
+  await page.goto("/manager/quizz/browser-long-options")
+  const questionTwo = page.getByRole("img", {
+    name: "Question 2: options exceed 65 characters",
+    exact: true,
+  })
+  const questionThree = page.getByRole("img", {
+    name: "Question 3: options exceed 65 characters",
+    exact: true,
+  })
+  await expect(questionTwo).toBeVisible()
+  await expect(questionThree).toBeVisible()
+  await expect(
+    page.getByRole("img", {
+      name: "Question 1: options exceed 65 characters",
+      exact: true,
+    }),
+  ).toHaveCount(0)
+  await expect(
+    page.getByText("2 questions have oversized options", { exact: true }),
+  ).toBeVisible()
+  await expect(questionTwo).toHaveCSS("animation-name", "pulse")
+  await page.emulateMedia({ reducedMotion: "reduce" })
+  await expect(questionTwo).toHaveCSS("animation-name", "none")
+  await page.emulateMedia({ reducedMotion: "no-preference" })
+
+  const saves: string[] = []
+  page.on("request", (request) => {
+    if (
+      request.method() === "PATCH" &&
+      request.url().endsWith("/api/quizz/browser-long-options")
+    ) {
+      saves.push(request.url())
+    }
+  })
+  await page.getByRole("button", { name: "Save", exact: true }).click()
+  const secondOption = page.getByRole("textbox", {
+    name: "Option B",
+    exact: true,
+  })
+  await expect(secondOption).toBeFocused()
+  await expect(secondOption).toHaveAttribute("aria-invalid", "true")
+  await expect(
+    page.getByRole("textbox", { name: "Option G", exact: true }),
+  ).toHaveAttribute("aria-invalid", "true")
+  await expect(
+    page.getByText("7 characters over the 65-character limit", { exact: true }),
+  ).toBeInViewport({ ratio: 1 })
+  await expect(page.locator("header")).toBeInViewport({ ratio: 1 })
+  expect(saves).toHaveLength(0)
+  await page.screenshot({
+    path: testInfo.outputPath("option-length-highlights.png"),
+    fullPage: false,
+  })
+
+  await secondOption.fill("B".repeat(65))
+  await expect(secondOption).toHaveAttribute("aria-invalid", "false")
+  await expect(questionTwo).toBeVisible()
+  await page
+    .getByRole("button", { name: "Remove last option", exact: true })
+    .click()
+  await expect(questionTwo).toHaveCount(0)
+  await expect(
+    page.getByText("1 question has oversized options", { exact: true }),
+  ).toBeVisible()
+
+  await page
+    .getByRole("button", { name: "Next flagged question", exact: true })
+    .click()
+  const puzzleOption = page.getByRole("textbox", {
+    name: "Option 2",
+    exact: true,
+  })
+  await expect(puzzleOption).toBeFocused()
+  await expect(puzzleOption).toHaveAttribute("aria-invalid", "true")
+  await expect(
+    page.getByText("15 characters over the 65-character limit", {
+      exact: true,
+    }),
+  ).toBeVisible()
+  await puzzleOption.fill("Second")
+  await expect(questionThree).toHaveCount(0)
+  await expect(
+    page.getByRole("button", { name: "Next flagged question", exact: true }),
+  ).toHaveCount(0)
+  await page.getByRole("button", { name: "Save", exact: true }).click()
+  await expect(page).toHaveURL(/\/manager\/config$/u)
+  expect(saves).toHaveLength(1)
+})
+
+test("legacy fixed options can be corrected without editing JSON", async ({
+  page,
+}) => {
+  await login(page)
+  await page.goto("/manager/quizz/browser-readonly-options")
+  await expect(
+    page.getByText("2 questions have oversized options", { exact: true }),
+  ).toBeVisible()
+  await page
+    .getByRole("button", { name: "Remove unused options", exact: true })
+    .click()
+  await expect(
+    page.getByText("1 question has oversized options", { exact: true }),
+  ).toBeVisible()
+  await page
+    .getByRole("button", { name: "Next flagged question", exact: true })
+    .click()
+  await expect(
+    page.getByRole("textbox", { name: "Option A", exact: true }),
+  ).toHaveAttribute("aria-invalid", "true")
+  await page
+    .getByRole("button", {
+      name: "Reset oversized options to True / False",
+      exact: true,
+    })
+    .click()
+  await expect(
+    page.getByRole("textbox", { name: "Option A", exact: true }),
+  ).toHaveValue("True")
+  await expect(
+    page.getByRole("button", { name: "Next flagged question", exact: true }),
+  ).toHaveCount(0)
+  await page.getByRole("button", { name: "Save", exact: true }).click()
+  await expect(page).toHaveURL(/\/manager\/config$/u)
+})

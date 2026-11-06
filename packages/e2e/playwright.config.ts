@@ -89,6 +89,65 @@ if (!existsSync(join(configPath, "users.json"))) {
       },
     ],
   })
+  write("quizz/long-options.json", {
+    id: "browser-long-options",
+    creatorId: "browser-admin",
+    subject: "Legacy quiz with oversized options",
+    questions: [
+      {
+        ...question,
+        question: "Valid options at the limit",
+        answers: ["V".repeat(65), "No"],
+      },
+      {
+        ...question,
+        question: "Question with oversized options",
+        answers: [
+          "First",
+          "B".repeat(72),
+          "Third",
+          "Fourth",
+          "Fifth",
+          "Sixth",
+          "G".repeat(66),
+        ],
+      },
+      {
+        ...question,
+        type: "puzzle",
+        question: "Puzzle with an oversized step",
+        answers: ["First", "P".repeat(80), "Third"],
+      },
+      {
+        ...question,
+        type: "slide",
+        question: "Information slide",
+        text: "No answer options",
+        answers: undefined,
+        solutions: undefined,
+      },
+    ],
+  })
+  write("quizz/readonly-options.json", {
+    id: "browser-readonly-options",
+    creatorId: "browser-admin",
+    subject: "Legacy fixed options",
+    questions: [
+      {
+        ...question,
+        type: "slide",
+        question: "Slide with obsolete options",
+        text: "Slide text",
+        answers: ["S".repeat(70), "Unused"],
+      },
+      {
+        ...question,
+        type: "true_or_false",
+        question: "Fixed options with an old oversized label",
+        answers: ["T".repeat(70), "False"],
+      },
+    ],
+  })
 }
 
 export default defineConfig({

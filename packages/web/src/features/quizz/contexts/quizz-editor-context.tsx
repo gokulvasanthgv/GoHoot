@@ -1,4 +1,5 @@
 import type { Question, QuizzWithId } from "@razzia/common/types/game"
+import { getAnswerInputId } from "@razzia/web/features/quizz/utils/answer-validation"
 import {
   createContext,
   useContext,
@@ -23,6 +24,7 @@ interface QuizzEditorContextType {
   currentIndex: number
   currentQuestion: QuestionWithId
   setCurrentIndex: (_index: number) => void
+  focusAnswer: (_questionIndex: number, _answerIndex: number) => void
   addQuestion: () => void
   removeQuestion: (_index: number) => void
   reorderQuestions: (_from: number, _to: number) => void
@@ -66,6 +68,26 @@ export const QuizzEditorProvider = ({
   )
   const [currentIndex, setCurrentIndex] = useState(0)
   const currentQuestion = questions[currentIndex]
+
+  const focusAnswer = (questionIndex: number, answerIndex: number) => {
+    const question = questions.at(questionIndex)
+
+    if (!question) {
+      return
+    }
+
+    setCurrentIndex(questionIndex)
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`question-card-${question.id}`)
+        ?.scrollIntoView({ block: "nearest" })
+      const inputId = getAnswerInputId(question.id, answerIndex)
+      const input = document.getElementById(inputId)
+      input?.focus({ preventScroll: true })
+      const option = document.getElementById(`${inputId}-option`) ?? input
+      option?.scrollIntoView({ block: "nearest" })
+    })
+  }
 
   const addQuestion = () => {
     setQuestions((prev) => [...prev, defaultQuestion()])
@@ -123,6 +145,7 @@ export const QuizzEditorProvider = ({
         currentIndex,
         currentQuestion,
         setCurrentIndex,
+        focusAnswer,
         addQuestion,
         removeQuestion,
         reorderQuestions,

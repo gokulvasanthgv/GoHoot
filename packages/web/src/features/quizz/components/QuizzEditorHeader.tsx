@@ -26,6 +26,7 @@ const QuizzEditorHeader = () => {
     setWallpaper,
     audio,
     setAudio,
+    focusAnswer,
   } = useQuizzEditor()
   const { clientId } = useSocket()
   const navigate = useNavigate()
@@ -159,7 +160,19 @@ const QuizzEditorHeader = () => {
     })
 
     if (!parsed.success) {
-      toast.error(t(parsed.error.issues[0].message))
+      const oversizedAnswer = parsed.error.issues.find(
+        (issue) => issue.message === "errors:quizz.answerTooLong",
+      )
+
+      if (
+        oversizedAnswer &&
+        typeof oversizedAnswer.path[1] === "number" &&
+        typeof oversizedAnswer.path[3] === "number"
+      ) {
+        focusAnswer(oversizedAnswer.path[1], oversizedAnswer.path[3])
+      }
+
+      toast.error(t(oversizedAnswer?.message ?? parsed.error.issues[0].message))
 
       return
     }
