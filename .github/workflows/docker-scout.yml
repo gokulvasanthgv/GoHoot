@@ -15,6 +15,9 @@ jobs:
       contents: read
       security-events: write
     steps:
+      - name: Checkout reviewed vulnerability assessments
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       - name: Log in to Docker Hub
         uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
@@ -44,4 +47,7 @@ jobs:
           platform: linux/amd64
           only-fixed: true
           only-severities: critical,high
+          vex-location: docker/vex
+          vex-author: https://github.com/gokulvasanthgv/GoHoot
+          only-vex-affected: true
           exit-code: true
