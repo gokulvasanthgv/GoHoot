@@ -13,6 +13,7 @@ import {
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
 import { useUserStore } from "@razzia/web/features/game/stores/user"
+import { ANSWERS_COLORS } from "@razzia/web/features/game/utils/constants"
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
 import {
   CheckCircle,
@@ -23,16 +24,6 @@ import {
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { motion } from "motion/react"
-
-const ANSWER_COLORS = [
-  "bg-red-500 hover:bg-red-600 border-red-600 text-white",
-  "bg-blue-500 hover:bg-blue-600 border-blue-600 text-white",
-  "bg-yellow-500 hover:bg-yellow-600 border-yellow-600 text-white",
-  "bg-green-500 hover:bg-green-600 border-green-600 text-white",
-  "bg-purple-500 hover:bg-purple-600 border-purple-600 text-white",
-  "bg-pink-500 hover:bg-pink-600 border-pink-600 text-white",
-  "bg-indigo-500 hover:bg-indigo-600 border-indigo-600 text-white",
-]
 
 const SoloGamePage = () => {
   const { quizzId } = useParams({ from: "/party/solo/$quizzId" })
@@ -369,22 +360,19 @@ const SoloGamePage = () => {
                   const isCorrectSol =
                     quizz.questions[currentIdx].solutions?.includes(idx)
                   const isUserSelected = selectedAnswers.includes(idx)
-                  let colorClass = ANSWER_COLORS[idx % ANSWER_COLORS.length]
+                  let colorClass = ANSWERS_COLORS[idx % ANSWERS_COLORS.length]
 
                   if (isAnswered) {
                     if (isCorrectSol) {
-                      colorClass =
-                        "bg-green-600 border-green-700 text-white shadow-green-200"
+                      colorClass = "bg-green-700 text-white shadow-green-200"
                     } else if (isUserSelected) {
-                      colorClass =
-                        "bg-red-600 border-red-700 text-white shadow-red-200"
+                      colorClass = "bg-red-700 text-white shadow-red-200"
                     } else {
-                      colorClass =
-                        "bg-gray-100 border-gray-200 text-gray-400 opacity-50"
+                      colorClass = "bg-slate-600 text-white"
                     }
                   } else if (isUserSelected) {
-                    colorClass =
-                      "bg-primary border-primary text-white scale-[1.02] shadow-md ring-2 ring-primary/20"
+                    colorClass +=
+                      " scale-[1.02] shadow-md ring-4 ring-slate-900 ring-offset-2"
                   }
 
                   return (
@@ -392,7 +380,7 @@ const SoloGamePage = () => {
                       key={idx}
                       disabled={isAnswered}
                       onClick={() => handleAnswerClick(idx)}
-                      className={`flex items-center justify-between rounded-xl border-b-4 p-4 text-left text-base font-bold transition-all duration-150 active:scale-[0.98] ${colorClass}`}
+                      className={`flex items-center justify-between rounded-xl border-b-4 border-black/20 p-4 text-left text-base font-bold transition-all duration-150 active:scale-[0.98] ${colorClass}`}
                     >
                       <span>{ans}</span>
                       {isAnswered && isCorrectSol && (

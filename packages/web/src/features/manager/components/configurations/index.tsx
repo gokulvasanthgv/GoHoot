@@ -15,11 +15,11 @@ import ConfigSelectQuizz from "@razzia/web/features/manager/components/configura
 import ConfigSettings from "@razzia/web/features/manager/components/configurations/ConfigSettings"
 import ConfigUsers from "@razzia/web/features/manager/components/configurations/ConfigUsers"
 import ConfigTrash from "@razzia/web/features/manager/components/configurations/ConfigTrash"
-import ConfigTabButton from "@razzia/web/features/manager/components/configurations/ConfigTabButton"
+import ConfigNavigation from "@razzia/web/features/manager/components/configurations/ConfigNavigation"
 import { ConfigProvider } from "@razzia/web/features/manager/contexts/config-context"
 import { LogOut, Bell, X } from "lucide-react"
 import toast from "react-hot-toast"
-import { useState, type ComponentType } from "react"
+import { useRef, useState, type ComponentType } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "@tanstack/react-router"
 
@@ -29,6 +29,7 @@ interface Props {
 
 const Configurations = ({ data }: Props) => {
   const [selectedTab, setSelectedTab] = useState(0)
+  const contentRef = useRef<HTMLDivElement>(null)
   const [quizzFilter, setQuizzFilter] = useState<{
     creatorId: string
     username: string
@@ -36,7 +37,7 @@ const Configurations = ({ data }: Props) => {
   const { reset } = useManagerStore()
   const { user, setUser } = useUserStore()
   const { socket } = useSocket()
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   const [showNotifications, setShowNotifications] = useState(false)
@@ -116,10 +117,6 @@ const Configurations = ({ data }: Props) => {
 
   const activeIndex = Math.min(selectedTab, Math.max(0, activeTabs.length - 1))
   const TabComponent = activeTabs.at(activeIndex)?.component
-
-  const handleSelect = (index: number) => () => {
-    setSelectedTab(index)
-  }
 
   const handleLogout = () => {
     socket.emit(EVENTS.MANAGER.LOGOUT)
@@ -285,24 +282,21 @@ const Configurations = ({ data }: Props) => {
             </button>
           </div>
         </div>
-        <nav
-          aria-label={t("manager:configurationsTitle")}
-          className="mt-5 grid min-w-0 grid-cols-2 gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1 sm:grid-cols-[repeat(auto-fit,minmax(8rem,1fr))]"
-        >
-          {activeTabs.map((tab, index) => (
-            <ConfigTabButton
-              key={tab.nameKey}
-              active={index === activeIndex}
-              onClick={handleSelect(index)}
-            >
-              {i18n.exists(tab.nameKey)
-                ? t(tab.nameKey)
-                : tab.nameKey.split(".").pop()}
-            </ConfigTabButton>
-          ))}
-        </nav>
+        <ConfigNavigation
+          tabs={activeTabs}
+          activeIndex={activeIndex}
+          onSelect={(index, fromMobileMenu) => {
+            setSelectedTab(index)
+
+            if (fromMobileMenu) {
+              requestAnimationFrame(() => {
+                contentRef.current?.scrollIntoView({ block: "start" })
+              })
+            }
+          }}
+        />
         <hr className="my-5 text-gray-100" />
-        <div className="flex min-w-0 flex-col">
+        <div ref={contentRef} className="flex min-w-0 scroll-mt-20 flex-col">
           {TabComponent && (
             <TabComponent
               quizzFilter={quizzFilter}

@@ -1,14 +1,14 @@
 import { EVENTS, MEDIA_TYPES } from "@razzia/common/constants"
-import type { QuestionMediaType } from "@razzia/common/types/game"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
 import QuestionMedia from "@razzia/web/components/QuestionMedia"
 import AnswerButton from "@razzia/web/features/game/components/AnswerButton"
+import ConductorMusic from "@razzia/web/features/game/components/ConductorMusic"
+import { useIsManagerScreen } from "@razzia/web/features/game/contexts/game-screen-context"
 import {
   useEvent,
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
-import { useManagerStore } from "@razzia/web/features/game/stores/manager"
 import {
   ANSWERS_COLORS,
   ANSWERS_LABELS,
@@ -38,7 +38,7 @@ const Answers = ({
 }: Props) => {
   const { socket } = useSocket()
   const { player, gameId } = usePlayerStore()
-  const isManager = Boolean(useManagerStore((state) => state.gameId))
+  const isManager = useIsManagerScreen()
   const shouldHideText = Boolean(hideTextOnClient) && !isManager
 
   const [cooldown, setCooldown] = useState(time)
@@ -53,28 +53,6 @@ const Answers = ({
   const [sfxPop] = useSound(SFX.ANSWERS.SOUND, {
     volume: 0.1,
   })
-
-  const managerAudio = useManagerStore((state) => state.audio)
-  const playerAudio = usePlayerStore((state) => state.audio)
-  const activeAudio = isManager ? managerAudio : playerAudio
-  const musicSource = activeAudio || SFX.ANSWERS.MUSIC
-
-  const managerVolume = useManagerStore((state) => state.volume)
-  const managerMuted = useManagerStore((state) => state.isMuted)
-  const volume = isManager ? managerVolume : 0.2
-  const isMuted = isManager ? managerMuted : false
-
-  const [playMusic, { stop: stopMusic, sound }] = useSound(musicSource, {
-    volume: isMuted ? 0 : volume,
-    interrupt: true,
-    loop: true,
-  })
-
-  useEffect(() => {
-    if (sound) {
-      sound.volume(isMuted ? 0 : volume)
-    }
-  }, [sound, volume, isMuted])
 
   useEffect(() => {
     if (type === "puzzle") {
@@ -122,23 +100,6 @@ const Answers = ({
     sfxPop()
   }
 
-  useEffect(() => {
-    const disabledMusicMedia = [
-      MEDIA_TYPES.AUDIO,
-      MEDIA_TYPES.VIDEO,
-    ] as QuestionMediaType[]
-
-    if (disabledMusicMedia.includes(media?.type)) {
-      return
-    }
-
-    playMusic()
-
-    return () => {
-      stopMusic()
-    }
-  }, [playMusic, stopMusic, media?.type])
-
   useEvent(EVENTS.GAME.COOLDOWN, (sec) => {
     setCooldown(sec)
   })
@@ -184,6 +145,14 @@ const Answers = ({
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col justify-between p-2 select-none sm:p-4">
+      {isManager && (
+        <ConductorMusic
+          enabled={
+            media?.type !== MEDIA_TYPES.AUDIO &&
+            media?.type !== MEDIA_TYPES.VIDEO
+          }
+        />
+      )}
       <div
         className={clsx(
           "mx-auto mb-2 flex min-h-0 w-full max-w-7xl shrink flex-col items-center justify-center gap-2 px-4",
@@ -252,14 +221,19 @@ const Answers = ({
             className="mx-auto flex h-full min-h-0 w-full max-w-2xl flex-1 flex-col gap-2 px-4 pb-2"
             itemClassName="min-h-0 flex-1"
             renderItem={(item, index, handle) => (
-              <div className="flex h-full min-h-12 w-full items-center gap-3 rounded-xl border border-white/20 bg-white/10 p-2 text-white shadow-lg backdrop-blur-md sm:p-3">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-extrabold">
+              <div
+                className={clsx(
+                  "flex h-full min-h-12 w-full items-center gap-3 rounded-xl p-2 text-white shadow-lg sm:p-3",
+                  ANSWERS_COLORS[item.index],
+                )}
+              >
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/20 text-sm font-extrabold">
                   {index + 1}
                 </span>
                 <span className="min-w-0 flex-1 text-base font-bold [overflow-wrap:anywhere] sm:text-xl">
                   {item.text}
                 </span>
-                {handle}
+                {!isManager && handle}
               </div>
             )}
           />
@@ -272,11 +246,17 @@ const Answers = ({
                 fontSizeClass={optionFontSizeClass}
                 className={clsx(
                   ANSWERS_COLORS[key],
+                  "disabled:cursor-default",
                   multiSelect &&
-                    (selectedKeys.includes(key)
-                      ? "opacity-100 ring-4 ring-white"
-                      : "opacity-60"),
+                    selectedKeys.includes(key) &&
+                    "ring-4 ring-white",
                 )}
+                disabled={isManager}
+                aria-pressed={
+                  !isManager && multiSelect
+                    ? selectedKeys.includes(key)
+                    : undefined
+                }
                 label={ANSWERS_LABELS[key]}
                 onClick={
                   multiSelect ? () => handleToggle(key) : handleAnswer(key)
@@ -298,7 +278,7 @@ const Answers = ({
           </div>
         )}
 
-        {isMultiOrPuzzle && (
+        {!isManager && isMultiOrPuzzle && (
           <div className="mx-auto my-2 flex w-full max-w-md shrink-0 justify-center px-4 sm:my-4">
             <button
               type="button"

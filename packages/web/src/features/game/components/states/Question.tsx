@@ -9,7 +9,7 @@ import { useEffect } from "react"
 import useSound from "use-sound"
 import clsx from "clsx"
 import { Sparkles } from "lucide-react"
-import { useManagerStore } from "@razzia/web/features/game/stores/manager"
+import { useIsManagerScreen } from "@razzia/web/features/game/contexts/game-screen-context"
 
 interface Props {
   data: CommonStatusDataMap["SHOW_QUESTION"]
@@ -26,7 +26,7 @@ const Question = ({
     hideTextOnClient,
   },
 }: Props) => {
-  const isManager = Boolean(useManagerStore((state) => state.gameId))
+  const isManager = useIsManagerScreen()
   const hideText = Boolean(hideTextOnClient) && !isManager
   const [sfxShow] = useSound(SFX.SHOW_SOUND, { volume: 0.5 })
 

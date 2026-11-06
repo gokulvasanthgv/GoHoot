@@ -53,6 +53,40 @@ if (!existsSync(join(configPath, "users.json"))) {
     subject: "Live compatibility quiz",
     questions: [question],
   })
+  write("quizz/presentation.json", {
+    id: "browser-presentation",
+    creatorId: "browser-admin",
+    subject: "Conductor presentation checks",
+    audio: "http://127.0.0.1:18855/sounds/answersMusic.mp3?conductor=1",
+    questions: [
+      {
+        ...question,
+        question: "Which of these are primary colours?",
+        answers: ["Red", "Green", "Blue", "Yellow"],
+        solutions: [0, 2, 3],
+      },
+      {
+        ...question,
+        question: "Seven readable answer colours",
+        answers: ["Amber", "Blue", "Green", "Pink", "Purple", "Red", "Teal"],
+        solutions: [1],
+      },
+      {
+        ...question,
+        type: "puzzle",
+        question: "Put these steps in order",
+        answers: ["First step", "Second step", "Third step"],
+        solutions: [],
+      },
+      {
+        ...question,
+        type: "true_or_false",
+        question: "An unanswered round still shows readable zero counts",
+        answers: ["True", "False"],
+        solutions: [0],
+      },
+    ],
+  })
   write("quizz/solo.json", {
     id: "browser-solo",
     creatorId: "browser-admin",

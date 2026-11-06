@@ -7,19 +7,19 @@ import {
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
+import ConductorMusic from "@razzia/web/features/game/components/ConductorMusic"
 import { useOnClickOutside } from "@razzia/web/hooks/useOnClickOutside"
 import { Maximize2, X } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import useSound from "use-sound"
 
 interface Props {
   data: ManagerStatusDataMap["SHOW_ROOM"]
 }
 
 const Room = ({ data: { text, inviteCode } }: Props) => {
-  const { gameId, players, volume, isMuted, audio } = useManagerStore()
+  const { gameId, players } = useManagerStore()
   const { socket } = useSocket()
   const webUrl = window.location.origin
   const [playerList, setPlayerList] = useState<Player[]>(players)
@@ -29,28 +29,6 @@ const Room = ({ data: { text, inviteCode } }: Props) => {
   const [qrOpen, setQrOpen] = useState(false)
   const qrContentRef = useRef<HTMLDivElement>(null)
   const { t } = useTranslation()
-
-  const musicSource = audio || "/sounds/answersMusic.mp3"
-
-  const [playMusic, { stop: stopMusic, sound }] = useSound(musicSource, {
-    volume: isMuted ? 0 : volume,
-    interrupt: true,
-    loop: true,
-  })
-
-  useEffect(() => {
-    playMusic()
-
-    return () => {
-      stopMusic()
-    }
-  }, [playMusic, stopMusic])
-
-  useEffect(() => {
-    if (sound) {
-      sound.volume(isMuted ? 0 : volume)
-    }
-  }, [sound, volume, isMuted])
 
   useOnClickOutside({ ref: qrContentRef, handler: () => setQrOpen(false) })
 
@@ -88,6 +66,7 @@ const Room = ({ data: { text, inviteCode } }: Props) => {
 
   return (
     <section className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-center px-2">
+      <ConductorMusic />
       <div className="mb-10 flex flex-col-reverse items-center gap-3 md:flex-row md:items-stretch">
         <div className="flex flex-col gap-3 md:flex-row">
           <div className="flex flex-col items-center justify-center rounded-xl bg-white px-6 py-4 md:flex-row">

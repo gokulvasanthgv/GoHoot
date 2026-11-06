@@ -28,5 +28,16 @@
   "wrong": "Too bad",
   "goToQuestion": "Go to previous question",
   "selectQuestion": "Select a previous question",
-  "endQuiz": "End Quiz"
+  "endQuiz": "End Quiz",
+  "muteMusic": "Mute background music",
+  "unmuteMusic": "Unmute background music",
+  "musicVolume": "Background music volume",
+  "roundResults": {
+    "distribution": "Answer distribution",
+    "options": "Answer options",
+    "correct": "Correct",
+    "incorrect": "Incorrect",
+    "showChart": "Show Chart",
+    "showMedia": "Show Media"
+  }
 }

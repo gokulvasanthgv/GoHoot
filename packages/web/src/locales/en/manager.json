@@ -1,5 +1,7 @@
 {
   "configurationsTitle": "Configurations",
+  "navigationMenu": "Configuration menu",
+  "menu": "Menu",
   "logout": "Logout",
   "passwordPlaceholder": "Password",
   "signIn": "Sign In",
