@@ -3,11 +3,23 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite"
 import react from "@vitejs/plugin-react"
 import { fileURLToPath } from "url"
 import { defineConfig } from "vite"
-import { version } from "../../package.json"
+import packageJson from "../../package.json" with { type: "json" }
+
+const webPort = Number(process.env.WEB_PORT) || 3000
+const socketTarget = `http://127.0.0.1:${Number(process.env.SOCKET_PORT) || 3001}`
+const serverOptions = {
+  port: webPort,
+  host: "0.0.0.0",
+  proxy: {
+    "/ws": { target: socketTarget, ws: true },
+    "/api": { target: socketTarget },
+    "/uploads": { target: socketTarget },
+  },
+}
 
 export default defineConfig({
   define: {
-    __APP_VERSION__: JSON.stringify(version),
+    __APP_VERSION__: JSON.stringify(packageJson.version),
   },
   plugins: [
     tanstackRouter({
@@ -30,23 +42,8 @@ export default defineConfig({
       ),
     },
   },
-  server: {
-    port: 8855,
-    host: "0.0.0.0",
-    proxy: {
-      "/ws": {
-        target: "http://localhost:3001",
-        ws: true,
-      },
-      "/uploads": {
-        target: "http://localhost:3001",
-      },
-    },
-  },
-  preview: {
-    port: 8855,
-    host: "0.0.0.0",
-  },
+  server: serverOptions,
+  preview: serverOptions,
   build: {
     chunkSizeWarningLimit: 2000,
   },

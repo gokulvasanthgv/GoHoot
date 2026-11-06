@@ -11,6 +11,9 @@ import { useUserStore } from "@razzia/web/features/game/stores/user"
 import Configurations from "@razzia/web/features/manager/components/configurations"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { managerConfigQuery } from "@razzia/web/features/manager/queries"
+import { queryClient } from "@razzia/web/lib/query-client"
 
 const ManagerConfigPage = () => {
   const { socket, isConnected } = useSocket()
@@ -18,6 +21,16 @@ const ManagerConfigPage = () => {
     useManagerStore()
   const { user } = useUserStore()
   const navigate = useNavigate()
+  const configuration = useQuery({
+    ...managerConfigQuery(user?.id ?? ""),
+    enabled: Boolean(user),
+  })
+
+  useEffect(() => {
+    if (configuration.data) {
+      setConfig(configuration.data)
+    }
+  }, [configuration.data, setConfig])
 
   useEffect(() => {
     if (isConnected && user === null) {
@@ -33,6 +46,10 @@ const ManagerConfigPage = () => {
 
   useEvent(EVENTS.MANAGER.CONFIG, (data) => {
     setConfig(data)
+
+    if (user) {
+      queryClient.setQueryData(managerConfigQuery(user.id).queryKey, data)
+    }
   })
 
   useEvent(EVENTS.MANAGER.GAME_CREATED, ({ gameId, inviteCode }) => {

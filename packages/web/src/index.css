@@ -170,7 +170,8 @@ button:not(:disabled),
 }
 
 @keyframes bounceCustom {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) scale(1);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
   }
@@ -185,7 +186,8 @@ button:not(:disabled),
 }
 
 @keyframes quizGlowWave {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) scale(1);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
   }
@@ -200,7 +202,8 @@ button:not(:disabled),
 }
 
 @keyframes tfBalanceA {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(-8px) rotate(-4deg) scale(1.04);
     box-shadow: 0 20px 30px rgba(255, 255, 255, 0.15);
   }
@@ -211,7 +214,8 @@ button:not(:disabled),
 }
 
 @keyframes tfBalanceB {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(8px) rotate(4deg) scale(0.96);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
   }
@@ -235,31 +239,67 @@ button:not(:disabled),
 }
 
 @keyframes puzzleTile1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(8px, 0) scale(0.97); }
-  50% { transform: translate(8px, 8px) scale(1.03); }
-  75% { transform: translate(0, 8px) scale(0.97); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(8px, 0) scale(0.97);
+  }
+  50% {
+    transform: translate(8px, 8px) scale(1.03);
+  }
+  75% {
+    transform: translate(0, 8px) scale(0.97);
+  }
 }
 
 @keyframes puzzleTile2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(0, 8px) scale(0.97); }
-  50% { transform: translate(-8px, 8px) scale(1.03); }
-  75% { transform: translate(-8px, 0) scale(0.97); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(0, 8px) scale(0.97);
+  }
+  50% {
+    transform: translate(-8px, 8px) scale(1.03);
+  }
+  75% {
+    transform: translate(-8px, 0) scale(0.97);
+  }
 }
 
 @keyframes puzzleTile3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(0, -8px) scale(0.97); }
-  50% { transform: translate(8px, -8px) scale(1.03); }
-  75% { transform: translate(8px, 0) scale(0.97); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(0, -8px) scale(0.97);
+  }
+  50% {
+    transform: translate(8px, -8px) scale(1.03);
+  }
+  75% {
+    transform: translate(8px, 0) scale(0.97);
+  }
 }
 
 @keyframes puzzleTile4 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(-8px, 0) scale(0.97); }
-  50% { transform: translate(-8px, -8px) scale(1.03); }
-  75% { transform: translate(0, -8px) scale(0.97); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(-8px, 0) scale(0.97);
+  }
+  50% {
+    transform: translate(-8px, -8px) scale(1.03);
+  }
+  75% {
+    transform: translate(0, -8px) scale(0.97);
+  }
 }
 
 .animate-puzzle-tile-1 {
@@ -279,13 +319,18 @@ button:not(:disabled),
 }
 
 @keyframes doublePointsFloat {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1) translateY(0);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2), 0 0 15px rgba(245, 158, 11, 0.5);
+    box-shadow:
+      0 4px 10px rgba(0, 0, 0, 0.2),
+      0 0 15px rgba(245, 158, 11, 0.5);
   }
   50% {
     transform: scale(1.08) translateY(-4px);
-    box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15), 0 0 25px rgba(245, 158, 11, 0.85);
+    box-shadow:
+      0 20px 25px rgba(0, 0, 0, 0.15),
+      0 0 25px rgba(245, 158, 11, 0.85);
   }
 }
 
@@ -294,8 +339,12 @@ button:not(:disabled),
 }
 
 @keyframes spinSlow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .animate-spin-slow {

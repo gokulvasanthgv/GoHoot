@@ -1,4 +1,4 @@
-import * as RadixAlertDialog from "@radix-ui/react-alert-dialog"
+import { AlertDialog as RadixAlertDialog } from "radix-ui"
 import Button from "@razzia/web/components/Button"
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"

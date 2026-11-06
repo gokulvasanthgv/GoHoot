@@ -1,246 +1,397 @@
-import { getPath, getGameConfig } from "./config"
-import fs from "fs"
-import crypto from "crypto"
-import { v7 as uuid } from "uuid"
+import type {
+  PasswordResetRequest,
+  PublicUser,
+  UserRole,
+} from "@razzia/common/types/auth"
+import {
+  roleValidator,
+  signUpValidator,
+  passwordValidator,
+} from "@razzia/common/validators/auth"
+import { managerPassword } from "@razzia/socket/env"
+import {
+  getPath,
+  isRecord,
+  readJson,
+  writeJson,
+} from "@razzia/socket/services/storage"
+import {
+  randomBytes,
+  randomUUID,
+  pbkdf2,
+  scrypt,
+  timingSafeEqual,
+} from "node:crypto"
+import { promisify } from "node:util"
+import { existsSync } from "node:fs"
 
-export interface User {
-  id: string
-  username: string
+const pbkdf2Async = promisify(pbkdf2)
+const scryptAsync = promisify(scrypt)
+
+interface User extends PublicUser {
   passwordHash: string
   salt: string
-  role: "admin" | "quizmaster" | "analyst" | "quizzer"
-  createdAt: string
+  algorithm?: "scrypt"
+  sessionVersion?: number
 }
 
-class UserService {
-  private users: User[] | null = null
+const publicUser = (user: User): PublicUser => ({
+  id: user.id,
+  username: user.username,
+  role: user.role,
+  createdAt: user.createdAt,
+})
 
-  private ensureLoaded() {
-    if (this.users !== null) return
+const hashPassword = async (password: string) => {
+  const salt = randomBytes(16).toString("hex")
+  const hash = (await scryptAsync(password, salt, 64)) as Buffer
 
-    this.users = []
-    const filepath = getPath("users.json")
-    if (fs.existsSync(filepath)) {
-      try {
-        const data = fs.readFileSync(filepath, "utf-8")
-        this.users = JSON.parse(data) as User[]
-      } catch (err) {
-        console.error("Failed to load users:", err)
-      }
-    }
-
-    if (this.users.length === 0) {
-      this.seedAdminUser()
-    }
+  return {
+    passwordHash: hash.toString("hex"),
+    salt,
+    algorithm: "scrypt" as const,
   }
+}
 
-  private saveUsers() {
-    if (this.users === null) return
-    try {
-      const filepath = getPath("users.json")
-      fs.writeFileSync(filepath, JSON.stringify(this.users, null, 2))
-    } catch (err) {
-      console.error("Failed to save users:", err)
-    }
-  }
+const verifyPassword = async (
+  password: string,
+  user: User,
+): Promise<boolean> => {
+  const stored = Buffer.from(user.passwordHash, "hex")
 
-  private hashPassword(password: string): { hash: string; salt: string } {
-    const salt = crypto.randomBytes(16).toString("hex")
-    const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, "sha512").toString("hex")
-    return { hash, salt }
-  }
-
-  private verifyPassword(password: string, hash: string, salt: string): boolean {
-    const verifyHash = crypto.pbkdf2Sync(password, salt, 1000, 64, "sha512").toString("hex")
-    return hash === verifyHash
-  }
-
-  private seedAdminUser() {
-    let password = "admin"
-    try {
-      const config = getGameConfig()
-      if (config.managerPassword && config.managerPassword !== "PASSWORD") {
-        password = config.managerPassword
-      }
-    } catch (e) {
-    }
-
-    const { hash, salt } = this.hashPassword(password)
-    const admin: User = {
-      id: uuid(),
-      username: "admin",
-      passwordHash: hash,
-      salt: salt,
-      role: "admin",
-      createdAt: new Date().toISOString()
-    }
-    this.users?.push(admin)
-    this.saveUsers()
-  }
-
-  signUp(username: string, password: string): { success: boolean; user?: Omit<User, "passwordHash" | "salt">; error?: string } {
-    this.ensureLoaded()
-    const normalized = username.trim().toLowerCase()
-    if (!normalized || password.length < 4) {
-      return { success: false, error: "errors:auth.invalidInput" }
-    }
-
-    if (this.users === null) return { success: false, error: "errors:auth.signupFailed" }
-
-    const exists = this.users.some(u => u.username.toLowerCase() === normalized)
-    if (exists) {
-      return { success: false, error: "errors:auth.usernameTaken" }
-    }
-
-    const { hash, salt } = this.hashPassword(password)
-    const newUser: User = {
-      id: uuid(),
-      username: username.trim(),
-      passwordHash: hash,
-      salt: salt,
-      role: "quizmaster",
-      createdAt: new Date().toISOString()
-    }
-
-    this.users.push(newUser)
-    this.saveUsers()
-
-    const { passwordHash, salt: s, ...safeUser } = newUser
-    return { success: true, user: safeUser }
-  }
-
-  signIn(username: string, password: string): { success: boolean; user?: Omit<User, "passwordHash" | "salt">; error?: string } {
-    this.ensureLoaded()
-    const normalized = username.trim().toLowerCase()
-    if (this.users === null) return { success: false, error: "errors:manager.invalidPassword" }
-
-    const user = this.users.find(u => u.username.toLowerCase() === normalized)
-
-    if (!user) {
-      return { success: false, error: "errors:manager.invalidPassword" }
-    }
-
-    const valid = this.verifyPassword(password, user.passwordHash, user.salt)
-    if (!valid) {
-      return { success: false, error: "errors:manager.invalidPassword" }
-    }
-
-    const { passwordHash, salt, ...safeUser } = user
-    return { success: true, user: safeUser }
-  }
-
-  getAllUsers(): Omit<User, "passwordHash" | "salt">[] {
-    this.ensureLoaded()
-    if (this.users === null) return []
-    return this.users.map(({ passwordHash, salt, ...safeUser }) => safeUser)
-  }
-
-  updateUserRole(userId: string, role: "admin" | "quizmaster" | "analyst" | "quizzer"): boolean {
-    this.ensureLoaded()
-    if (this.users === null) return false
-    const user = this.users.find(u => u.id === userId)
-    if (!user) return false
-
-    user.role = role
-    this.saveUsers()
-    return true
-  }
-
-  deleteUser(userId: string): boolean {
-    this.ensureLoaded()
-    if (this.users === null) return false
-    const initialLength = this.users.length
-    this.users = this.users.filter(u => u.id !== userId)
-    if (this.users.length < initialLength) {
-      this.saveUsers()
-      return true
-    }
+  if (stored.length !== 64) {
     return false
   }
 
-  getUserById(userId: string): Omit<User, "passwordHash" | "salt"> | null {
-    this.ensureLoaded()
-    if (this.users === null) return null
-    const user = this.users.find(u => u.id === userId)
-    if (!user) return null
-    const { passwordHash, salt, ...safeUser } = user
-    return safeUser
+  const actual =
+    user.algorithm === "scrypt"
+      ? ((await scryptAsync(password, user.salt, 64)) as Buffer)
+      : await pbkdf2Async(password, user.salt, 1000, 64, "sha512")
+
+  return timingSafeEqual(stored, actual)
+}
+
+class UserService {
+  private users: User[] = []
+  private loadedPath = ""
+
+  private load(): void {
+    const path = getPath("users.json")
+
+    if (this.loadedPath === path) {
+      return
+    }
+
+    const data = readJson(path)
+
+    if (data === null && existsSync(path)) {
+      throw new Error(
+        "Unreadable users.json; refusing to replace existing accounts",
+      )
+    }
+
+    if (data !== null && !Array.isArray(data)) {
+      throw new Error(
+        "Invalid users.json; refusing to replace existing accounts",
+      )
+    }
+
+    this.users = Array.isArray(data)
+      ? data.filter(
+          (value): value is User =>
+            isRecord(value) &&
+            typeof value.id === "string" &&
+            typeof value.username === "string" &&
+            typeof value.passwordHash === "string" &&
+            typeof value.salt === "string" &&
+            roleValidator.safeParse(value.role).success,
+        )
+      : []
+
+    if (Array.isArray(data) && this.users.length !== data.length) {
+      throw new Error(
+        "Invalid account record; refusing to discard account data",
+      )
+    }
+
+    this.loadedPath = path
   }
 
-  changePassword(userId: string, current: string, newPass: string): { success: boolean; error?: string } {
-    this.ensureLoaded()
-    if (this.users === null) return { success: false, error: "errors:auth.changeFailed" }
-    const user = this.users.find(u => u.id === userId)
-    if (!user) return { success: false, error: "errors:auth.userNotFound" }
-    const valid = this.verifyPassword(current, user.passwordHash, user.salt)
-    if (!valid) return { success: false, error: "errors:auth.invalidCurrentPassword" }
-    const { hash, salt } = this.hashPassword(newPass)
-    user.passwordHash = hash
-    user.salt = salt
-    this.saveUsers()
-    return { success: true }
+  private save(): void {
+    writeJson(getPath("users.json"), this.users)
   }
 
-  adminChangePassword(userId: string, newPass: string): boolean {
-    this.ensureLoaded()
-    if (this.users === null) return false
-    const user = this.users.find(u => u.id === userId)
-    if (!user) return false
-    const { hash, salt } = this.hashPassword(newPass)
-    user.passwordHash = hash
-    user.salt = salt
-    this.saveUsers()
+  private clearLegacyPassword(): void {
+    const legacy = readJson(getPath("game.json"))
+
+    if (isRecord(legacy) && Object.hasOwn(legacy, "managerPassword")) {
+      writeJson(getPath("game.json"), { ...legacy, managerPassword: undefined })
+    }
+  }
+
+  async initialize(): Promise<void> {
+    this.load()
+
+    if (this.users.some((user) => user.username.toLowerCase() === "admin")) {
+      this.clearLegacyPassword()
+
+      return
+    }
+
+    const legacy = readJson(getPath("game.json"))
+    const legacyPassword =
+      isRecord(legacy) &&
+      typeof legacy.managerPassword === "string" &&
+      legacy.managerPassword !== "PASSWORD" &&
+      legacy.managerPassword !== "admin"
+        ? legacy.managerPassword
+        : undefined
+    const password = managerPassword ?? legacyPassword
+
+    if (!password) {
+      return
+    }
+
+    this.users.push({
+      id: randomUUID(),
+      username: "admin",
+      role: "admin",
+      createdAt: new Date().toISOString(),
+      sessionVersion: 0,
+      ...(await hashPassword(password)),
+    })
+    this.save()
+    this.clearLegacyPassword()
+  }
+
+  getAllUsers(): PublicUser[] {
+    this.load()
+
+    return this.users.map(publicUser)
+  }
+  getUserById(id: string): PublicUser | null {
+    this.load()
+    const user = this.users.find((value) => value.id === id)
+
+    return user ? publicUser(user) : null
+  }
+  getSessionVersion(id: string): number | undefined {
+    this.load()
+    const user = this.users.find((value) => value.id === id)
+
+    return user ? (user.sessionVersion ?? 0) : undefined
+  }
+
+  async signUp(username: string, password: string) {
+    this.load()
+    const result = signUpValidator.safeParse({ username, password })
+
+    if (!result.success) {
+      return { success: false as const, error: result.error.issues[0].message }
+    }
+
+    const normalized = result.data.username.toLowerCase()
+
+    if (
+      normalized === "admin" ||
+      this.users.some((user) => user.username.toLowerCase() === normalized)
+    ) {
+      return { success: false as const, error: "errors:auth.usernameTaken" }
+    }
+
+    const passwordData = await hashPassword(password)
+
+    if (this.users.some((user) => user.username.toLowerCase() === normalized)) {
+      return { success: false as const, error: "errors:auth.usernameTaken" }
+    }
+
+    const user: User = {
+      id: randomUUID(),
+      username: result.data.username,
+      role: "quizmaster",
+      createdAt: new Date().toISOString(),
+      sessionVersion: 0,
+      ...passwordData,
+    }
+    this.users.push(user)
+    this.save()
+
+    return { success: true as const, user: publicUser(user) }
+  }
+
+  async signIn(username: string, password: string) {
+    this.load()
+    const user = this.users.find(
+      (value) => value.username.toLowerCase() === username.trim().toLowerCase(),
+    )
+
+    if (!user) {
+      await scryptAsync(password, "gohoot-invalid-account", 64)
+
+      return {
+        success: false as const,
+        error: "errors:manager.invalidPassword",
+      }
+    }
+
+    if (
+      user.username.toLowerCase() === "admin" &&
+      !user.algorithm &&
+      (await verifyPassword("admin", user))
+    ) {
+      if (!managerPassword) {
+        return {
+          success: false as const,
+          error: "errors:manager.passwordNotConfigured",
+        }
+      }
+
+      const actual = (await scryptAsync(password, user.salt, 64)) as Buffer
+      const expected = (await scryptAsync(
+        managerPassword,
+        user.salt,
+        64,
+      )) as Buffer
+
+      if (!timingSafeEqual(actual, expected)) {
+        return {
+          success: false as const,
+          error: "errors:manager.invalidPassword",
+        }
+      }
+
+      Object.assign(user, await hashPassword(managerPassword))
+      user.sessionVersion = (user.sessionVersion ?? 0) + 1
+      this.save()
+    } else if (!(await verifyPassword(password, user))) {
+      return {
+        success: false as const,
+        error: "errors:manager.invalidPassword",
+      }
+    }
+
+    if (!user.algorithm) {
+      Object.assign(user, await hashPassword(password))
+      this.save()
+    }
+
+    return { success: true as const, user: publicUser(user) }
+  }
+
+  updateUserRole(id: string, role: UserRole): boolean {
+    this.load()
+    const user = this.users.find((value) => value.id === id)
+
+    if (
+      !user ||
+      user.username.toLowerCase() === "admin" ||
+      !roleValidator.safeParse(role).success
+    ) {
+      return false
+    }
+
+    user.role = role
+    user.sessionVersion = (user.sessionVersion ?? 0) + 1
+    this.save()
+
     return true
   }
 
-  requestPasswordReset(username: string): { success: boolean; error?: string } {
-    this.ensureLoaded()
-    if (this.users === null) return { success: false, error: "errors:auth.requestFailed" }
-    const normalized = username.trim().toLowerCase()
-    const user = this.users.find(u => u.username.toLowerCase() === normalized)
-    if (!user) return { success: false, error: "errors:auth.userNotFound" }
+  deleteUser(id: string): boolean {
+    this.load()
+    const user = this.users.find((value) => value.id === id)
 
-    const filepath = getPath("notifications.json")
-    let requests: any[] = []
-    if (fs.existsSync(filepath)) {
-      try {
-        requests = JSON.parse(fs.readFileSync(filepath, "utf-8"))
-      } catch (e) {}
+    if (!user || user.username.toLowerCase() === "admin") {
+      return false
     }
 
-    const alreadyExists = requests.some(r => r.username.toLowerCase() === normalized)
-    if (!alreadyExists) {
-      requests.push({
-        id: uuid(),
-        username: user.username,
-        createdAt: new Date().toISOString()
-      })
-      fs.writeFileSync(filepath, JSON.stringify(requests, null, 2))
+    this.users = this.users.filter((value) => value.id !== id)
+    this.save()
+
+    return true
+  }
+
+  async changePassword(id: string, current: string, password: string) {
+    this.load()
+    const user = this.users.find((value) => value.id === id)
+
+    if (!user || !(await verifyPassword(current, user))) {
+      return { success: false, error: "errors:auth.invalidCurrentPassword" }
     }
+
+    if (!passwordValidator.safeParse(password).success) {
+      return { success: false, error: "errors:auth.passwordTooShort" }
+    }
+
+    Object.assign(user, await hashPassword(password))
+    user.sessionVersion = (user.sessionVersion ?? 0) + 1
+    this.save()
+
     return { success: true }
   }
 
-  getForgotPasswordRequests(): any[] {
-    const filepath = getPath("notifications.json")
-    if (fs.existsSync(filepath)) {
-      try {
-        return JSON.parse(fs.readFileSync(filepath, "utf-8"))
-      } catch (e) {}
+  async adminChangePassword(id: string, password: string): Promise<boolean> {
+    this.load()
+    const user = this.users.find((value) => value.id === id)
+
+    if (!user || !passwordValidator.safeParse(password).success) {
+      return false
     }
-    return []
+
+    Object.assign(user, await hashPassword(password))
+    user.sessionVersion = (user.sessionVersion ?? 0) + 1
+    this.save()
+
+    return true
   }
 
-  dismissPasswordReset(id: string): void {
-    const filepath = getPath("notifications.json")
-    if (fs.existsSync(filepath)) {
-      try {
-        let requests = JSON.parse(fs.readFileSync(filepath, "utf-8"))
-        requests = requests.filter((r: any) => r.id !== id)
-        fs.writeFileSync(filepath, JSON.stringify(requests, null, 2))
-      } catch (e) {}
+  requestPasswordReset(username: string) {
+    this.load()
+    const user = this.users.find(
+      (value) => value.username.toLowerCase() === username.trim().toLowerCase(),
+    )
+
+    if (!user) {
+      return { success: true }
     }
+
+    const requests = this.getForgotPasswordRequests()
+
+    if (
+      !requests.some(
+        (value) => value.username.toLowerCase() === user.username.toLowerCase(),
+      )
+    ) {
+      requests.push({
+        id: randomUUID(),
+        username: user.username,
+        createdAt: new Date().toISOString(),
+      })
+      writeJson(getPath("notifications.json"), requests)
+    }
+
+    return { success: true }
+  }
+
+  getForgotPasswordRequests(): PasswordResetRequest[] {
+    const data = readJson(getPath("notifications.json"))
+
+    return Array.isArray(data)
+      ? data.filter(
+          (value): value is PasswordResetRequest =>
+            isRecord(value) &&
+            typeof value.id === "string" &&
+            typeof value.username === "string" &&
+            typeof value.createdAt === "string",
+        )
+      : []
+  }
+  dismissPasswordReset(id: string): void {
+    writeJson(
+      getPath("notifications.json"),
+      this.getForgotPasswordRequests().filter((value) => value.id !== id),
+    )
   }
 }
 
-const userService = new UserService()
-export default userService
+export default new UserService()

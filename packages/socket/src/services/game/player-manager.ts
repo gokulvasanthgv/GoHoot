@@ -17,7 +17,7 @@ export class PlayerManager {
   }
 
   join(socket: Socket, username: string): void {
-    const clientId = socket.handshake.auth.clientId as string
+    const { clientId } = socket.data
 
     const result = usernameValidator.safeParse(username)
 
@@ -27,9 +27,12 @@ export class PlayerManager {
       return
     }
 
-    const normalizedUsername = username.trim().toLowerCase()
+    const displayName = result.data
+    const normalizedUsername = displayName.toLowerCase()
     const nameExists = this.players.some(
-      (p) => p.username.trim().toLowerCase() === normalizedUsername && p.clientId !== clientId,
+      (p) =>
+        p.username.trim().toLowerCase() === normalizedUsername &&
+        p.clientId !== clientId,
     )
 
     if (nameExists) {
@@ -39,23 +42,29 @@ export class PlayerManager {
     }
 
     const existingPlayer = this.findByClientId(clientId)
+
     if (existingPlayer) {
       if (existingPlayer.connected && existingPlayer.id !== socket.id) {
         const oldSocket = this.io.sockets.sockets.get(existingPlayer.id)
+
         if (oldSocket) {
           oldSocket.leave(this.gameId)
           oldSocket.emit(EVENTS.GAME.RESET, "errors:game.sessionTakenOver")
         }
       }
 
-      existingPlayer.username = username
+      existingPlayer.username = displayName
       socket.join(this.gameId)
       const oldSocketId = existingPlayer.id
       this.updateSocketId(oldSocketId, socket.id)
       existingPlayer.connected = true
 
-      this.io.to(this.getManagerId()).emit(EVENTS.MANAGER.NEW_PLAYER, existingPlayer)
-      this.io.to(this.gameId).emit(EVENTS.GAME.TOTAL_PLAYERS, this.players.length)
+      this.io
+        .to(this.getManagerId())
+        .emit(EVENTS.MANAGER.NEW_PLAYER, existingPlayer)
+      this.io
+        .to(this.gameId)
+        .emit(EVENTS.GAME.TOTAL_PLAYERS, this.connectedCount())
       socket.emit(EVENTS.GAME.SUCCESS_JOIN, this.gameId)
 
       return
@@ -68,7 +77,7 @@ export class PlayerManager {
       id: socket.id,
       clientId,
       connected: true,
-      username,
+      username: displayName,
       points: 0,
       streak: 0,
       userId: user ? user.id : undefined,
@@ -76,7 +85,9 @@ export class PlayerManager {
 
     this.players.push(player)
     this.io.to(this.getManagerId()).emit(EVENTS.MANAGER.NEW_PLAYER, player)
-    this.io.to(this.gameId).emit(EVENTS.GAME.TOTAL_PLAYERS, this.players.length)
+    this.io
+      .to(this.gameId)
+      .emit(EVENTS.GAME.TOTAL_PLAYERS, this.connectedCount())
     socket.emit(EVENTS.GAME.SUCCESS_JOIN, this.gameId)
   }
 
@@ -98,7 +109,9 @@ export class PlayerManager {
     this.io
       .to(this.getManagerId())
       .emit(EVENTS.MANAGER.PLAYER_KICKED, player.id)
-    this.io.to(this.gameId).emit(EVENTS.GAME.TOTAL_PLAYERS, this.players.length)
+    this.io
+      .to(this.gameId)
+      .emit(EVENTS.GAME.TOTAL_PLAYERS, this.connectedCount())
 
     return true
   }
@@ -151,7 +164,22 @@ export class PlayerManager {
     return this.players.length
   }
 
+  connectedCount(): number {
+    return this.players.filter((player) => player.connected).length
+  }
+  removeDisconnected(): void {
+    for (const player of this.players.filter((entry) => !entry.connected)) {
+      this.io
+        .to(this.getManagerId())
+        .emit(EVENTS.MANAGER.REMOVE_PLAYER, player.id)
+    }
+    this.players = this.players.filter((player) => player.connected)
+    this.broadcastCount()
+  }
+
   broadcastCount(): void {
-    this.io.to(this.gameId).emit(EVENTS.GAME.TOTAL_PLAYERS, this.players.length)
+    this.io
+      .to(this.gameId)
+      .emit(EVENTS.GAME.TOTAL_PLAYERS, this.connectedCount())
   }
 }

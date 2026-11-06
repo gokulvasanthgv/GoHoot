@@ -1,3 +1,4 @@
+import { authFetch } from "@razzia/web/lib/api"
 import { EVENTS } from "@razzia/common/constants"
 import Button from "@razzia/web/components/Button"
 import Input from "@razzia/web/components/Input"
@@ -21,15 +22,20 @@ const ConfigSettings = () => {
     (type: "wallpaper" | "audio") =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0]
-      if (!file) return
+
+      if (!file) {
+        return
+      }
 
       if (type === "wallpaper" && !file.type.startsWith("image/")) {
         toast.error("Please upload an image file.")
+
         return
       }
 
       if (type === "audio" && !file.type.startsWith("audio/")) {
         toast.error("Please upload an audio file.")
+
         return
       }
 
@@ -37,9 +43,9 @@ const ConfigSettings = () => {
         type === "wallpaper" ? setUploadingWallpaper : setUploadingAudio
       setIsUploading(true)
 
-      const url = `/uploads?filename=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}&clientId=${encodeURIComponent(clientId ?? "")}`
+      const url = `/uploads?filename=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}&clientId=${encodeURIComponent(clientId)}`
 
-      fetch(url, {
+      authFetch(url, {
         method: "POST",
         body: file,
       })
@@ -47,17 +53,20 @@ const ConfigSettings = () => {
           if (!res.ok) {
             throw new Error("Upload failed")
           }
+
           return res.json()
         })
         .then(
           (response: { success: boolean; url?: string; error?: string }) => {
             setIsUploading(false)
+
             if (response.success && response.url) {
               if (type === "wallpaper") {
                 setWallpaper(response.url)
               } else {
                 setAudio(response.url)
               }
+
               toast.success("File uploaded successfully")
             } else {
               toast.error(response.error || "Upload failed")

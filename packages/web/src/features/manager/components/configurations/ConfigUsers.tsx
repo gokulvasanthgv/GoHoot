@@ -41,10 +41,12 @@ const ConfigUsers = ({ onOpenQuizzes }: Props) => {
   }
 
   const handleAdminResetPassword = (userId: string) => {
-    if (newPassword.length < 4) {
-      toast.error("Password must be at least 4 characters")
+    if (newPassword.length < 8) {
+      toast.error("Password must be at least 8 characters")
+
       return
     }
+
     socket.emit(EVENTS.MANAGER.ADMIN_RESET_PASSWORD, { userId, newPassword })
   }
 
@@ -102,7 +104,7 @@ const ConfigUsers = ({ onOpenQuizzes }: Props) => {
                   </select>
                 </div>
 
-                {currentUser?.role === "admin" && u.id !== currentUser?.id && (
+                {currentUser?.role === "admin" && u.id !== currentUser.id && (
                   <>
                     <button
                       onClick={() => onOpenQuizzes?.(u.id, u.username)}
@@ -162,11 +164,11 @@ const ConfigUsers = ({ onOpenQuizzes }: Props) => {
                 className="grid min-w-0 grid-cols-2 gap-3 rounded-b-xl border-t border-gray-100 bg-gray-50/50 p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end"
               >
                 <label className="col-span-2 min-w-0 text-sm font-medium text-gray-700 sm:col-span-1">
-                  New password (min 4 characters)
+                  New password (min 8 characters)
                   <input
                     type="password"
                     autoComplete="new-password"
-                    minLength={4}
+                    minLength={8}
                     required
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}

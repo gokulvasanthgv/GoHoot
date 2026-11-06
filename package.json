@@ -1,24 +1,41 @@
 {
-  "name": "razzia",
+  "name": "gohoot",
   "version": "3.0.0",
+  "type": "module",
+  "packageManager": "pnpm@11.28.7",
+  "engines": {
+    "node": "^24"
+  },
   "scripts": {
     "dev": "dotenv -e .env -- pnpm -r --parallel dev",
     "dev:web": "dotenv -e .env -- pnpm --filter web dev",
     "dev:socket": "dotenv -e .env -- pnpm --filter socket dev",
     "build": "pnpm -r run build",
-    "start": "pnpm -r --parallel run start",
+    "start": "dotenv -e .env -- pnpm -r --parallel run start",
     "clean": "pnpm -r exec rm -rf dist node_modules",
-    "lint": "pnpm -r --parallel run types && oxlint",
-    "format": "pnpm -r --parallel run format",
-    "format:fix": "pnpm -r --parallel run format:fix"
+    "lint": "pnpm types && oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "prettier --check . --log-level warn",
+    "format:fix": "prettier --write . --log-level warn",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "pnpm build && pnpm --filter @razzia/e2e test",
+    "test:e2e:ui": "pnpm build && pnpm --filter @razzia/e2e test:ui",
+    "docker:build": "docker build -t gohoot:local .",
+    "docker:scout": "pnpm docker:build && docker scout quickview gohoot:local && docker scout cves gohoot:local --only-severity critical,high",
+    "act:release": "act release -W .github/workflows/docker-release.yml --env GITHUB_REF_NAME=v0.0.1 -P ubuntu-latest=catthehacker/ubuntu:act-latest -s DOCKERHUB_USERNAME=dry-run",
+    "types": "pnpm -r run types"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "latest",
+    "@vitest/coverage-v8": "^5.0.5",
     "dotenv-cli": "^11.0.0",
     "oxlint": "latest",
-    "oxlint-tsgolint": "^0.22.1",
-    "prettier": "^3.8.3",
-    "prettier-plugin-tailwindcss": "^0.8.0",
-    "typescript": "^6.0.3"
+    "oxlint-tsgolint": "^7.0.2005",
+    "prettier": "^3.9.10",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "typescript": "catalog:",
+    "vitest": "^5.0.5"
   }
 }

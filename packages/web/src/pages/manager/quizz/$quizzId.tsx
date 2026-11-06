@@ -11,15 +11,20 @@ import QuizzEditorSidebar from "@razzia/web/features/quizz/components/QuizzEdito
 import { QuizzEditorProvider } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import { createFileRoute } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { quizzQuery } from "@razzia/web/features/manager/queries"
 
 const QuizzEditPage = () => {
   const { quizzId } = Route.useParams()
-  const { socket } = useSocket()
+  const { isConnected } = useSocket()
   const [quizz, setQuizz] = useState<QuizzWithId | null>(null)
 
+  const query = useQuery({ ...quizzQuery(quizzId), enabled: isConnected })
   useEffect(() => {
-    socket.emit(EVENTS.QUIZZ.GET, quizzId)
-  }, [socket, quizzId])
+    if (query.data) {
+      setQuizz(query.data)
+    }
+  }, [query.data])
 
   useEvent(EVENTS.QUIZZ.DATA, (data) => {
     if (data.id === quizzId) {

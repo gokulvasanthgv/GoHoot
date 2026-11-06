@@ -11,6 +11,8 @@ interface PlayerState {
 }
 
 interface PlayerStore<T> {
+  inviteCode: string | null
+  setInviteCode: (_inviteCode: string) => void
   gameId: string | null
   player: PlayerState | null
   status: Status<T> | null
@@ -32,6 +34,7 @@ interface PlayerStore<T> {
 }
 
 const initialState = {
+  inviteCode: null,
   gameId: null,
   player: null,
   status: null,
@@ -41,6 +44,7 @@ const initialState = {
 
 export const usePlayerStore = create<PlayerStore<StatusDataMap>>((set) => ({
   ...initialState,
+  setInviteCode: (inviteCode) => set({ inviteCode }),
 
   setGameId: (gameId) => set({ gameId }),
 
@@ -55,6 +59,7 @@ export const usePlayerStore = create<PlayerStore<StatusDataMap>>((set) => ({
       gameId,
       player: { ...state.player, points: 0 },
     }))
+
     if (gameId) {
       localStorage.setItem("active_game_id", gameId)
       document.cookie = `active_game_id=${encodeURIComponent(gameId)}; path=/; max-age=31536000; SameSite=Lax`

@@ -1,17 +1,36 @@
+import type { AttendedQuiz, GameResult } from "@razzia/common/types/game"
 import { EVENTS } from "@razzia/common/constants"
 import Button from "@razzia/web/components/Button"
 import Card from "@razzia/web/components/Card"
 import PinInput from "@razzia/web/components/PinInput"
-import { useEvent, useSocket } from "@razzia/web/features/game/contexts/socket-context"
+import {
+  useEvent,
+  useSocket,
+} from "@razzia/web/features/game/contexts/socket-context"
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
 import { useUserStore } from "@razzia/web/features/game/stores/user"
 import { useNavigate } from "@tanstack/react-router"
-import { LogOut, LayoutDashboard, Play, CheckCircle2, XCircle, ArrowRight, Award, History, Info, ChevronDown, ChevronUp, User, Lock } from "lucide-react"
+import {
+  LogOut,
+  LayoutDashboard,
+  Play,
+  CheckCircle2,
+  XCircle,
+  ArrowRight,
+  Award,
+  History,
+  Info,
+  ChevronDown,
+  ChevronUp,
+  User,
+  Lock,
+} from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { motion, AnimatePresence } from "motion/react"
 import ResultModal from "@razzia/web/features/manager/components/ResultModal"
 import toast from "react-hot-toast"
+import { joinGame } from "@razzia/web/features/manager/queries"
 
 const PlayerDashboard = () => {
   const { socket } = useSocket()
@@ -20,11 +39,13 @@ const PlayerDashboard = () => {
   const navigate = useNavigate()
   const { t } = useTranslation()
 
-  const [activeTab, setActiveTab] = useState<"join" | "performance" | "profile">("join")
+  const [activeTab, setActiveTab] = useState<
+    "join" | "performance" | "profile"
+  >("join")
   const [invitation, setInvitation] = useState("")
-  const [attendedQuizzes, setAttendedQuizzes] = useState<any[]>([])
+  const [attendedQuizzes, setAttendedQuizzes] = useState<AttendedQuiz[]>([])
   const [expandedQuizId, setExpandedQuizId] = useState<string | null>(null)
-  const [selectedResult, setSelectedResult] = useState<any | null>(null)
+  const [selectedResult, setSelectedResult] = useState<GameResult | null>(null)
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -34,23 +55,21 @@ const PlayerDashboard = () => {
   }, [socket])
 
   useEvent(EVENTS.RESULTS.PLAYER_DASHBOARD_DATA, (data) => {
-    if (data && data.attended) {
-      setAttendedQuizzes(data.attended)
-    }
+    setAttendedQuizzes(data.attended)
   })
 
   useEvent(EVENTS.RESULTS.DATA, (data) => {
     setSelectedResult(data)
   })
 
-  useEvent("manager:passwordChanged", (res: any) => {
+  useEvent("manager:passwordChanged", (res) => {
     if (res.success) {
       toast.success("Password changed successfully")
       setCurrentPassword("")
       setNewPassword("")
       setConfirmPassword("")
     } else {
-      toast.error(t(res.error) || "Failed to change password")
+      toast.error(t(res.error ?? "errors:api.serverError"))
     }
   })
 
@@ -61,27 +80,52 @@ const PlayerDashboard = () => {
   const handleChangePassword = () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       toast.error("All fields are required")
+
       return
     }
-    if (newPassword.length < 4) {
-      toast.error("New password must be at least 4 characters")
+
+    if (newPassword.length < 8) {
+      toast.error("New password must be at least 8 characters")
+
       return
     }
+
     if (newPassword !== confirmPassword) {
       toast.error("Passwords do not match")
+
       return
     }
-    socket.emit(EVENTS.MANAGER.CHANGE_PASSWORD, { currentPassword, newPassword })
+
+    socket.emit(EVENTS.MANAGER.CHANGE_PASSWORD, {
+      currentPassword,
+      newPassword,
+    })
   }
 
   useEvent(EVENTS.GAME.SUCCESS_ROOM, (payload) => {
     const gameId = typeof payload === "string" ? payload : payload.gameId
     join(gameId)
-    socket.emit(EVENTS.PLAYER.LOGIN, {
-      gameId,
-      data: { username: user?.username || "" }
-    })
-    navigate({ to: "/party/$gameId", params: { gameId } })
+    void joinGame(invitation.replace(/\s/gu, ""), user?.username ?? "")
+      .then(({ ticket }) => {
+        if (ticket) {
+          socket.emit(EVENTS.PLAYER.LOGIN, { ticket })
+        } else {
+          navigate({ to: "/party/$gameId", params: { gameId } })
+        }
+      })
+      .catch((failure: unknown) =>
+        toast.error(
+          t(
+            failure instanceof Error
+              ? failure.message
+              : "errors:api.serverError",
+          ),
+        ),
+      )
+  })
+
+  useEvent(EVENTS.GAME.SUCCESS_JOIN, (gameId) => {
+    void navigate({ to: "/party/$gameId", params: { gameId } })
   })
 
   const handleJoin = () => {
@@ -98,6 +142,7 @@ const PlayerDashboard = () => {
 
   const formatDate = (iso: string) => {
     const d = new Date(iso)
+
     return d.toLocaleDateString(undefined, {
       day: "2-digit",
       month: "short",
@@ -106,13 +151,15 @@ const PlayerDashboard = () => {
   }
 
   return (
-    <div className="flex flex-col h-full w-full max-w-lg mx-auto bg-gray-50/90 shadow-xl rounded-2xl overflow-hidden backdrop-blur-md">
-      <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-100 shrink-0">
+    <div className="mx-auto flex h-full w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-gray-50/90 shadow-xl backdrop-blur-md">
+      <div className="flex shrink-0 items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
         <div className="flex flex-col">
           <h1 className="text-xl font-bold text-gray-800">GoHoot</h1>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs text-gray-500 font-medium">{user?.username}</span>
-            <span className="inline-block px-1.5 py-0.5 text-[10px] font-bold text-primary bg-primary/10 rounded-full capitalize">
+          <div className="mt-0.5 flex items-center gap-2">
+            <span className="text-xs font-medium text-gray-500">
+              {user?.username}
+            </span>
+            <span className="text-primary bg-primary/10 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-bold capitalize">
               {user?.role}
             </span>
           </div>
@@ -121,7 +168,7 @@ const PlayerDashboard = () => {
           {user && user.role !== "quizzer" && (
             <button
               onClick={() => navigate({ to: "/manager/config" })}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+              className="flex items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-200"
             >
               <LayoutDashboard className="size-3.5" />
               {t("manager:configurationsTitle") || "Host Panel"}
@@ -129,7 +176,7 @@ const PlayerDashboard = () => {
           )}
           <button
             onClick={handleLogout}
-            className="p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 rounded-lg transition"
+            className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
             title="Logout"
           >
             <LogOut className="size-4.5" />
@@ -137,10 +184,10 @@ const PlayerDashboard = () => {
         </div>
       </div>
 
-      <div className="flex bg-gray-100/50 p-1 border-b border-gray-100 shrink-0">
+      <div className="flex shrink-0 border-b border-gray-100 bg-gray-100/50 p-1">
         <button
           onClick={() => setActiveTab("join")}
-          className={`flex-1 py-2.5 text-center text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-center text-sm font-semibold transition-all ${
             activeTab === "join"
               ? "bg-white text-gray-800 shadow-sm"
               : "text-gray-400 hover:text-gray-600"
@@ -151,7 +198,7 @@ const PlayerDashboard = () => {
         </button>
         <button
           onClick={() => setActiveTab("performance")}
-          className={`flex-1 py-2.5 text-center text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-center text-sm font-semibold transition-all ${
             activeTab === "performance"
               ? "bg-white text-gray-800 shadow-sm"
               : "text-gray-400 hover:text-gray-600"
@@ -162,7 +209,7 @@ const PlayerDashboard = () => {
         </button>
         <button
           onClick={() => setActiveTab("profile")}
-          className={`flex-1 py-2.5 text-center text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-center text-sm font-semibold transition-all ${
             activeTab === "profile"
               ? "bg-white text-gray-800 shadow-sm"
               : "text-gray-400 hover:text-gray-600"
@@ -173,7 +220,7 @@ const PlayerDashboard = () => {
         </button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-6">
+      <div className="min-h-0 flex-1 overflow-y-auto p-6">
         <AnimatePresence mode="wait">
           {activeTab === "join" ? (
             <motion.div
@@ -182,14 +229,17 @@ const PlayerDashboard = () => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
               transition={{ duration: 0.2 }}
-              className="flex flex-col items-center justify-center h-full gap-4"
+              className="flex h-full flex-col items-center justify-center gap-4"
             >
-              <Card className="w-full max-w-sm p-6 shadow-md border border-gray-100">
+              <Card className="w-full max-w-sm border border-gray-100 p-6 shadow-md">
                 <p className="mb-4 text-center font-bold text-gray-600">
                   {t("game:pinLabel") || "Enter Game PIN to join live session"}
                 </p>
                 <PinInput value={invitation} onChange={setInvitation} />
-                <Button className="mt-6 w-full shadow-md flex items-center justify-center gap-2" onClick={handleJoin}>
+                <Button
+                  className="mt-6 flex w-full items-center justify-center gap-2 shadow-md"
+                  onClick={handleJoin}
+                >
                   {t("common:submit") || "Join Room"}
                   <ArrowRight className="size-4.5" />
                 </Button>
@@ -207,50 +257,76 @@ const PlayerDashboard = () => {
               {attendedQuizzes.map((quiz) => (
                 <div
                   key={quiz.id}
-                  className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition duration-200"
+                  className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition duration-200 hover:shadow-md"
                 >
-                  <div className="flex items-center justify-between p-4 flex-wrap gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-4">
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-bold text-gray-800 truncate">{quiz.subject}</h3>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-gray-400 font-medium">
+                      <h3 className="truncate font-bold text-gray-800">
+                        {quiz.subject}
+                      </h3>
+                      <div className="mt-1 flex items-center gap-2 text-xs font-medium text-gray-400">
                         <History className="size-3.5" />
                         <span>{formatDate(quiz.date)}</span>
                         <span>•</span>
-                        <span>{quiz.mode === "accuracy" ? "Accuracy" : "Classic"}</span>
+                        <span>
+                          {quiz.mode === "accuracy" ? "Accuracy" : "Classic"}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 shrink-0">
+                    <div className="flex shrink-0 items-center gap-4">
                       <div className="text-right">
-                        <p className="text-xs font-semibold text-gray-400">Score</p>
-                        <p className="text-sm font-bold text-gray-700">{quiz.points} pts</p>
+                        <p className="text-xs font-semibold text-gray-400">
+                          Score
+                        </p>
+                        <p className="text-sm font-bold text-gray-700">
+                          {quiz.points} pts
+                        </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs font-semibold text-gray-400">Rank</p>
-                        <p className="text-sm font-bold text-primary">#{quiz.rank}/{quiz.totalPlayers}</p>
+                        <p className="text-xs font-semibold text-gray-400">
+                          Rank
+                        </p>
+                        <p className="text-primary text-sm font-bold">
+                          #{quiz.rank}/{quiz.totalPlayers}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 w-full sm:w-auto sm:border-l sm:border-gray-100 sm:pl-3 justify-end">
+                    <div className="flex w-full items-center justify-end gap-2 sm:w-auto sm:border-l sm:border-gray-100 sm:pl-3">
                       <button
                         onClick={() => handleOpenReport(quiz.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition"
+                        className="flex items-center gap-1 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-600 transition hover:bg-indigo-100"
                       >
                         <Award className="size-3" />
                         Report
                       </button>
                       <button
-                        onClick={() => navigate({ to: "/party/solo/$quizzId", params: { quizzId: quiz.quizzId } })}
-                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg transition"
+                        disabled={!quiz.quizzId}
+                        onClick={() =>
+                          navigate({
+                            to: "/party/solo/$quizzId",
+                            params: { quizzId: quiz.quizzId ?? "" },
+                          })
+                        }
+                        className="flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-green-700"
                       >
                         <Play className="size-3" />
                         Solo
                       </button>
                       <button
-                        onClick={() => setExpandedQuizId(expandedQuizId === quiz.id ? null : quiz.id)}
-                        className="p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 rounded-lg transition"
+                        onClick={() =>
+                          setExpandedQuizId(
+                            expandedQuizId === quiz.id ? null : quiz.id,
+                          )
+                        }
+                        className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
                       >
-                        {expandedQuizId === quiz.id ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                        {expandedQuizId === quiz.id ? (
+                          <ChevronUp className="size-4" />
+                        ) : (
+                          <ChevronDown className="size-4" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -262,34 +338,45 @@ const PlayerDashboard = () => {
                         animate={{ height: "auto" }}
                         exit={{ height: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="border-t border-gray-100 bg-gray-50/50 overflow-hidden"
+                        className="overflow-hidden border-t border-gray-100 bg-gray-50/50"
                       >
-                        <div className="p-4 space-y-3">
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 mb-2">
+                        <div className="space-y-3 p-4">
+                          <p className="mb-2 flex items-center gap-1 text-xs font-bold tracking-wider text-gray-400 uppercase">
                             <Info className="size-3.5" />
                             Question Breakdown
                           </p>
-                          {quiz.questions.map((q: any, idx: number) => (
-                            <div key={idx} className="flex items-start gap-3 p-3 bg-white border border-gray-100 rounded-lg">
-                              <span className="flex items-center justify-center shrink-0 size-6 rounded-full bg-gray-100 text-xs font-bold text-gray-500 mt-0.5">
+                          {quiz.questions.map((q, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-start gap-3 rounded-lg border border-gray-100 bg-white p-3"
+                            >
+                              <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-500">
                                 {idx + 1}
                               </span>
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold text-gray-700 leading-snug">{q.question}</p>
-                                <p className="text-xs text-gray-400 mt-1 truncate">
+                                <p className="text-sm leading-snug font-semibold text-gray-700">
+                                  {q.question}
+                                </p>
+                                <p className="mt-1 truncate text-xs text-gray-400">
                                   Your selection:{" "}
                                   <span className="font-semibold text-gray-600">
-                                    {q.selectedAnswers && q.selectedAnswers.length > 0
-                                      ? q.selectedAnswers.map((ansIdx: number) => q.answers?.[ansIdx] || ansIdx).join(", ")
+                                    {q.selectedAnswers &&
+                                    q.selectedAnswers.length > 0
+                                      ? q.selectedAnswers
+                                          .map(
+                                            (ansIdx: number) =>
+                                              q.answers?.[ansIdx] || ansIdx,
+                                          )
+                                          .join(", ")
                                       : "None"}
                                   </span>
                                 </p>
                               </div>
-                              <div className="shrink-0 ml-2 mt-0.5">
+                              <div className="mt-0.5 ml-2 shrink-0">
                                 {q.correct ? (
-                                  <CheckCircle2 className="size-5 text-green-500 fill-green-50" />
+                                  <CheckCircle2 className="size-5 fill-green-50 text-green-500" />
                                 ) : (
-                                  <XCircle className="size-5 text-red-500 fill-red-50" />
+                                  <XCircle className="size-5 fill-red-50 text-red-500" />
                                 )}
                               </div>
                             </div>
@@ -303,9 +390,13 @@ const PlayerDashboard = () => {
 
               {attendedQuizzes.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Award className="size-12 text-gray-200 mb-3" />
-                  <p className="text-gray-500 font-medium">No attended quizzes yet</p>
-                  <p className="text-xs text-gray-400 mt-1">Join live rooms or complete private sessions</p>
+                  <Award className="mb-3 size-12 text-gray-200" />
+                  <p className="font-medium text-gray-500">
+                    No attended quizzes yet
+                  </p>
+                  <p className="mt-1 text-xs text-gray-400">
+                    Join live rooms or complete private sessions
+                  </p>
                 </div>
               )}
             </motion.div>
@@ -316,40 +407,48 @@ const PlayerDashboard = () => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
               transition={{ duration: 0.2 }}
-              className="flex flex-col items-center justify-center h-full gap-4"
+              className="flex h-full flex-col items-center justify-center gap-4"
             >
-              <Card className="w-full max-w-sm p-6 shadow-md border border-gray-100 bg-white rounded-xl">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">Change Password</h3>
+              <Card className="w-full max-w-sm rounded-xl border border-gray-100 bg-white p-6 shadow-md">
+                <h3 className="mb-4 text-center text-lg font-bold text-gray-800">
+                  Change Password
+                </h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">Current Password</label>
+                    <label className="mb-1 block text-xs font-semibold text-gray-500">
+                      Current Password
+                    </label>
                     <input
                       type="password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      className="focus:ring-primary/20 focus:border-primary w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">New Password</label>
+                    <label className="mb-1 block text-xs font-semibold text-gray-500">
+                      New Password
+                    </label>
                     <input
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      className="focus:ring-primary/20 focus:border-primary w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">Confirm New Password</label>
+                    <label className="mb-1 block text-xs font-semibold text-gray-500">
+                      Confirm New Password
+                    </label>
                     <input
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      className="focus:ring-primary/20 focus:border-primary w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:outline-none"
                     />
                   </div>
                   <Button
-                    className="w-full shadow-md flex items-center justify-center gap-2 mt-2"
+                    className="mt-2 flex w-full items-center justify-center gap-2 shadow-md"
                     onClick={handleChangePassword}
                   >
                     <Lock className="size-4" />

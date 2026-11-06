@@ -6,6 +6,8 @@ import "@razzia/web/index.css"
 import { routeTree } from "@razzia/web/route.gen"
 import { RouterProvider, createRouter } from "@tanstack/react-router"
 import { StrictMode } from "react"
+import { QueryClientProvider } from "@tanstack/react-query"
+import { queryClient } from "@razzia/web/lib/query-client"
 import { createRoot } from "react-dom/client"
 
 const router = createRouter({ routeTree, context: { socket: socketClient } })
@@ -24,7 +26,9 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <RouterProvider router={router} />
-    <Toaster />
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+      <Toaster />
+    </QueryClientProvider>
   </StrictMode>,
 )

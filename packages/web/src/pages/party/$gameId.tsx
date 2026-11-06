@@ -20,7 +20,15 @@ const PlayerGamePage = () => {
   const navigate = useNavigate()
   const { socket } = useSocket()
   const { gameId: gameIdParam } = useParams({ from: "/party/$gameId" })
-  const { status, setPlayer, setGameId, setStatus, reset, setWallpaper, setAudio } = usePlayerStore()
+  const {
+    status,
+    setPlayer,
+    setGameId,
+    setStatus,
+    reset,
+    setWallpaper,
+    setAudio,
+  } = usePlayerStore()
   const { setQuestionStates } = useQuestionStore()
   const { t } = useTranslation()
 
@@ -61,6 +69,11 @@ const PlayerGamePage = () => {
       setWallpaper(wallpaper ?? null)
       setAudio(audio ?? null)
     }
+  })
+
+  useEvent(EVENTS.GAME.SETTINGS, ({ wallpaper, audio }) => {
+    setWallpaper(wallpaper ?? null)
+    setAudio(audio ?? null)
   })
 
   useEvent(EVENTS.GAME.RESET, (message) => {

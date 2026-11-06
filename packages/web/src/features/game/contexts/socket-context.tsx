@@ -1,7 +1,13 @@
+import { EVENTS } from "@razzia/common/constants"
+import type { SessionResponse } from "@razzia/common/types/auth"
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
 } from "@razzia/common/types/game/socket"
+import { clearToken, ensureSession, setToken } from "@razzia/web/lib/session"
+import { useUserStore } from "@razzia/web/features/game/stores/user"
+import { useManagerStore } from "@razzia/web/features/game/stores/manager"
+import { queryClient } from "@razzia/web/lib/query-client"
 import React, {
   createContext,
   useCallback,
@@ -9,8 +15,9 @@ import React, {
   useEffect,
   useState,
 } from "react"
+import toast from "react-hot-toast"
+import { useTranslation } from "react-i18next"
 import { io, Socket } from "socket.io-client"
-import { v7 as uuid } from "uuid"
 
 type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>
 
@@ -23,40 +30,7 @@ interface SocketContextValue {
   reconnect: () => void
 }
 
-const getCookie = (name: string): string | null => {
-  const matches = document.cookie.match(new RegExp(
-    "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, "\\$1") + "=([^;]*)"
-  ))
-  return matches ? decodeURIComponent(matches[1]) : null
-}
-
-const setCookie = (name: string, value: string, maxAge = 31536000) => {
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax`
-}
-
-const getClientId = (): string => {
-  try {
-    const cookieStored = getCookie("client_id")
-    if (cookieStored) {
-      return cookieStored
-    }
-
-    const localStorageStored = localStorage.getItem("client_id")
-    if (localStorageStored) {
-      setCookie("client_id", localStorageStored)
-      return localStorageStored
-    }
-
-    const newId = uuid()
-    localStorage.setItem("client_id", newId)
-    setCookie("client_id", newId)
-    return newId
-  } catch {
-    return uuid()
-  }
-}
-
-const clientId = getClientId()
+const MAX_AUTH_RETRIES = 2
 
 export const socketClient: TypedSocket = io("/", {
   path: "/ws",
@@ -64,13 +38,18 @@ export const socketClient: TypedSocket = io("/", {
   reconnection: true,
   reconnectionAttempts: Infinity,
   reconnectionDelay: 1000,
-  auth: { clientId },
+  closeOnBeforeunload: true,
+  auth: (cb) => {
+    ensureSession()
+      .then((session) => cb({ token: session.token }))
+      .catch(() => cb({ token: "" }))
+  },
 })
 
 const SocketContext = createContext<SocketContextValue>({
   socket: socketClient,
   isConnected: false,
-  clientId,
+  clientId: "",
   connect: () => {
     /* Empty */
   },
@@ -84,18 +63,86 @@ const SocketContext = createContext<SocketContextValue>({
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const [isConnected, setIsConnected] = useState(false)
+  const [clientId, setClientId] = useState("")
+  const { t } = useTranslation()
 
   useEffect(() => {
-    socketClient.on("connect", () => setIsConnected(true))
-    socketClient.on("disconnect", () => setIsConnected(false))
-    socketClient.on("connect_error", (err) => {
+    void ensureSession()
+      .then((session) => setClientId(session.clientId))
+      .catch(() => toast.error(t("errors:auth.sessionFailed")))
+  }, [t])
+
+  useEffect(() => {
+    let authRetries = 0
+
+    const handleConnect = () => {
+      authRetries = 0
+      socketClient.emit(EVENTS.MANAGER.GET_CURRENT_USER)
+    }
+
+    const handleDisconnect = () => setIsConnected(false)
+
+    const handleError = (err: Error & { data?: { code?: string } }) => {
       console.error("Connection error:", err.message)
-    })
+
+      const code = err.data?.code
+
+      if (!code?.startsWith("TOKEN_")) {
+        return
+      }
+
+      if (authRetries >= MAX_AUTH_RETRIES) {
+        toast.error(t("errors:auth.sessionFailed"))
+
+        return
+      }
+
+      authRetries += 1
+      clearToken()
+      useUserStore.getState().setUser(null)
+      useManagerStore.getState().reset()
+      queryClient.clear()
+
+      ensureSession()
+        .then((session) => {
+          setClientId(session.clientId)
+          socketClient.connect()
+        })
+        .catch(() => toast.error(t("errors:auth.sessionFailed")))
+    }
+
+    const handleSession = (session: SessionResponse) => {
+      setToken(session.token)
+      setClientId(session.clientId)
+      useUserStore.getState().setUser(session.user)
+      queryClient.clear()
+    }
+    const handleCurrentUser: ServerToClientEvents[typeof EVENTS.MANAGER.CURRENT_USER] =
+      (user) => {
+        const previous = useUserStore.getState().user
+        useUserStore.getState().setUser(user)
+        setIsConnected(true)
+
+        if (previous?.id !== user?.id) {
+          useManagerStore.getState().reset()
+          queryClient.clear()
+        }
+      }
+    socketClient.on(EVENTS.MANAGER.CURRENT_USER, handleCurrentUser)
+    socketClient.on(EVENTS.MANAGER.SESSION, handleSession)
+    socketClient.on("connect", handleConnect)
+    socketClient.on("disconnect", handleDisconnect)
+    socketClient.on("connect_error", handleError)
 
     return () => {
+      socketClient.off(EVENTS.MANAGER.CURRENT_USER, handleCurrentUser)
+      socketClient.off(EVENTS.MANAGER.SESSION, handleSession)
+      socketClient.off("connect", handleConnect)
+      socketClient.off("disconnect", handleDisconnect)
+      socketClient.off("connect_error", handleError)
       socketClient.disconnect()
     }
-  }, [])
+  }, [t])
 
   const connect = useCallback(() => {
     if (!socketClient.connected) {

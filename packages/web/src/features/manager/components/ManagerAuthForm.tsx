@@ -1,7 +1,10 @@
 import Button from "@razzia/web/components/Button"
 import Card from "@razzia/web/components/Card"
 import Input from "@razzia/web/components/Input"
-import { useEvent, useSocket } from "@razzia/web/features/game/contexts/socket-context"
+import {
+  useEvent,
+  useSocket,
+} from "@razzia/web/features/game/contexts/socket-context"
 import { type KeyboardEvent, useState } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
@@ -22,8 +25,17 @@ const ManagerAuthForm = ({ onSignIn, onSignUp }: Props) => {
   const { socket } = useSocket()
 
   const handleSubmit = () => {
-    if (!username.trim() || password.length < 4) {
-      toast.error(t("errors:auth.invalidInput") || "Invalid username or password (min 4 characters)")
+    if (
+      !username.trim() ||
+      !password ||
+      (isSignUpMode && password.length < 8)
+    ) {
+      toast.error(
+        isSignUpMode && password.length < 8
+          ? t("errors:auth.passwordTooShort")
+          : t("errors:auth.invalidInput"),
+      )
+
       return
     }
 
@@ -37,8 +49,10 @@ const ManagerAuthForm = ({ onSignIn, onSignUp }: Props) => {
   const handleForgotPasswordSubmit = () => {
     if (!username.trim()) {
       toast.error("Username is required")
+
       return
     }
+
     socket.emit("manager:forgotPassword", { username })
   }
 
@@ -56,22 +70,25 @@ const ManagerAuthForm = ({ onSignIn, onSignUp }: Props) => {
     toast.error(t(message))
   })
 
-  useEvent("manager:forgotPasswordSuccess", (res: any) => {
+  useEvent("manager:forgotPasswordSuccess", (res) => {
     if (res.success) {
       toast.success("Password reset requested. Admin has been notified.")
       setIsForgotPasswordMode(false)
       setUsername("")
     } else {
-      toast.error(t(res.error) || "User not found or request failed")
+      toast.error(t(res.error ?? "errors:api.serverError"))
     }
   })
 
   if (isForgotPasswordMode) {
     return (
-      <Card className="w-full max-w-sm overflow-hidden p-6 shadow-2xl backdrop-blur-md bg-white/95">
-        <h3 className="text-lg font-bold text-gray-800 mb-2 text-center">Forgot Password</h3>
-        <p className="text-sm text-gray-500 mb-6 text-center">
-          Enter your username to request a password reset from the administrator.
+      <Card className="w-full max-w-sm overflow-hidden bg-white/95 p-6 shadow-2xl backdrop-blur-md">
+        <h3 className="mb-2 text-center text-lg font-bold text-gray-800">
+          Forgot Password
+        </h3>
+        <p className="mb-6 text-center text-sm text-gray-500">
+          Enter your username to request a password reset from the
+          administrator.
         </p>
 
         <motion.div
@@ -82,7 +99,7 @@ const ManagerAuthForm = ({ onSignIn, onSignUp }: Props) => {
           transition={{ duration: 0.3 }}
         >
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <label className="text-xs font-semibold tracking-wider text-gray-400 uppercase">
               {t("manager:username", "Username")}
             </label>
             <Input
@@ -95,14 +112,17 @@ const ManagerAuthForm = ({ onSignIn, onSignUp }: Props) => {
             />
           </div>
 
-          <Button className="mt-4 w-full shadow-lg" onClick={handleForgotPasswordSubmit}>
+          <Button
+            className="mt-4 w-full shadow-lg"
+            onClick={handleForgotPasswordSubmit}
+          >
             Request Reset
           </Button>
 
           <button
             type="button"
             onClick={() => setIsForgotPasswordMode(false)}
-            className="text-xs font-semibold text-gray-500 hover:text-gray-700 mt-2 text-center"
+            className="mt-2 text-center text-xs font-semibold text-gray-500 hover:text-gray-700"
           >
             Back to Sign In
           </button>
@@ -112,13 +132,15 @@ const ManagerAuthForm = ({ onSignIn, onSignUp }: Props) => {
   }
 
   return (
-    <Card className="w-full max-w-sm overflow-hidden p-6 shadow-2xl backdrop-blur-md bg-white/95">
-      <div className="flex border-b border-gray-100 mb-6 bg-gray-50 rounded-lg p-1">
+    <Card className="w-full max-w-sm overflow-hidden bg-white/95 p-6 shadow-2xl backdrop-blur-md">
+      <div className="mb-6 flex rounded-lg border-b border-gray-100 bg-gray-50 p-1">
         <button
           type="button"
           onClick={() => setIsSignUpMode(false)}
-          className={`flex-1 py-2 text-center text-sm font-semibold rounded-md transition-all duration-200 ${
-            !isSignUpMode ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"
+          className={`flex-1 rounded-md py-2 text-center text-sm font-semibold transition-all duration-200 ${
+            !isSignUpMode
+              ? "bg-white text-gray-800 shadow-sm"
+              : "text-gray-400 hover:text-gray-600"
           }`}
         >
           {t("manager:signIn", "Sign In")}
@@ -126,8 +148,10 @@ const ManagerAuthForm = ({ onSignIn, onSignUp }: Props) => {
         <button
           type="button"
           onClick={() => setIsSignUpMode(true)}
-          className={`flex-1 py-2 text-center text-sm font-semibold rounded-md transition-all duration-200 ${
-            isSignUpMode ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"
+          className={`flex-1 rounded-md py-2 text-center text-sm font-semibold transition-all duration-200 ${
+            isSignUpMode
+              ? "bg-white text-gray-800 shadow-sm"
+              : "text-gray-400 hover:text-gray-600"
           }`}
         >
           {t("manager:signUp", "Sign Up")}
@@ -142,7 +166,7 @@ const ManagerAuthForm = ({ onSignIn, onSignUp }: Props) => {
         transition={{ duration: 0.3 }}
       >
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          <label className="text-xs font-semibold tracking-wider text-gray-400 uppercase">
             {t("manager:username", "Username")}
           </label>
           <Input
@@ -156,15 +180,15 @@ const ManagerAuthForm = ({ onSignIn, onSignUp }: Props) => {
         </div>
 
         <div className="flex flex-col gap-1">
-          <div className="flex justify-between items-center">
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold tracking-wider text-gray-400 uppercase">
               {t("manager:password") || "Password"}
             </label>
             {!isSignUpMode && (
               <button
                 type="button"
                 onClick={() => setIsForgotPasswordMode(true)}
-                className="text-xs font-medium text-primary hover:underline"
+                className="text-primary text-xs font-medium hover:underline"
               >
                 Forgot Password?
               </button>
@@ -181,7 +205,9 @@ const ManagerAuthForm = ({ onSignIn, onSignUp }: Props) => {
         </div>
 
         <Button className="mt-4 w-full shadow-lg" onClick={handleSubmit}>
-          {isSignUpMode ? t("manager:signUp", "Sign Up") : t("manager:signIn", "Sign In")}
+          {isSignUpMode
+            ? t("manager:signUp", "Sign Up")
+            : t("manager:signIn", "Sign In")}
         </Button>
       </motion.div>
     </Card>

@@ -1,4 +1,4 @@
-import * as Select from "@radix-ui/react-select"
+import { Select } from "radix-ui"
 import { Globe } from "lucide-react"
 import { useTranslation } from "react-i18next"
 

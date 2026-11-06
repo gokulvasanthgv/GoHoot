@@ -28,14 +28,24 @@ const ResultModalTable = () => {
       <tbody className="divide-y divide-gray-100">
         {questionResult.playerAnswers.map((pa, i) => {
           const isCorrect = (() => {
-            const answerIds = pa.answerIds
-            if (!answerIds || answerIds.length === 0) return false
+            const { answerIds } = pa
+
+            if (!answerIds || answerIds.length === 0) {
+              return false
+            }
+
             if (questionResult.type === "puzzle") {
               const totalAnswers = questionResult.answers?.length ?? 0
-              if (answerIds.length !== totalAnswers) return false
+
+              if (answerIds.length !== totalAnswers) {
+                return false
+              }
+
               return answerIds.every((val, index) => val === index)
             }
-            const solutions = questionResult.solutions || []
+
+            const solutions = questionResult.solutions ?? []
+
             return answerIds.every((id) => solutions.includes(id))
           })()
 
@@ -55,6 +65,7 @@ const ResultModalTable = () => {
                           ? "bg-slate-500 text-white"
                           : ANSWERS_COLORS[val % ANSWERS_COLORS.length]
                       const text = questionResult.answers?.[val] || ""
+
                       return (
                         <span
                           key={val}

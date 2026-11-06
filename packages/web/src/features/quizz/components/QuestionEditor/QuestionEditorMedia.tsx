@@ -1,9 +1,12 @@
+import { authFetch } from "@razzia/web/lib/api"
 import type { QuestionMediaType } from "@razzia/common/types/game"
 import { questionMediaValidator } from "@razzia/common/validators/quizz"
 import Button from "@razzia/web/components/Button"
 import Card from "@razzia/web/components/Card"
 import Input from "@razzia/web/components/Input"
-import QuestionMedia, { getYoutubeId } from "@razzia/web/components/QuestionMedia"
+import QuestionMedia, {
+  getYoutubeId,
+} from "@razzia/web/components/QuestionMedia"
 import { useSocket } from "@razzia/web/features/game/contexts/socket-context"
 import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import { Image, ImageOff, Loader2, Music, Video } from "lucide-react"
@@ -48,10 +51,13 @@ const QuestionEditorMedia = () => {
 
   const handleChangeMedia = (e: ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value
+
     if (!url) {
       updateQuestion(currentIndex, { media: undefined })
+
       return
     }
+
     const youtubeId = getYoutubeId(url)
     const type = youtubeId ? "video" : currentQuestion.media?.type
     updateQuestion(currentIndex, {
@@ -71,14 +77,16 @@ const QuestionEditorMedia = () => {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    const files = e.dataTransfer.files
+    const { files } = e.dataTransfer
+
     if (files.length > 0) {
       handleFileSelected(files[0])
     }
   }
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
+    const { files } = e.target
+
     if (files && files.length > 0) {
       handleFileSelected(files[0])
     }
@@ -180,8 +188,10 @@ const QuestionEditorMedia = () => {
       mediaType = "image"
     } else if (file.type.startsWith("video/")) {
       mediaType = "video"
+
       if (file.size > 50 * 1024 * 1024) {
         toast.error("Video files must not exceed 50MB")
+
         return
       }
     } else if (file.type.startsWith("audio/")) {
@@ -192,6 +202,7 @@ const QuestionEditorMedia = () => {
       toast.error(
         "Unsupported file type. Please upload an image, video, or audio file.",
       )
+
       return
     }
 
@@ -199,7 +210,7 @@ const QuestionEditorMedia = () => {
 
     const url = `/uploads?filename=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}&clientId=${encodeURIComponent(clientId)}`
 
-    fetch(url, {
+    authFetch(url, {
       method: "POST",
       body: file,
     })
@@ -207,10 +218,12 @@ const QuestionEditorMedia = () => {
         if (!res.ok) {
           throw new Error(`Upload failed with status: ${res.status}`)
         }
+
         return res.json()
       })
       .then((response: { success: boolean; url?: string; error?: string }) => {
         setIsUploading(false)
+
         if (response.success && response.url) {
           updateQuestion(currentIndex, {
             media: {
@@ -267,8 +280,10 @@ const QuestionEditorMedia = () => {
               className={`my-auto flex max-h-100 w-full max-w-xl flex-1 cursor-pointer flex-col items-center justify-center gap-4 border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md`}
               onClick={(e: React.MouseEvent<HTMLDivElement>) => {
                 // Prevent clicking on inner interactive elements from triggering file select
-                if ((e.target as HTMLElement).closest(".no-click-trigger"))
+                if ((e.target as HTMLElement).closest(".no-click-trigger")) {
                   return
+                }
+
                 fileInputRef.current?.click()
               }}
             >
@@ -302,7 +317,7 @@ const QuestionEditorMedia = () => {
                       onChange={handleChangeMedia}
                     />
                   </div>
-                  <span className="text-[10px] text-center text-gray-400">
+                  <span className="text-center text-[10px] text-gray-400">
                     YouTube links will be automatically detected and embedded.
                   </span>
                 </div>

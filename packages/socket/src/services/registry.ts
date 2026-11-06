@@ -86,6 +86,7 @@ class Registry {
   }
 
   removeGame(gameId: string): boolean {
+    this.games.find((game) => game.gameId === gameId)?.dispose()
     const initialLength = this.games.length
     this.games = this.games.filter((g) => g.gameId !== gameId)
     this.emptyGames = this.emptyGames.filter((g) => g.game.gameId !== gameId)
@@ -125,6 +126,9 @@ class Registry {
 
     const removed = this.emptyGames.filter((g) => !stillEmpty.includes(g))
     const removedGameIds = removed.map((r) => r.game.gameId)
+    removed.forEach(({ game }) => {
+      game.dispose()
+    })
 
     this.games = this.games.filter((g) => !removedGameIds.includes(g.gameId))
     this.emptyGames = stillEmpty
@@ -152,6 +156,9 @@ class Registry {
 
   cleanup(): void {
     this.stopCleanupTask()
+    this.games.forEach((game) => {
+      game.dispose()
+    })
     this.games = []
     this.emptyGames = []
     console.log("Registry cleaned up")

@@ -6,3 +6,9 @@ services:
       - "3000:3000"
     volumes:
       - ./config:/app/config
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      TRUST_PROXY: "true"
+    restart: unless-stopped

@@ -57,12 +57,8 @@ export const QuizzEditorProvider = ({
   const [subject, setSubject] = useState(
     initialData?.subject ?? "Untitled Quizz",
   )
-  const [wallpaper, setWallpaper] = useState(
-    initialData?.wallpaper ?? "",
-  )
-  const [audio, setAudio] = useState(
-    initialData?.audio ?? "",
-  )
+  const [wallpaper, setWallpaper] = useState(initialData?.wallpaper ?? "")
+  const [audio, setAudio] = useState(initialData?.audio ?? "")
   const [questions, setQuestions] = useState<QuestionWithId[]>(
     initialData
       ? initialData.questions.map(toQuestionWithId)

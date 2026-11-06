@@ -37,13 +37,22 @@ export const ResultModalProvider = ({ children, result, onClose }: Props) => {
   const totalPlayers = result.players.length
 
   const isAnswerCorrect = (answerIds: number[] | null, qr: QuestionResult) => {
-    if (!answerIds || answerIds.length === 0) return false
+    if (!answerIds || answerIds.length === 0) {
+      return false
+    }
+
     if (qr.type === "puzzle") {
       const totalAnswers = qr.answers?.length ?? 0
-      if (answerIds.length !== totalAnswers) return false
+
+      if (answerIds.length !== totalAnswers) {
+        return false
+      }
+
       return answerIds.every((val, index) => val === index)
     }
-    const solutions = qr.solutions || []
+
+    const solutions = qr.solutions ?? []
+
     return answerIds.every((id) => solutions.includes(id))
   }
 
@@ -60,7 +69,7 @@ export const ResultModalProvider = ({ children, result, onClose }: Props) => {
 
   const maxAnswerCount = Math.max(
     1,
-    ...(questionResult.answers || []).map(
+    ...(questionResult.answers ?? []).map(
       (_, ai) =>
         questionResult.playerAnswers.filter((pa) => pa.answerIds?.includes(ai))
           .length,

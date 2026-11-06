@@ -1,94 +1,113 @@
 import { EVENTS } from "@razzia/common/constants"
+import type { PublicUser } from "@razzia/common/types/auth"
 import type { Socket } from "@razzia/common/types/game/socket"
-import type { SocketContext } from "@razzia/socket/handlers/types"
-import { getQuizzMeta, getResultsMeta, getGameConfig, getTrashQuizzesMeta } from "@razzia/socket/services/config"
-import UserService from "./user"
+import type { ManagerConfig } from "@razzia/common/types/manager"
+import {
+  isClaimsActive,
+  mintToken,
+  revokeToken,
+  verifyToken,
+} from "@razzia/socket/services/auth"
+import {
+  getQuizzMeta,
+  getResultsMeta,
+  getGameConfig,
+  getTrashQuizzesMeta,
+} from "@razzia/socket/services/config"
+import UserService from "@razzia/socket/services/user"
 
-const getClientId = (socket: SocketContext["socket"]) =>
-  socket.handshake.auth.clientId as string
-
-export const emitConfig = (socket: SocketContext["socket"]) => {
-  const gameConfig = getGameConfig()
-  const user = manager.getUser(socket)
-  if (!user) {
-    socket.emit(EVENTS.MANAGER.UNAUTHORIZED)
-    return
+export const getManagerConfig = (user: PublicUser): ManagerConfig => {
+  const settings = getGameConfig()
+  const config: ManagerConfig = {
+    quizz: [],
+    results: [],
+    trash: [],
+    users: [],
+    notifications: [],
+    ...settings,
+    user,
   }
-
-  let quizz: any[] = []
-  let results: any[] = []
-  let trash: any[] = []
-  let users: any[] = []
-  let notifications: any[] = []
 
   if (user.role === "admin") {
-    quizz = getQuizzMeta()
-    results = getResultsMeta()
-    trash = getTrashQuizzesMeta()
-    users = UserService.getAllUsers()
-    notifications = UserService.getForgotPasswordRequests()
+    config.quizz = getQuizzMeta()
+    config.results = getResultsMeta()
+    config.trash = getTrashQuizzesMeta()
+    config.users = UserService.getAllUsers()
+    config.notifications = UserService.getForgotPasswordRequests()
   } else if (user.role === "quizmaster") {
-    quizz = getQuizzMeta().filter(q => q.creatorId === user.id)
-    results = getResultsMeta().filter(r => r.creatorId === user.id)
-    trash = getTrashQuizzesMeta().filter(q => q.creatorId === user.id && (Date.now() - new Date(q.deletedAt!).getTime()) <= 90 * 24 * 60 * 60 * 1000)
+    config.quizz = getQuizzMeta().filter((quiz) => quiz.creatorId === user.id)
+    config.results = getResultsMeta().filter(
+      (result) => result.creatorId === user.id,
+    )
+    config.trash = getTrashQuizzesMeta().filter(
+      (quiz) =>
+        quiz.creatorId === user.id &&
+        Date.now() - new Date(quiz.deletedAt ?? "").getTime() <=
+          90 * 24 * 60 * 60_000,
+    )
   } else if (user.role === "analyst") {
-    results = getResultsMeta()
+    config.results = getResultsMeta()
   }
 
-  socket.emit(EVENTS.MANAGER.CONFIG, {
-    quizz,
-    results,
-    trash,
-    users,
-    notifications,
-    defaultWallpaper: gameConfig.defaultWallpaper,
-    defaultAudio: gameConfig.defaultAudio,
-    user
-  })
+  return config
 }
 
 class Manager {
-  private loggedClients = new Map<string, any>()
+  async login(socket: Socket, user: PublicUser | null): Promise<void> {
+    const previous = socket.data.claims
+    const session = await mintToken(socket.data.clientId, user)
 
-  isLogged(socket: Socket) {
-    return this.loggedClients.has(getClientId(socket))
+    revokeToken(previous)
+
+    socket.data.claims = await verifyToken(session.token)
+    socket.emit(EVENTS.MANAGER.SESSION, session)
   }
-
-  isLoggedClientId(clientId: string) {
-    return this.loggedClients.has(clientId)
+  async logout(socket: Socket): Promise<void> {
+    await this.login(socket, null)
   }
+  getUser(socket: Socket): PublicUser | null {
+    const { claims } = socket.data
 
-  getUser(socket: Socket) {
-    return this.loggedClients.get(getClientId(socket))
+    return isClaimsActive(claims) && claims.userId
+      ? UserService.getUserById(claims.userId)
+      : null
   }
-
-  getUserByClientId(clientId: string) {
-    return this.loggedClients.get(clientId)
+  isLogged(socket: Socket): boolean {
+    return this.getUser(socket) !== null
   }
-
-  login(socket: Socket, user: any) {
-    this.loggedClients.set(getClientId(socket), user)
-  }
-
-  logout(socket: Socket) {
-    this.loggedClients.delete(getClientId(socket))
-  }
-
   withAuth<T extends unknown[]>(
     socket: Socket,
-    handler: (..._args: T) => void,
+    handler: (...args: T) => void | Promise<void>,
   ) {
-    return (..._args: T) => {
-      if (!this.isLogged(socket)) {
+    return (...args: T): void => {
+      if (!this.getUser(socket)) {
         socket.emit(EVENTS.MANAGER.UNAUTHORIZED)
 
         return
       }
 
-      handler(..._args)
+      Promise.resolve()
+        .then(() => handler(...args))
+        .catch((error: unknown) => {
+          console.error("Authenticated socket handler failed:", error)
+          socket.emit(EVENTS.MANAGER.ERROR_MESSAGE, "errors:api.serverError")
+        })
     }
   }
 }
 
 const manager = new Manager()
+
+export const emitConfig = (socket: Socket): void => {
+  const user = manager.getUser(socket)
+
+  if (!user) {
+    socket.emit(EVENTS.MANAGER.UNAUTHORIZED)
+
+    return
+  }
+
+  socket.emit(EVENTS.MANAGER.CONFIG, getManagerConfig(user))
+}
+
 export default manager

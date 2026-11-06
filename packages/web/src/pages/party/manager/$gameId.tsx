@@ -17,15 +17,32 @@ import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 import { useState, useEffect } from "react"
-import * as AlertDialog from "@radix-ui/react-alert-dialog"
-import { Trophy, Zap, Shuffle, Timer, Check, Settings, EyeOff } from "lucide-react"
+import { AlertDialog } from "radix-ui"
+import {
+  Trophy,
+  Zap,
+  Shuffle,
+  Timer,
+  Check,
+  Settings,
+  EyeOff,
+} from "lucide-react"
 
 const ManagerGamePage = () => {
   const navigate = useNavigate()
   const { gameId: gameIdParam } = useParams({ from: "/party/manager/$gameId" })
-  const { socket, clientId } = useSocket()
-  const { gameId, status, setGameId, setInviteCode, setStatus, setPlayers, reset, setWallpaper, setAudio, wallpaper, audio } =
-    useManagerStore()
+  const { socket } = useSocket()
+  const {
+    gameId,
+    status,
+    setGameId,
+    setInviteCode,
+    setStatus,
+    setPlayers,
+    reset,
+    setWallpaper,
+    setAudio,
+  } = useManagerStore()
   const { setQuestionStates } = useQuestionStore()
   const { t } = useTranslation()
 
@@ -35,7 +52,10 @@ const ManagerGamePage = () => {
   const [doubleTime, setDoubleTime] = useState(false)
   const [shuffleAnswers, setShuffleAnswers] = useState(false)
   const [hideTextOnClient, setHideTextOnClient] = useState(false)
-
+  useEvent(EVENTS.GAME.SETTINGS, ({ wallpaper, audio }) => {
+    setWallpaper(wallpaper ?? null)
+    setAudio(audio ?? null)
+  })
 
   const confirmStartGame = () => {
     socket.emit(EVENTS.MANAGER.START_GAME, {
@@ -60,10 +80,10 @@ const ManagerGamePage = () => {
   })
 
   useEffect(() => {
-    if (socket.connected && gameIdParam && !status) {
+    if (socket.connected && gameIdParam) {
       socket.emit(EVENTS.MANAGER.RECONNECT, { gameId: gameIdParam })
     }
-  }, [socket.connected, gameIdParam, socket, status])
+  }, [socket.connected, gameIdParam, socket])
 
   useEvent("connect", () => {
     if (gameIdParam) {
@@ -83,9 +103,11 @@ const ManagerGamePage = () => {
       audio,
     }) => {
       setGameId(reconnectGameId)
+
       if (reconnectInviteCode) {
         setInviteCode(reconnectInviteCode)
       }
+
       setStatus(reconnectStatus.name, reconnectStatus.data)
       setPlayers(players)
       setQuestionStates(currentQuestion)
@@ -120,6 +142,7 @@ const ManagerGamePage = () => {
 
     if (status.name === STATUS.SHOW_ROOM) {
       setShowPreGameMenu(true)
+
       return
     }
 
@@ -154,11 +177,14 @@ const ManagerGamePage = () => {
         {CurrentComponent && <CurrentComponent data={status.data as never} />}
       </GameWrapper>
 
-      <AlertDialog.Root open={showPreGameMenu} onOpenChange={setShowPreGameMenu}>
+      <AlertDialog.Root
+        open={showPreGameMenu}
+        onOpenChange={setShowPreGameMenu}
+      >
         <AlertDialog.Portal>
           <AlertDialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity" />
-          <AlertDialog.Content className="fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-2xl border border-gray-100 outline-none max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center gap-2.5 border-b border-gray-100 pb-4 mb-5">
+          <AlertDialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-gray-100 bg-white p-6 shadow-2xl outline-none">
+            <div className="mb-5 flex items-center gap-2.5 border-b border-gray-100 pb-4">
               <Settings className="size-6 text-indigo-600" />
               <AlertDialog.Title className="text-xl font-bold text-gray-900">
                 Pre-Game Settings
@@ -167,71 +193,81 @@ const ManagerGamePage = () => {
 
             <div className="space-y-6">
               <div>
-                <label className="text-sm font-semibold text-gray-700 block mb-3">
+                <label className="mb-3 block text-sm font-semibold text-gray-700">
                   Game Mode
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <button
                     type="button"
                     onClick={() => setGameMode("classic")}
-                    className={`relative flex flex-col items-start p-4 rounded-xl border text-left transition-all ${
+                    className={`relative flex flex-col items-start rounded-xl border p-4 text-left transition-all ${
                       gameMode === "classic"
                         ? "border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-600/20"
                         : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
                     }`}
                   >
-                    <div className="flex items-center justify-between w-full mb-1">
+                    <div className="mb-1 flex w-full items-center justify-between">
                       <div className="flex items-center gap-1.5 font-bold text-gray-900">
-                        <Zap className={`size-4 ${gameMode === "classic" ? "text-indigo-600" : "text-gray-400"}`} />
+                        <Zap
+                          className={`size-4 ${gameMode === "classic" ? "text-indigo-600" : "text-gray-400"}`}
+                        />
                         Classic Mode
                       </div>
                       {gameMode === "classic" && (
                         <Check className="size-4 text-indigo-600" />
                       )}
                     </div>
-                    <span className="text-xs text-gray-500 leading-normal">
-                      Faster answers get higher scores. Speed and accuracy matter!
+                    <span className="text-xs leading-normal text-gray-500">
+                      Faster answers get higher scores. Speed and accuracy
+                      matter!
                     </span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setGameMode("accuracy")}
-                    className={`relative flex flex-col items-start p-4 rounded-xl border text-left transition-all ${
+                    className={`relative flex flex-col items-start rounded-xl border p-4 text-left transition-all ${
                       gameMode === "accuracy"
                         ? "border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-600/20"
                         : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
                     }`}
                   >
-                    <div className="flex items-center justify-between w-full mb-1">
+                    <div className="mb-1 flex w-full items-center justify-between">
                       <div className="flex items-center gap-1.5 font-bold text-gray-900">
-                        <Trophy className={`size-4 ${gameMode === "accuracy" ? "text-indigo-600" : "text-gray-400"}`} />
+                        <Trophy
+                          className={`size-4 ${gameMode === "accuracy" ? "text-indigo-600" : "text-gray-400"}`}
+                        />
                         Accuracy Mode
                       </div>
                       {gameMode === "accuracy" && (
                         <Check className="size-4 text-indigo-600" />
                       )}
                     </div>
-                    <span className="text-xs text-gray-500 leading-normal">
-                      Flat score (1000 pts) per correct answer. Same rank for matching scores.
+                    <span className="text-xs leading-normal text-gray-500">
+                      Flat score (1000 pts) per correct answer. Same rank for
+                      matching scores.
                     </span>
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-gray-700 block mb-3">
+                <label className="mb-3 block text-sm font-semibold text-gray-700">
                   Additional Options
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <label className="flex flex-col justify-between p-3.5 rounded-xl border border-gray-150 hover:bg-indigo-50/20 cursor-pointer select-none transition-all gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <label className="border-gray-150 flex cursor-pointer flex-col justify-between gap-4 rounded-xl border p-3.5 transition-all select-none hover:bg-indigo-50/20">
                     <div className="flex items-start gap-3">
-                      <div className="p-2 bg-indigo-50 rounded-lg shrink-0">
+                      <div className="shrink-0 rounded-lg bg-indigo-50 p-2">
                         <Shuffle className="size-4 text-indigo-600" />
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-gray-900 leading-tight">Shuffle questions</div>
-                        <div className="text-xs text-gray-500 mt-1 leading-snug">Play questions in a randomized sequence</div>
+                        <div className="text-sm leading-tight font-semibold text-gray-900">
+                          Shuffle questions
+                        </div>
+                        <div className="mt-1 text-xs leading-snug text-gray-500">
+                          Play questions in a randomized sequence
+                        </div>
                       </div>
                     </div>
                     <div className="flex justify-end">
@@ -239,19 +275,23 @@ const ManagerGamePage = () => {
                         type="checkbox"
                         checked={shuffleQuestions}
                         onChange={(e) => setShuffleQuestions(e.target.checked)}
-                        className="size-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        className="size-4.5 cursor-pointer rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                       />
                     </div>
                   </label>
 
-                  <label className="flex flex-col justify-between p-3.5 rounded-xl border border-gray-150 hover:bg-indigo-50/20 cursor-pointer select-none transition-all gap-4">
+                  <label className="border-gray-150 flex cursor-pointer flex-col justify-between gap-4 rounded-xl border p-3.5 transition-all select-none hover:bg-indigo-50/20">
                     <div className="flex items-start gap-3">
-                      <div className="p-2 bg-indigo-50 rounded-lg shrink-0">
+                      <div className="shrink-0 rounded-lg bg-indigo-50 p-2">
                         <Timer className="size-4 text-indigo-600" />
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-gray-900 leading-tight">Double time</div>
-                        <div className="text-xs text-gray-500 mt-1 leading-snug">Provide twice the normal duration for each question</div>
+                        <div className="text-sm leading-tight font-semibold text-gray-900">
+                          Double time
+                        </div>
+                        <div className="mt-1 text-xs leading-snug text-gray-500">
+                          Provide twice the normal duration for each question
+                        </div>
                       </div>
                     </div>
                     <div className="flex justify-end">
@@ -259,19 +299,23 @@ const ManagerGamePage = () => {
                         type="checkbox"
                         checked={doubleTime}
                         onChange={(e) => setDoubleTime(e.target.checked)}
-                        className="size-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        className="size-4.5 cursor-pointer rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                       />
                     </div>
                   </label>
 
-                  <label className="flex flex-col justify-between p-3.5 rounded-xl border border-gray-150 hover:bg-indigo-50/20 cursor-pointer select-none transition-all gap-4">
+                  <label className="border-gray-150 flex cursor-pointer flex-col justify-between gap-4 rounded-xl border p-3.5 transition-all select-none hover:bg-indigo-50/20">
                     <div className="flex items-start gap-3">
-                      <div className="p-2 bg-indigo-50 rounded-lg shrink-0">
+                      <div className="shrink-0 rounded-lg bg-indigo-50 p-2">
                         <Shuffle className="size-4 text-indigo-600" />
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-gray-900 leading-tight">Shuffle options</div>
-                        <div className="text-xs text-gray-500 mt-1 leading-snug">Randomize the order of answers/options for players</div>
+                        <div className="text-sm leading-tight font-semibold text-gray-900">
+                          Shuffle options
+                        </div>
+                        <div className="mt-1 text-xs leading-snug text-gray-500">
+                          Randomize the order of answers/options for players
+                        </div>
                       </div>
                     </div>
                     <div className="flex justify-end">
@@ -279,19 +323,24 @@ const ManagerGamePage = () => {
                         type="checkbox"
                         checked={shuffleAnswers}
                         onChange={(e) => setShuffleAnswers(e.target.checked)}
-                        className="size-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        className="size-4.5 cursor-pointer rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                       />
                     </div>
                   </label>
 
-                  <label className="flex flex-col justify-between p-3.5 rounded-xl border border-gray-150 hover:bg-indigo-50/20 cursor-pointer select-none transition-all gap-4">
+                  <label className="border-gray-150 flex cursor-pointer flex-col justify-between gap-4 rounded-xl border p-3.5 transition-all select-none hover:bg-indigo-50/20">
                     <div className="flex items-start gap-3">
-                      <div className="p-2 bg-indigo-50 rounded-lg shrink-0">
+                      <div className="shrink-0 rounded-lg bg-indigo-50 p-2">
                         <EyeOff className="size-4 text-indigo-600" />
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-gray-900 leading-tight">Hide questions</div>
-                        <div className="text-xs text-gray-500 mt-1 leading-snug">Players see only color option buttons without question text</div>
+                        <div className="text-sm leading-tight font-semibold text-gray-900">
+                          Hide questions
+                        </div>
+                        <div className="mt-1 text-xs leading-snug text-gray-500">
+                          Players see only color option buttons without question
+                          text
+                        </div>
                       </div>
                     </div>
                     <div className="flex justify-end">
@@ -299,7 +348,7 @@ const ManagerGamePage = () => {
                         type="checkbox"
                         checked={hideTextOnClient}
                         onChange={(e) => setHideTextOnClient(e.target.checked)}
-                        className="size-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        className="size-4.5 cursor-pointer rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                       />
                     </div>
                   </label>
@@ -309,13 +358,13 @@ const ManagerGamePage = () => {
 
             <div className="mt-7 flex justify-end gap-3 border-t border-gray-100 pt-4">
               <AlertDialog.Cancel asChild>
-                <button className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                <button className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-200">
                   Cancel
                 </button>
               </AlertDialog.Cancel>
               <button
                 onClick={confirmStartGame}
-                className="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 active:scale-95 transition-all shadow-md shadow-indigo-600/10"
+                className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-600/10 transition-all hover:bg-indigo-700 active:scale-95"
               >
                 Start Game
               </button>

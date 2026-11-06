@@ -3,7 +3,18 @@
     "invalidInviteCode": "Invalid invite code",
     "usernameTooLong": "Username cannot exceed 20 characters",
     "usernameTooShort": "Username cannot be less than 4 characters",
-    "usernameTaken": "Username is already taken"
+    "usernameTaken": "Username is already taken",
+    "unauthorized": "Sign in with an account that has permission to do this.",
+    "rateLimited": "Too many requests. Please try again later.",
+    "signupDisabled": "New account registration is disabled.",
+    "userNotFound": "User not found.",
+    "tokenMissing": "Your session is missing. Please reconnect.",
+    "tokenInvalid": "Your session has expired or was revoked. Please sign in again.",
+    "sessionFailed": "Could not establish a session. Please try reconnecting.",
+    "joinTicketInvalid": "Could not join this game. Enter the game PIN again.",
+    "invalidCurrentPassword": "The current password is incorrect.",
+    "passwordTooShort": "New passwords must contain at least 8 characters.",
+    "invalidInput": "Enter a valid username and password."
   },
   "game": {
     "expired": "Game expired",
@@ -12,12 +23,16 @@
     "managerDisconnected": "Manager disconnected",
     "noPlayersConnected": "No players connected",
     "notFound": "Game not found",
-    "playerAlreadyConnected": "Player already connected"
+    "playerAlreadyConnected": "Player already connected",
+    "tooManyGames": "Close an existing game before creating another one.",
+    "managerCannotJoin": "Use another browser session to join your own game as a player.",
+    "alreadyStarted": "This game has already started. Only existing players can reconnect.",
+    "sessionTakenOver": "This player session was opened in another tab."
   },
   "manager": {
     "failedToReadConfig": "Failed to read game config",
     "invalidPassword": "Invalid password",
-    "passwordNotConfigured": "Manager password is not configured"
+    "passwordNotConfigured": "Set MANAGER_PASSWORD on the server to replace the old default administrator password."
   },
   "notFound": {
     "back": "Go back home",
@@ -35,11 +50,33 @@
     "questionEmpty": "Question cannot be empty",
     "subjectEmpty": "Subject cannot be empty",
     "tooFewAnswers": "A question must have at least 2 answers",
-    "tooManyAnswers": "A question cannot have more than 7 answers"
+    "tooManyAnswers": "A question cannot have more than 7 answers",
+    "incompatible": "This quiz contains unsupported or invalid data. Open it in the editor to fix it.",
+    "uploadFailed": "The media upload failed. Please try again.",
+    "trashExpired": "This quiz has been in the trash for more than 90 days. Contact an administrator to restore it.",
+    "alreadyExists": "A quiz with this ID already exists.",
+    "answerTooLong": "Answer options must be no longer than 65 characters.",
+    "invalidSolutions": "Choose valid, distinct correct answers."
   },
   "route": {
     "back": "Go back home",
     "description": "An unexpected error occurred. Please try again.",
     "title": "Something went wrong"
+  },
+  "media": {
+    "tooLarge": "This file is too large. The maximum upload size is 100 MB.",
+    "invalidType": "This file type is not supported.",
+    "invalidName": "The media filename is invalid.",
+    "notFound": "This media file could not be found.",
+    "inUse": "This file is in use or you do not have permission to delete it."
+  },
+  "invalidRequest": "This request is invalid. Please check your input and try again.",
+  "unauthorized": "You do not have permission to do this.",
+  "api": {
+    "notFound": "The requested item could not be found.",
+    "serverError": "The request could not be completed. Please try again."
+  },
+  "result": {
+    "notFound": "This result could not be found."
   }
 }

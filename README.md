@@ -27,7 +27,7 @@ GoHoot is a straightforward and open-source quiz platform, allowing users to hos
 GoHoot enhances the original Razzia platform with the following major upgrades:
 
 - **⚙️ Extensive Pre-Game Options**: Configure classic or accuracy scoring modes, shuffle option orders, and set questions/options to be hidden on player devices.
-- **🧩 Interactive Touch Drag-and-Drop Puzzles**: Support for ordering-type questions. Players can slide options into the correct chronological or rank order using a smooth, responsive touch drag interface (powered by `@hello-pangea/dnd`).
+- **🧩 Interactive Touch Drag-and-Drop Puzzles**: Support for ordering-type questions. Players can slide options into the correct chronological or rank order using a smooth, responsive touch drag interface (powered by `@dnd-kit` with touch and keyboard support).
 - **📱 Responsive Layouts & Presenter Views**: Confined screen layouts that scale dynamically and prevent content overflow on the manager presentation screens. Features larger, high-visibility typography, automatic left/right column splits based on image aspect ratio, and dynamic font resizing for long questions.
 - **🔄 Session Reconnection**: Fully persistent player and manager connections via `localStorage` and backup cookie sessions. Players can reload the browser, open the browser app later, or lose connection, and automatically rejoin their active game state without losing points or re-entering details.
 - **📊 Extended Excel Results Exporter**: Export game statistics and modes directly into formatted spreadsheet files.
@@ -38,8 +38,8 @@ Choose one of the following deployment methods:
 
 ### Without Docker
 
-- Node.js : version 22 or higher
-- PNPM : version 10.16 or higher (learn more [here](https://pnpm.io/))
+- Node.js: 24 LTS (`.nvmrc` pins the tested patch version)
+- PNPM: 11.28.7 (the version in `packageManager`) (learn more [here](https://pnpm.io/))
 
 ### With Docker
 
@@ -55,14 +55,20 @@ Using Docker Compose (recommended):
 You can find the docker compose configuration in the repository:
 [docker-compose.yml](/compose.yml)
 
+Copy `.env.example` to `.env`, set `MANAGER_PASSWORD` (at least 8 characters), and set a persistent random `JWT_SECRET` (at least 32 characters). Then build this checkout:
+
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
+
+See [the security upgrade guide](docs/SECURITY-UPGRADE.md) before upgrading an existing instance.
 
 Or using Docker directly:
 
 ```bash
 docker run -d \
+  --env-file .env \
+  -e TRUST_PROXY=true \
   -p 3000:3000 \
   -v ./config:/app/config \
   gokulvasanthd/gohoot:latest
@@ -88,10 +94,11 @@ git clone https://github.com/gokulvasanthgv/GoHoot.git
 cd ./GoHoot
 ```
 
-2. Install dependencies:
+2. Copy `.env.example` to `.env` and set `MANAGER_PASSWORD` and `JWT_SECRET`. Install dependencies:
 
 ```bash
-pnpm install
+npm install -g pnpm@11.28.7
+pnpm install --frozen-lockfile
 ```
 
 3. Build and start the application:
@@ -109,19 +116,15 @@ pnpm start
 
 The configuration is split into two main parts:
 
-### 1. Game Configuration (`config/game.json`)
+### 1. Accounts and game settings
 
-Main game settings:
+`MANAGER_PASSWORD` initializes the `admin` account on a new install and replaces the old built-in `admin/admin` credential during migration. Existing custom account passwords remain valid and are upgraded to scrypt after a successful login. Change existing account passwords in the UI. New or reset passwords require at least 8 characters.
 
-```json
-{
-  "managerPassword": "PASSWORD"
-}
-```
+`JWT_SECRET` signs sessions and join tickets. Set a persistent random value of at least 32 characters to keep sessions valid across restarts. Without it, a random secret is generated at startup. Running games remain in memory and end on a server restart.
 
-Options:
+`ALLOW_SIGNUP=false` disables registration. Signup remains enabled by default to preserve GoHoot's account workflow; new accounts have the quizmaster role. Administrators can assign the quizzer or analyst roles.
 
-- `managerPassword`: The master password for accessing the manager interface. **Must be changed from the default `"PASSWORD"` value**, otherwise manager access is blocked.
+`config/game.json` stores `defaultWallpaper` and `defaultAudio`. Account hashes, quizzes, results, trash, media ownership, and session revocations are stored in the same persistent `config` directory. Do not publish or commit this directory. Legacy plaintext manager passwords are removed once an administrator account exists.
 
 ### 2. Quiz Configuration (`config/quizz/*.json`)
 
@@ -183,10 +186,10 @@ Quiz Options:
 
 - `subject`: Title/topic of the quiz
 - `questions`: Array of question objects containing:
-  - `type`: Optional. Question type: `"quiz"` (standard multiple choice, default), `"slide"` (informational presentation slide), or `"puzzle"` (drag-and-drop ordering game)
+  - `type`: Optional. Question type: `"quiz"` (standard multiple choice, default), `"slide"` (informational presentation slide), `"puzzle"` (drag-and-drop ordering game), or `"true_or_false"`
   - `question`: The question/slide title text
   - `text`: Optional body text (used for `"slide"` type questions)
-  - `answers`: Array of possible options (2-4 options for `"quiz"`; up to 7 options for `"puzzle"` to sort)
+  - `answers`: Array of possible options (2-7 options for `"quiz"`; up to 7 options for `"puzzle"` to sort)
   - `media`: Optional media object displayed with the question:
     - `type`: `"image"`, `"video"`, or `"audio"`
     - `url`: URL of the media (supports direct file URLs and YouTube video links)
@@ -197,8 +200,22 @@ Quiz Options:
 ## 🎮 How to Play
 
 1. Access the manager interface at http://localhost:3000/manager
-2. Enter the manager password (defined in `config/game.json`)
+2. Sign in with username `admin` and your configured password, or an existing account
 3. Share the game URL (http://localhost:3000) and room code with participants
 4. Wait for players to join
 5. Click the start button to begin the game
 
+## Development checks
+
+Use Node 24 and install dependencies with pnpm. You can invoke the root scripts through npm (`npm run dev`, `npm run build`, `npm test`); these scripts still use pnpm for workspace orchestration. `npm install` does not support this repository's workspace and catalog dependency syntax.
+
+```bash
+pnpm types
+pnpm lint
+pnpm format
+pnpm test
+pnpm --filter @razzia/e2e exec playwright install chromium
+pnpm test:e2e
+```
+
+Browser tests build the application and use isolated temporary accounts/data on ports 18855 and 18856. See [the architecture and upstream integration notes](docs/SECURITY-UPGRADE.md) for the API, trust boundaries, migration behavior, and preserved fork features.

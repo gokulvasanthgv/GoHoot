@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next"
 
 const Room = () => {
   const { socket, isConnected } = useSocket()
-  const { join } = usePlayerStore()
+  const { join, setInviteCode } = usePlayerStore()
   const [invitation, setInvitation] = useState("")
   const { pin } = useSearch({ from: "/(auth)/" })
   const hasJoinedRef = useRef(false)
@@ -22,6 +22,7 @@ const Room = () => {
   const navigate = useNavigate()
 
   const handleJoin = () => {
+    setInviteCode(invitation.replace(/\s/gu, ""))
     socket.emit(EVENTS.PLAYER.JOIN, invitation.replace(/\s/gu, ""))
   }
 
@@ -33,6 +34,7 @@ const Room = () => {
     }
 
     const { gameId, alreadyJoined, username } = payload
+
     if (alreadyJoined && username) {
       join(gameId)
       const store = usePlayerStore.getState()
@@ -49,16 +51,24 @@ const Room = () => {
     }
 
     socket.emit("player:join", pin)
+    setInviteCode(pin)
     hasJoinedRef.current = true
-  }, [pin, isConnected, socket])
+  }, [pin, isConnected, socket, setInviteCode])
 
   return (
-    <Card className="w-full max-w-sm p-6 sm:p-8 bg-white/95 backdrop-blur-md shadow-2xl border border-gray-150 rounded-2xl flex flex-col items-center">
-      <p className="mb-4 text-center font-bold text-gray-700 text-lg uppercase tracking-wide">
+    <Card className="border-gray-150 flex w-full max-w-sm flex-col items-center rounded-2xl border bg-white/95 p-6 shadow-2xl backdrop-blur-md sm:p-8">
+      <p className="mb-4 text-center text-lg font-bold tracking-wide text-gray-700 uppercase">
         {t("game:pinLabel") || "PIN Code"}
       </p>
-      <PinInput value={invitation} onChange={setInvitation} className="w-full justify-center max-w-xs" />
-      <Button className="mt-6 w-full shadow-lg hover:shadow-xl transition-all duration-200 active:scale-98" onClick={handleJoin}>
+      <PinInput
+        value={invitation}
+        onChange={setInvitation}
+        className="w-full max-w-xs justify-center"
+      />
+      <Button
+        className="mt-6 w-full shadow-lg transition-all duration-200 hover:shadow-xl active:scale-98"
+        onClick={handleJoin}
+      >
         {t("common:submit") || "Join"}
       </Button>
     </Card>

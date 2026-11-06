@@ -20,12 +20,19 @@ const ConfigTrash = () => {
 
   const handleDeletePermanently = (id: string) => () => {
     socket.emit(EVENTS.QUIZZ.DELETE_PERMANENTLY, id)
-    toast.success(t("manager:quizz.permanentlyDeleted") || "Quiz permanently deleted along with its assets")
+    toast.success(
+      t("manager:quizz.permanentlyDeleted") ||
+        "Quiz permanently deleted along with its assets",
+    )
   }
 
   const formatDate = (iso?: string) => {
-    if (!iso) return ""
+    if (!iso) {
+      return ""
+    }
+
     const d = new Date(iso)
+
     return `${d.toLocaleDateString(undefined, {
       day: "2-digit",
       month: "short",
@@ -39,10 +46,12 @@ const ConfigTrash = () => {
         {trash?.map((q) => (
           <div
             key={q.id}
-            className="flex w-full items-center justify-between rounded-md px-3 py-2 outline outline-gray-300 bg-white"
+            className="flex w-full items-center justify-between rounded-md bg-white px-3 py-2 outline outline-gray-300"
           >
             <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold text-gray-800">{q.subject}</p>
+              <p className="truncate font-semibold text-gray-800">
+                {q.subject}
+              </p>
               {q.deletedAt && (
                 <p className="text-[10px] text-gray-400">
                   Deleted: {formatDate(q.deletedAt)}
@@ -50,9 +59,9 @@ const ConfigTrash = () => {
               )}
             </div>
 
-            <div className="flex gap-1 shrink-0">
+            <div className="flex shrink-0 gap-1">
               <button
-                className="rounded-sm p-2 text-gray-600 hover:bg-gray-100 transition"
+                className="rounded-sm p-2 text-gray-600 transition hover:bg-gray-100"
                 onClick={handleRestore(q.id)}
                 title={t("manager:quizz.restore") || "Restore Quiz"}
               >
@@ -62,12 +71,23 @@ const ConfigTrash = () => {
               {currentUser?.role === "admin" && (
                 <AlertDialog
                   trigger={
-                    <button className="rounded-sm p-2 hover:bg-red-600/10 transition" title="Delete Permanently">
+                    <button
+                      className="rounded-sm p-2 transition hover:bg-red-600/10"
+                      title="Delete Permanently"
+                    >
                       <Trash2 className="size-4 stroke-red-500" />
                     </button>
                   }
-                  title={t("manager:quizz.deletePermanentTitle") || "Delete Quiz Permanently"}
-                  description={t("manager:quizz.deletePermanentConfirm", { name: q.subject }) || `Are you sure you want to permanently delete ${q.subject}? This will permanently remove the quiz and all its uploaded media assets.`}
+                  title={
+                    t("manager:quizz.deletePermanentTitle") ||
+                    "Delete Quiz Permanently"
+                  }
+                  description={
+                    t("manager:quizz.deletePermanentConfirm", {
+                      name: q.subject,
+                    }) ||
+                    `Are you sure you want to permanently delete ${q.subject}? This will permanently remove the quiz and all its uploaded media assets.`
+                  }
                   confirmLabel={t("common:delete") || "Delete"}
                   onConfirm={handleDeletePermanently(q.id)}
                 />

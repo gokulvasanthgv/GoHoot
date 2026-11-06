@@ -17,11 +17,16 @@ const SlideMedia = ({ media }: { media?: QuestionMedia }) => {
 
   if (media?.type === MEDIA_TYPES.VIDEO) {
     const youtubeId = getYoutubeId(media.url)
+
     if (youtubeId) {
       return (
-        <img src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`} className="mx-auto max-h-14 w-auto rounded-md" />
+        <img
+          src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`}
+          className="mx-auto max-h-14 w-auto rounded-md"
+        />
       )
     }
+
     return <Video className="mx-auto size-10 text-gray-400" />
   }
 
@@ -73,12 +78,12 @@ const QuizzEditorCard = ({
       <SlideMedia media={question.media} />
 
       <div className="grid grid-cols-2 gap-1">
-        {(question.answers || []).map((_, i) => (
+        {(question.answers ?? []).map((_, i) => (
           <div
             key={i}
             className="flex h-4 flex-1 items-center rounded-md border border-gray-300 px-0.5"
           >
-            {(question.solutions || []).includes(i) && (
+            {(question.solutions ?? []).includes(i) && (
               <div className="ml-auto size-1.5 rounded-full bg-green-400" />
             )}
           </div>

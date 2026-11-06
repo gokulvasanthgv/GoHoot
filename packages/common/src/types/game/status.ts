@@ -3,6 +3,7 @@ import type {
   QuestionMedia,
   QuestionType,
   GameResult,
+  PodiumPlayer,
 } from "@razzia/common/types/game"
 
 export const STATUS = {
@@ -54,7 +55,7 @@ export interface CommonStatusDataMap {
   WAIT: { text: string }
   FINISHED: {
     subject: string
-    top: Player[]
+    top: PodiumPlayer[]
     rank?: number
     result?: GameResult
   }
@@ -78,7 +79,7 @@ interface ManagerExtraStatus {
   SHOW_LEADERBOARD: {
     oldLeaderboard: Player[]
     leaderboard: Player[]
-    previousQuestions?: { index: number; question: string }[]
+    previousQuestions?: Array<{ index: number; question: string }>
   }
 }
 

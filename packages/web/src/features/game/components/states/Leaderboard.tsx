@@ -70,15 +70,16 @@ const Leaderboard = ({
   }, [oldLeaderboard, leaderboard])
 
   return (
-    <section className="relative mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 min-h-0 select-none">
+    <section className="relative mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 select-none">
       {previousQuestions && previousQuestions.length > 0 && (
-        <div className="mb-4 flex flex-col items-center gap-2 shrink-0">
+        <div className="mb-4 flex shrink-0 flex-col items-center gap-2">
           <select
             id="previous-questions-select"
             className="focus:ring-primary max-w-xl cursor-pointer rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-xl font-bold text-white focus:ring-2 focus:outline-none"
             value=""
             onChange={(e) => {
               const val = e.target.value
+
               if (val !== "") {
                 const index = parseInt(val, 10)
                 socket.emit(EVENTS.MANAGER.GO_TO_QUESTION, {
@@ -99,10 +100,10 @@ const Leaderboard = ({
           </select>
         </div>
       )}
-      <h2 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-extrabold text-white drop-shadow-md shrink-0">
+      <h2 className="mb-4 shrink-0 text-4xl font-extrabold text-white drop-shadow-md sm:text-5xl md:text-6xl">
         {t("game:leaderboard")}
       </h2>
-      <div className="flex w-full flex-col gap-3 max-w-3xl justify-center shrink min-h-0">
+      <div className="flex min-h-0 w-full max-w-3xl shrink flex-col justify-center gap-3">
         <AnimatePresence mode="popLayout">
           {displayedLeaderboard.map(({ id, username, points, streak }) => (
             <motion.div
@@ -125,7 +126,7 @@ const Leaderboard = ({
                   damping: 25,
                 },
               }}
-              className="bg-primary flex w-full justify-between items-center rounded-2xl py-3.5 px-6 text-2xl sm:text-3xl md:text-4xl font-extrabold text-white shadow-lg"
+              className="bg-primary flex w-full items-center justify-between rounded-2xl px-6 py-3.5 text-2xl font-extrabold text-white shadow-lg sm:text-3xl md:text-4xl"
             >
               <span className="flex items-center gap-2 drop-shadow-md">
                 {username}

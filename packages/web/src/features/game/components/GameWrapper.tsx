@@ -1,6 +1,5 @@
 import { EVENTS } from "@razzia/common/constants"
-import { STATUS } from "@razzia/common/types/game/status"
-import type { Status } from "@razzia/common/types/game/status"
+import { STATUS, type Status } from "@razzia/common/types/game/status"
 import background from "@razzia/web/assets/background.png"
 import Button from "@razzia/web/components/Button"
 import Loader from "@razzia/web/components/Loader"
@@ -70,6 +69,7 @@ const GameWrapper = ({
     if (statusName !== STATUS.SHOW_ROOM) {
       setIsDisabled(true)
     }
+
     onNext?.()
   }
 
@@ -83,7 +83,7 @@ const GameWrapper = ({
         />
       </div>
 
-      <div className="z-10 flex w-full flex-1 flex-col justify-between min-h-0 overflow-hidden">
+      <div className="z-10 flex min-h-0 w-full flex-1 flex-col justify-between overflow-hidden">
         {!isConnected && !statusName ? (
           <div className="flex h-full w-full flex-1 flex-col items-center justify-center">
             <Loader className="h-30" />
@@ -122,17 +122,23 @@ const GameWrapper = ({
 
               <div className="flex items-center gap-2">
                 {manager && (
-                  <div className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-1.5 backdrop-blur-sm mr-2">
+                  <div className="mr-2 flex items-center gap-2 rounded-lg bg-white/10 px-3 py-1.5 backdrop-blur-sm">
                     <button
                       onClick={() => setIsMuted(!isMuted)}
-                      className="text-white hover:text-gray-200 active:scale-95 transition"
+                      className="text-white transition hover:text-gray-200 active:scale-95"
                     >
                       {isMuted ? (
-                        <svg className="size-5 fill-current" viewBox="0 0 24 24">
+                        <svg
+                          className="size-5 fill-current"
+                          viewBox="0 0 24 24"
+                        >
                           <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.21.05-.42.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
                         </svg>
                       ) : (
-                        <svg className="size-5 fill-current" viewBox="0 0 24 24">
+                        <svg
+                          className="size-5 fill-current"
+                          viewBox="0 0 24 24"
+                        >
                           <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
                         </svg>
                       )}
@@ -146,6 +152,7 @@ const GameWrapper = ({
                       onChange={(e) => {
                         const newVol = parseFloat(e.target.value)
                         setVolume(newVol)
+
                         if (newVol > 0 && isMuted) {
                           setIsMuted(false)
                         }
@@ -193,7 +200,7 @@ const GameWrapper = ({
               statusName !== STATUS.SHOW_ROOM &&
               statusName !== STATUS.WAIT &&
               statusName !== STATUS.SHOW_START && (
-                <div className="fixed bottom-4 right-4 z-50">
+                <div className="fixed right-4 bottom-4 z-50">
                   <AlertDialog
                     trigger={
                       <Button className="bg-red-600 px-4 font-bold text-white shadow-lg hover:bg-red-700 active:scale-95">
@@ -214,7 +221,8 @@ const GameWrapper = ({
 
             {manager && inviteCode && (
               <div className="fixed bottom-4 left-4 z-50 rounded bg-black/60 px-3 py-1.5 text-xs font-semibold text-white shadow-md backdrop-blur-sm">
-                Game PIN: <span className="font-bold tracking-wider">{inviteCode}</span>
+                Game PIN:{" "}
+                <span className="font-bold tracking-wider">{inviteCode}</span>
               </div>
             )}
 

@@ -39,7 +39,9 @@ export const Route = createRootRoute({
   ),
   errorComponent: ({ error }) => (
     <div className="bg-secondary antialiased">
-      <ErrorPage error={error} />
+      <ErrorPage
+        error={error instanceof Error ? error : new Error("Unexpected error")}
+      />
     </div>
   ),
   notFoundComponent: () => (

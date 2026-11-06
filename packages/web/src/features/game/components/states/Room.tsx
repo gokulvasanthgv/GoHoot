@@ -1,4 +1,4 @@
-import * as AlertDialog from "@radix-ui/react-alert-dialog"
+import { AlertDialog } from "radix-ui"
 import { EVENTS } from "@razzia/common/constants"
 import type { Player } from "@razzia/common/types/game"
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
@@ -23,7 +23,9 @@ const Room = ({ data: { text, inviteCode } }: Props) => {
   const { socket } = useSocket()
   const webUrl = window.location.origin
   const [playerList, setPlayerList] = useState<Player[]>(players)
-  const [totalPlayers, setTotalPlayers] = useState(0)
+  const [totalPlayers, setTotalPlayers] = useState(
+    players.filter((player) => player.connected).length,
+  )
   const [qrOpen, setQrOpen] = useState(false)
   const qrContentRef = useRef<HTMLDivElement>(null)
   const { t } = useTranslation()
@@ -38,6 +40,7 @@ const Room = ({ data: { text, inviteCode } }: Props) => {
 
   useEffect(() => {
     playMusic()
+
     return () => {
       stopMusic()
     }
@@ -52,15 +55,18 @@ const Room = ({ data: { text, inviteCode } }: Props) => {
   useOnClickOutside({ ref: qrContentRef, handler: () => setQrOpen(false) })
 
   useEvent(EVENTS.MANAGER.NEW_PLAYER, (player) => {
-    setPlayerList([...playerList, player])
+    setPlayerList((current) => [
+      ...current.filter((entry) => entry.clientId !== player.clientId),
+      player,
+    ])
   })
 
   useEvent(EVENTS.MANAGER.REMOVE_PLAYER, (playerId) => {
-    setPlayerList(playerList.filter((p) => p.id !== playerId))
+    setPlayerList((current) => current.filter((p) => p.id !== playerId))
   })
 
   useEvent(EVENTS.MANAGER.PLAYER_KICKED, (playerId) => {
-    setPlayerList(playerList.filter((p) => p.id !== playerId))
+    setPlayerList((current) => current.filter((p) => p.id !== playerId))
   })
 
   useEvent(EVENTS.GAME.TOTAL_PLAYERS, (total) => {

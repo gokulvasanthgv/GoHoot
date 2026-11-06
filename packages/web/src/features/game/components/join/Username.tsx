@@ -12,10 +12,12 @@ import { usePlayerStore } from "@razzia/web/features/game/stores/player"
 import { useNavigate } from "@tanstack/react-router"
 import { type KeyboardEvent, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { joinGame } from "@razzia/web/features/manager/queries"
+import toast from "react-hot-toast"
 
 const Username = () => {
   const { socket } = useSocket()
-  const { gameId, login, setStatus } = usePlayerStore()
+  const { gameId, inviteCode, login, setStatus } = usePlayerStore()
   const navigate = useNavigate()
   const [username, setUsername] = useState("")
   const { t } = useTranslation()
@@ -25,7 +27,28 @@ const Username = () => {
       return
     }
 
-    socket.emit(EVENTS.PLAYER.LOGIN, { gameId, data: { username } })
+    if (!inviteCode) {
+      return
+    }
+
+    void joinGame(inviteCode, username)
+      .then(({ gameId: joinedGameId, ticket }) => {
+        if (ticket) {
+          socket.emit(EVENTS.PLAYER.LOGIN, { ticket })
+        } else {
+          login(username)
+          navigate({ to: "/party/$gameId", params: { gameId: joinedGameId } })
+        }
+      })
+      .catch((failure: unknown) =>
+        toast.error(
+          t(
+            failure instanceof Error
+              ? failure.message
+              : "errors:api.serverError",
+          ),
+        ),
+      )
   }
 
   const handleKeyDown = (event: KeyboardEvent) => {

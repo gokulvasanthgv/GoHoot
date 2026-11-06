@@ -1,16 +1,28 @@
+import { api, unwrap } from "@razzia/web/lib/api"
+import QuestionMedia from "@razzia/web/components/QuestionMedia"
+import SortableList from "@razzia/web/components/SortableList"
+import toast from "react-hot-toast"
 import { EVENTS } from "@razzia/common/constants"
-import type { GameResult, QuizzWithId } from "@razzia/common/types/game"
+import type { QuizzWithId } from "@razzia/common/types/game"
 import Background from "@razzia/web/components/Background"
 import Button from "@razzia/web/components/Button"
 import Card from "@razzia/web/components/Card"
 import Loader from "@razzia/web/components/Loader"
-import { useEvent, useSocket } from "@razzia/web/features/game/contexts/socket-context"
+import {
+  useEvent,
+  useSocket,
+} from "@razzia/web/features/game/contexts/socket-context"
 import { useUserStore } from "@razzia/web/features/game/stores/user"
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
-import { CheckCircle, XCircle, Award, ArrowRight, ArrowLeft } from "lucide-react"
-import { useEffect, useState, useRef } from "react"
+import {
+  CheckCircle,
+  XCircle,
+  Award,
+  ArrowRight,
+  ArrowLeft,
+} from "lucide-react"
+import { useEffect, useState } from "react"
 import { motion } from "motion/react"
-import { v7 as uuid } from "uuid"
 
 const ANSWER_COLORS = [
   "bg-red-500 hover:bg-red-600 border-red-600 text-white",
@@ -32,21 +44,41 @@ const SoloGamePage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [gameState, setGameState] = useState<"lobby" | "question" | "finished">("lobby")
+  const [puzzleItems, setPuzzleItems] = useState<
+    Array<{ id: string; index: number; text: string }>
+  >([])
+  const [saving, setSaving] = useState(false)
+  const [gameState, setGameState] = useState<"lobby" | "question" | "finished">(
+    "lobby",
+  )
   const [currentIdx, setCurrentIdx] = useState(0)
   const [score, setScore] = useState(0)
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([])
   const [isAnswered, setIsAnswered] = useState(false)
-  const [savedUserAnswers, setSavedUserAnswers] = useState<Record<number, number[] | null>>({})
+  const [savedUserAnswers, setSavedUserAnswers] = useState<
+    Record<number, number[] | null>
+  >({})
 
   useEffect(() => {
     if (isConnected && quizzId) {
-      socket.emit(EVENTS.QUIZZ.GET_SOLO, quizzId)
+      void unwrap(api.solo[":id"].$get({ param: { id: quizzId } }))
+        .then((data) => {
+          setQuizz(data)
+          setLoading(false)
+        })
+        .catch((failure: unknown) => {
+          setError(
+            failure instanceof Error
+              ? failure.message
+              : "errors:api.serverError",
+          )
+          setLoading(false)
+        })
     }
   }, [isConnected, quizzId, socket])
 
   useEvent(EVENTS.QUIZZ.DATA, (data) => {
-    if (data && data.id === quizzId) {
+    if (data.id === quizzId) {
       setQuizz(data)
       setLoading(false)
     }
@@ -58,7 +90,10 @@ const SoloGamePage = () => {
   })
 
   const startQuiz = () => {
-    if (!quizz) return
+    if (!quizz) {
+      return
+    }
+
     setGameState("question")
     setCurrentIdx(0)
     setScore(0)
@@ -67,25 +102,41 @@ const SoloGamePage = () => {
   }
 
   const loadQuestion = (idx: number) => {
-    if (!quizz) return
+    if (!quizz) {
+      return
+    }
+
     setSelectedAnswers([])
     setIsAnswered(false)
+    const question = quizz.questions[idx]
+
+    if (question.type === "puzzle") {
+      setPuzzleItems(
+        (question.answers ?? [])
+          .map((text, index) => ({ id: String(index), index, text }))
+          .sort(() => Math.random() - 0.5),
+      )
+    }
   }
 
   const handleAnswerClick = (ansIdx: number) => {
-    if (isAnswered || !quizz) return
+    if (isAnswered || !quizz) {
+      return
+    }
+
     const q = quizz.questions[currentIdx]
-    const sols = q.solutions || []
+    const sols = q.solutions ?? []
 
     const multiple = sols.length > 1
     let newSelection: number[] = []
 
     if (multiple) {
       if (selectedAnswers.includes(ansIdx)) {
-        newSelection = selectedAnswers.filter(a => a !== ansIdx)
+        newSelection = selectedAnswers.filter((a) => a !== ansIdx)
       } else {
         newSelection = [...selectedAnswers, ansIdx]
       }
+
       setSelectedAnswers(newSelection)
     } else {
       newSelection = [ansIdx]
@@ -100,24 +151,37 @@ const SoloGamePage = () => {
 
   const submitAnswer = (selection: number[]) => {
     setIsAnswered(true)
-    if (!quizz) return
-    const q = quizz.questions[currentIdx]
-    const sols = q.solutions || []
 
-    const isCorrect = sols.length === selection.length && selection.every(val => sols.includes(val))
-    let pointsEarned = 0
-    if (isCorrect) {
-      pointsEarned = q.doublePoints ? 2000 : 1000
-      setScore(prev => prev + pointsEarned)
+    if (!quizz) {
+      return
     }
 
-    setSavedUserAnswers(prev => ({ ...prev, [currentIdx]: selection }))
+    const q = quizz.questions[currentIdx]
+    const sols = q.solutions ?? []
+
+    const isCorrect =
+      q.type === "puzzle"
+        ? selection.length === q.answers?.length &&
+          selection.every((value, index) => value === index)
+        : sols.length === selection.length &&
+          selection.every((val) => sols.includes(val))
+    let pointsEarned = 0
+
+    if (isCorrect) {
+      pointsEarned = q.doublePoints ? 2000 : 1000
+      setScore((prev) => prev + pointsEarned)
+    }
+
+    setSavedUserAnswers((prev) => ({ ...prev, [currentIdx]: selection }))
   }
 
   const nextQuestion = () => {
-    if (!quizz) return
+    if (!quizz) {
+      return
+    }
+
     if (currentIdx + 1 < quizz.questions.length) {
-      setCurrentIdx(prev => prev + 1)
+      setCurrentIdx((prev) => prev + 1)
       loadQuestion(currentIdx + 1)
     } else {
       finishQuiz()
@@ -125,43 +189,28 @@ const SoloGamePage = () => {
   }
 
   const finishQuiz = () => {
-    setGameState("finished")
-    if (!quizz || !user) return
-
-    const result: GameResult = {
-      id: "solo-" + uuid(),
-      quizzId: quizz.id,
-      subject: quizz.subject,
-      date: new Date().toISOString(),
-      players: [
-        {
-          username: user.username,
-          points: score,
-          rank: 1,
-          userId: user.id
-        }
-      ],
-      questions: quizz.questions.map((q, idx) => {
-        const userSel = savedUserAnswers[idx] || null
-        return {
-          ...q,
-          playerAnswers: [
-            {
-              playerName: user.username,
-              answerIds: userSel,
-              userId: user.id
-            }
-          ]
-        }
-      }),
-      mode: "classic",
-      creatorId: user.id
+    if (!quizz || !user || saving) {
+      return
     }
 
-    socket.emit(EVENTS.RESULTS.SAVE_SOLO, result)
+    setSaving(true)
+    void unwrap(
+      api.solo[":id"].results.$post({
+        param: { id: quizz.id },
+        json: { answers: savedUserAnswers },
+      }),
+    )
+      .then((result) => {
+        setScore(result.players[0]?.points ?? 0)
+        setGameState("finished")
+      })
+      .catch((failure: unknown) =>
+        toast.error(
+          failure instanceof Error ? failure.message : "Request failed",
+        ),
+      )
+      .finally(() => setSaving(false))
   }
-
-
 
   if (loading) {
     return (
@@ -174,8 +223,8 @@ const SoloGamePage = () => {
   if (error || !quizz) {
     return (
       <Background>
-        <Card className="p-6 text-center max-w-sm">
-          <p className="text-red-500 font-bold mb-4">Error loading quiz</p>
+        <Card className="max-w-sm p-6 text-center">
+          <p className="mb-4 font-bold text-red-500">Error loading quiz</p>
           <Button onClick={() => navigate({ to: "/" })}>Go Back</Button>
         </Card>
       </Background>
@@ -184,33 +233,36 @@ const SoloGamePage = () => {
 
   return (
     <Background>
-      <div className="z-10 flex w-full max-w-2xl flex-col items-center p-4 overflow-y-auto max-h-[calc(100dvh-160px)] touch-auto scrollbar-thin">
+      <div className="z-10 flex max-h-[calc(100dvh-160px)] w-full max-w-2xl touch-auto scrollbar-thin flex-col items-center overflow-y-auto p-4">
         {gameState === "lobby" && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full text-center flex justify-center"
+            className="flex w-full justify-center text-center"
           >
-            <Card className="w-full max-w-md p-6 sm:p-8 shadow-2xl bg-white/95 border border-gray-100 flex flex-col items-center">
-              <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold uppercase tracking-wider mb-4">
+            <Card className="flex w-full max-w-md flex-col items-center border border-gray-100 bg-white/95 p-6 shadow-2xl sm:p-8">
+              <span className="bg-primary/10 text-primary mb-4 rounded-full px-3 py-1 text-xs font-bold tracking-wider uppercase">
                 Solo Mode
               </span>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-800 leading-tight mb-2">
+              <h1 className="mb-2 text-2xl leading-tight font-extrabold text-gray-800 sm:text-3xl">
                 {quizz.subject}
               </h1>
-              <p className="text-xs sm:text-sm text-gray-500 mb-6 font-medium">
+              <p className="mb-6 text-xs font-medium text-gray-500 sm:text-sm">
                 {quizz.questions.length} Questions • Attempt in private
               </p>
 
-              <div className="flex gap-3 w-full max-w-xs">
+              <div className="flex w-full max-w-xs gap-3">
                 <button
                   onClick={() => navigate({ to: "/" })}
-                  className="flex-1 py-2.5 sm:py-3 text-xs sm:text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition flex items-center justify-center gap-1.5"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-gray-100 py-2.5 text-xs font-bold text-gray-600 transition hover:bg-gray-200 sm:py-3 sm:text-sm"
                 >
                   <ArrowLeft className="size-4" />
                   Exit
                 </button>
-                <Button className="flex-1 py-2.5 sm:py-3 text-xs sm:text-sm shadow-lg" onClick={startQuiz}>
+                <Button
+                  className="flex-1 py-2.5 text-xs shadow-lg sm:py-3 sm:text-sm"
+                  onClick={startQuiz}
+                >
                   Start
                 </Button>
               </div>
@@ -219,89 +271,150 @@ const SoloGamePage = () => {
         )}
 
         {gameState === "question" && (
-          <div className="w-full flex flex-col gap-4">
-            <div className="flex items-center justify-between w-full bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex w-full flex-col gap-4">
+            <div className="flex w-full items-center justify-between rounded-xl border border-gray-100 bg-white/90 p-4 shadow-sm backdrop-blur-sm">
               <div className="flex items-center gap-2">
-                <span className="flex items-center justify-center size-8 rounded-lg bg-primary/10 text-primary text-sm font-extrabold">
+                <span className="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-lg text-sm font-extrabold">
                   {currentIdx + 1}
                 </span>
-                <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">
+                <span className="text-xs font-semibold tracking-wider text-gray-400 uppercase">
                   of {quizz.questions.length} Questions
                 </span>
               </div>
               <div className="flex items-center gap-6">
                 <div className="text-right">
-                  <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Score</span>
-                  <p className="text-sm sm:text-base font-extrabold text-gray-700">{score} pts</p>
+                  <span className="text-[10px] font-semibold tracking-wider text-gray-400 uppercase">
+                    Score
+                  </span>
+                  <p className="text-sm font-extrabold text-gray-700 sm:text-base">
+                    {score} pts
+                  </p>
                 </div>
               </div>
             </div>
 
-            <Card className="w-full p-4 sm:p-6 shadow-md bg-white/95 border border-gray-100 min-h-[180px] sm:min-h-[260px] flex flex-col justify-between">
-              <div className="flex flex-col items-center flex-1 justify-center py-2 sm:py-4">
+            <Card className="flex min-h-[180px] w-full flex-col justify-between border border-gray-100 bg-white/95 p-4 shadow-md sm:min-h-[260px] sm:p-6">
+              <div className="flex flex-1 flex-col items-center justify-center py-2 sm:py-4">
                 {quizz.questions[currentIdx].doublePoints && (
-                  <span className="px-3 py-1 bg-amber-500/10 text-amber-600 rounded-full text-[10px] font-extrabold uppercase tracking-widest mb-3 animate-pulse">
+                  <span className="mb-3 animate-pulse rounded-full bg-amber-500/10 px-3 py-1 text-[10px] font-extrabold tracking-widest text-amber-600 uppercase">
                     🔥 Double Points
                   </span>
                 )}
-                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-center text-gray-800 leading-snug max-w-lg mb-4">
+                <h2 className="mb-4 max-w-lg text-center text-lg leading-snug font-bold text-gray-800 sm:text-xl md:text-2xl">
                   {quizz.questions[currentIdx].question}
                 </h2>
 
                 {quizz.questions[currentIdx].media && (
-                  <div className="w-full max-w-xs sm:max-w-md max-h-[20dvh] aspect-video rounded-lg overflow-hidden border border-gray-200 shadow-sm mt-2">
-                    <img
-                      src={quizz.questions[currentIdx].media?.url}
-                      className="w-full h-full object-contain bg-black/5"
-                      alt="Question attachment"
+                  <div className="mt-2 aspect-video max-h-[20dvh] w-full max-w-xs overflow-hidden rounded-lg border border-gray-200 shadow-sm sm:max-w-md">
+                    <QuestionMedia
+                      media={quizz.questions[currentIdx].media}
+                      className="max-h-full max-w-full object-contain"
                     />
                   </div>
                 )}
               </div>
 
-              {quizz.questions[currentIdx].solutions && (quizz.questions[currentIdx].solutions?.length || 0) > 1 && !isAnswered && (
-                <Button className="mb-2 sm:mb-4 w-full shadow-md py-2 sm:py-2.5 text-sm" onClick={submitMultipleAnswers}>
-                  Submit Selection
-                </Button>
-              )}
+              {quizz.questions[currentIdx].type !== "puzzle" &&
+                quizz.questions[currentIdx].solutions &&
+                (quizz.questions[currentIdx].solutions.length || 0) > 1 &&
+                !isAnswered && (
+                  <Button
+                    className="mb-2 w-full py-2 text-sm shadow-md sm:mb-4 sm:py-2.5"
+                    onClick={submitMultipleAnswers}
+                  >
+                    Submit Selection
+                  </Button>
+                )}
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
-              {quizz.questions[currentIdx].answers?.map((ans, idx) => {
-                const isCorrectSol = quizz.questions[currentIdx].solutions?.includes(idx)
-                const isUserSelected = selectedAnswers.includes(idx)
-                let colorClass = ANSWER_COLORS[idx % ANSWER_COLORS.length]
-
-                if (isAnswered) {
-                  if (isCorrectSol) {
-                    colorClass = "bg-green-600 border-green-700 text-white shadow-green-200"
-                  } else if (isUserSelected) {
-                    colorClass = "bg-red-600 border-red-700 text-white shadow-red-200"
-                  } else {
-                    colorClass = "bg-gray-100 border-gray-200 text-gray-400 opacity-50"
-                  }
-                } else if (isUserSelected) {
-                  colorClass = "bg-primary border-primary text-white scale-[1.02] shadow-md ring-2 ring-primary/20"
-                }
-
-                return (
-                  <button
-                    key={idx}
-                    disabled={isAnswered}
-                    onClick={() => handleAnswerClick(idx)}
-                    className={`flex items-center justify-between p-4 rounded-xl border-b-4 font-bold text-base transition-all duration-150 text-left active:scale-[0.98] ${colorClass}`}
+            {quizz.questions[currentIdx].type === "slide" && (
+              <p className="rounded-xl bg-white/95 p-5 whitespace-pre-wrap text-gray-800">
+                {quizz.questions[currentIdx].text}
+              </p>
+            )}
+            {quizz.questions[currentIdx].type === "puzzle" ? (
+              <div className="flex flex-col gap-3">
+                <SortableList
+                  items={puzzleItems}
+                  onReorder={(items) => {
+                    if (!isAnswered) {
+                      setPuzzleItems(items)
+                    }
+                  }}
+                  label={(_item, index) => `Move answer ${index + 1}`}
+                  className="flex flex-col gap-2"
+                  renderItem={(item, index, handle) => (
+                    <div className="flex min-h-14 items-center gap-3 rounded-xl bg-white p-3 text-gray-800">
+                      <span>{index + 1}</span>
+                      <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+                        {item.text}
+                      </span>
+                      {!isAnswered && handle}
+                    </div>
+                  )}
+                />
+                {!isAnswered && (
+                  <Button
+                    onClick={() =>
+                      submitAnswer(puzzleItems.map((item) => item.index))
+                    }
                   >
-                    <span>{ans}</span>
-                    {isAnswered && isCorrectSol && <CheckCircle className="size-5 shrink-0 ml-2" />}
-                    {isAnswered && isUserSelected && !isCorrectSol && <XCircle className="size-5 shrink-0 ml-2" />}
-                  </button>
-                )
-              })}
-            </div>
+                    Submit Order
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-2">
+                {quizz.questions[currentIdx].answers?.map((ans, idx) => {
+                  const isCorrectSol =
+                    quizz.questions[currentIdx].solutions?.includes(idx)
+                  const isUserSelected = selectedAnswers.includes(idx)
+                  let colorClass = ANSWER_COLORS[idx % ANSWER_COLORS.length]
 
-            {isAnswered && (
-              <Button className="w-full py-3 shadow-lg flex items-center justify-center gap-2 mt-2 bg-primary text-white" onClick={nextQuestion}>
-                {currentIdx + 1 === quizz.questions.length ? "Finish Quiz" : "Next Question"}
+                  if (isAnswered) {
+                    if (isCorrectSol) {
+                      colorClass =
+                        "bg-green-600 border-green-700 text-white shadow-green-200"
+                    } else if (isUserSelected) {
+                      colorClass =
+                        "bg-red-600 border-red-700 text-white shadow-red-200"
+                    } else {
+                      colorClass =
+                        "bg-gray-100 border-gray-200 text-gray-400 opacity-50"
+                    }
+                  } else if (isUserSelected) {
+                    colorClass =
+                      "bg-primary border-primary text-white scale-[1.02] shadow-md ring-2 ring-primary/20"
+                  }
+
+                  return (
+                    <button
+                      key={idx}
+                      disabled={isAnswered}
+                      onClick={() => handleAnswerClick(idx)}
+                      className={`flex items-center justify-between rounded-xl border-b-4 p-4 text-left text-base font-bold transition-all duration-150 active:scale-[0.98] ${colorClass}`}
+                    >
+                      <span>{ans}</span>
+                      {isAnswered && isCorrectSol && (
+                        <CheckCircle className="ml-2 size-5 shrink-0" />
+                      )}
+                      {isAnswered && isUserSelected && !isCorrectSol && (
+                        <XCircle className="ml-2 size-5 shrink-0" />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            {(isAnswered || quizz.questions[currentIdx].type === "slide") && (
+              <Button
+                className="bg-primary mt-2 flex w-full items-center justify-center gap-2 py-3 text-white shadow-lg"
+                disabled={saving}
+                onClick={nextQuestion}
+              >
+                {currentIdx + 1 === quizz.questions.length
+                  ? "Finish Quiz"
+                  : "Next Question"}
                 <ArrowRight className="size-5" />
               </Button>
             )}
@@ -312,24 +425,33 @@ const SoloGamePage = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full text-center flex justify-center"
+            className="flex w-full justify-center text-center"
           >
-            <Card className="w-full max-w-md p-6 sm:p-8 shadow-2xl bg-white/95 border border-gray-100 flex flex-col items-center">
-              <Award className="size-16 text-amber-500 fill-amber-50 mb-4 animate-bounce" />
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-800 leading-tight mb-2">
+            <Card className="flex w-full max-w-md flex-col items-center border border-gray-100 bg-white/95 p-6 shadow-2xl sm:p-8">
+              <Award className="mb-4 size-16 animate-bounce fill-amber-50 text-amber-500" />
+              <h1 className="mb-2 text-2xl leading-tight font-extrabold text-gray-800 sm:text-3xl">
                 Quiz Completed!
               </h1>
-              <p className="text-xs sm:text-sm text-gray-500 mb-6 font-medium">
+              <p className="mb-6 text-xs font-medium text-gray-500 sm:text-sm">
                 Here is your solo performance summary
               </p>
 
-              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 w-full max-w-xs mb-6 text-center">
-                <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block">Final Score</span>
-                <span className="text-2xl sm:text-3xl font-black text-gray-700">{score}</span>
-                <span className="text-xs text-gray-400 font-semibold block mt-1">points</span>
+              <div className="mb-6 w-full max-w-xs rounded-xl border border-gray-100 bg-gray-50 p-4 text-center">
+                <span className="block text-[10px] font-semibold tracking-wider text-gray-400 uppercase">
+                  Final Score
+                </span>
+                <span className="text-2xl font-black text-gray-700 sm:text-3xl">
+                  {score}
+                </span>
+                <span className="mt-1 block text-xs font-semibold text-gray-400">
+                  points
+                </span>
               </div>
 
-              <Button className="w-full max-w-xs py-2.5 sm:py-3 text-xs sm:text-sm shadow-md" onClick={() => navigate({ to: "/" })}>
+              <Button
+                className="w-full max-w-xs py-2.5 text-xs shadow-md sm:py-3 sm:text-sm"
+                onClick={() => navigate({ to: "/" })}
+              >
                 Back to Dashboard
               </Button>
             </Card>

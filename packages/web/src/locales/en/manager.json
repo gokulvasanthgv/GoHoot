@@ -16,7 +16,13 @@
     "notFound": "No quizz found",
     "pleaseCreate": "Please create a quizz first",
     "pleaseSelect": "Please select a quizz",
-    "startGame": "Start game"
+    "startGame": "Start game",
+    "restore": "Restore Quiz",
+    "restored": "Quiz restored successfully",
+    "permanentlyDeleted": "Quiz permanently deleted",
+    "deletePermanentTitle": "Delete Quiz Permanently",
+    "deletePermanentConfirm": "Permanently delete \"{{name}}\" and its unused uploaded media?",
+    "trashEmpty": "Trash is empty"
   },
   "result": {
     "delete": "Delete result",

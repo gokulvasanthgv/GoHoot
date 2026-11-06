@@ -1,3 +1,4 @@
+import type { Question } from "@razzia/common/types/game"
 import ConfigField from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigField"
 import ConfigNumberInput from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigNumberInput"
 import ConfigSection from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigSection"
@@ -9,13 +10,16 @@ const QuestionEditorConfig = () => {
   const { currentQuestion, currentIndex, updateQuestion } = useQuizzEditor()
   const { t } = useTranslation()
 
-  const handleUpdateQuestion = (key: string) => (value: string | number | boolean) => {
-    updateQuestion(currentIndex, { [key]: value })
-  }
+  const handleUpdateQuestion =
+    (key: string) => (value: string | number | boolean) => {
+      updateQuestion(currentIndex, { [key]: value })
+    }
 
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newType = e.target.value as "quiz" | "slide" | "puzzle" | "true_or_false"
-    const updates: any = { type: newType }
+    const newType = e.target.value as
+      "quiz" | "slide" | "puzzle" | "true_or_false"
+    const updates: Partial<Question> = { type: newType }
+
     if (newType === "slide") {
       updates.answers = undefined
       updates.solutions = undefined
@@ -30,6 +34,7 @@ const QuestionEditorConfig = () => {
       updates.answers = ["", ""]
       updates.solutions = [0]
     }
+
     updateQuestion(currentIndex, updates)
   }
 
@@ -114,16 +119,20 @@ const QuestionEditorConfig = () => {
               icon={<Sparkles className="size-4 text-indigo-500" />}
               label="Points Modifier"
             />
-            <div className="flex items-center mt-2.5">
-              <label className="relative inline-flex items-center cursor-pointer select-none">
+            <div className="mt-2.5 flex items-center">
+              <label className="relative inline-flex cursor-pointer items-center select-none">
                 <input
                   type="checkbox"
-                  checked={!!currentQuestion.doublePoints}
-                  onChange={(e) => handleUpdateQuestion("doublePoints")(e.target.checked)}
-                  className="sr-only peer"
+                  checked={Boolean(currentQuestion.doublePoints)}
+                  onChange={(e) =>
+                    handleUpdateQuestion("doublePoints")(e.target.checked)
+                  }
+                  className="peer sr-only"
                 />
-                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                <span className="ml-3 text-sm font-semibold text-gray-700">Double Points</span>
+                <div className="peer h-5 w-9 rounded-full bg-gray-200 peer-checked:bg-indigo-600 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                <span className="ml-3 text-sm font-semibold text-gray-700">
+                  Double Points
+                </span>
               </label>
             </div>
             <ConfigField.Description>

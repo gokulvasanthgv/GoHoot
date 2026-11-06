@@ -4,14 +4,40 @@ import type {
   GameUpdateQuestion,
   Player,
   QuizzWithId,
+  QuizzMeta,
+  AttendedQuiz,
 } from "@razzia/common/types/game"
 import type { Status, StatusDataMap } from "@razzia/common/types/game/status"
 import type { ManagerConfig } from "@razzia/common/types/manager"
-import { Server as ServerIO, Socket as SocketIO } from "socket.io"
+import type {
+  SessionClaims,
+  SessionResponse,
+  PasswordResetRequest,
+} from "@razzia/common/types/auth"
+import {
+  Server as ServerIO,
+  Socket as SocketIO,
+  type DefaultEventsMap,
+} from "socket.io"
 
-export type Server = ServerIO<ClientToServerEvents, ServerToClientEvents>
+export interface SocketData {
+  clientId: string
+  claims: SessionClaims
+}
 
-export type Socket = SocketIO<ClientToServerEvents, ServerToClientEvents>
+export type Server = ServerIO<
+  ClientToServerEvents,
+  ServerToClientEvents,
+  DefaultEventsMap,
+  SocketData
+>
+
+export type Socket = SocketIO<
+  ClientToServerEvents,
+  ServerToClientEvents,
+  DefaultEventsMap,
+  SocketData
+>
 
 export interface Message<K extends keyof StatusDataMap = keyof StatusDataMap> {
   gameId?: string
@@ -29,7 +55,22 @@ export interface MessageGameId {
 }
 
 export interface ServerToClientEvents {
+  [EVENTS.GAME.SETTINGS]: (_settings: {
+    wallpaper?: string
+    audio?: string
+  }) => void
+  [EVENTS.MANAGER.SESSION]: (_session: SessionResponse) => void
   connect: () => void
+  "manager:passwordChanged": (_response: {
+    success: boolean
+    error?: string
+  }) => void
+  "manager:adminPasswordResetSuccess": () => void
+  "manager:forgotPasswordSuccess": (_response: {
+    success: boolean
+    error?: string
+  }) => void
+  "manager:notifications": (_requests: PasswordResetRequest[]) => void
 
   // Game events
   [EVENTS.GAME.STATUS]: (_data: {
@@ -38,11 +79,15 @@ export interface ServerToClientEvents {
     wallpaper?: string
     audio?: string
   }) => void
-  [EVENTS.GAME.SUCCESS_ROOM]: (_data: string | {
-    gameId: string
-    alreadyJoined: boolean
-    username?: string
-  }) => void
+  [EVENTS.GAME.SUCCESS_ROOM]: (
+    _data:
+      | string
+      | {
+          gameId: string
+          alreadyJoined: boolean
+          username?: string
+        },
+  ) => void
   [EVENTS.GAME.SUCCESS_JOIN]: (_gameId: string) => void
   [EVENTS.GAME.TOTAL_PLAYERS]: (_count: number) => void
   [EVENTS.GAME.ERROR_MESSAGE]: (_message: string) => void
@@ -91,9 +136,17 @@ export interface ServerToClientEvents {
   [EVENTS.MANAGER.ERROR_MESSAGE]: (_message: string) => void
   [EVENTS.MANAGER.PLAYER_KICKED]: (_playerId: string) => void
   [EVENTS.MANAGER.UNAUTHORIZED]: () => void
-  [EVENTS.MANAGER.CURRENT_USER]: (_user: { id: string; username: string; role: "admin" | "quizmaster" | "analyst" | "quizzer" } | null) => void
-  [EVENTS.QUIZZ.TRASH_DATA]: (_trash: any[]) => void
-  [EVENTS.RESULTS.PLAYER_DASHBOARD_DATA]: (_data: { attended: any[]; available?: any[] }) => void
+  [EVENTS.MANAGER.CURRENT_USER]: (
+    _user: {
+      id: string
+      username: string
+      role: "admin" | "quizmaster" | "analyst" | "quizzer"
+    } | null,
+  ) => void
+  [EVENTS.QUIZZ.TRASH_DATA]: (_trash: QuizzMeta[]) => void
+  [EVENTS.RESULTS.PLAYER_DASHBOARD_DATA]: (_data: {
+    attended: AttendedQuiz[]
+  }) => void
 
   // Quizz events
   [EVENTS.QUIZZ.SAVE_SUCCESS]: (_data: { id: string }) => void
@@ -105,6 +158,17 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
+  [EVENTS.MANAGER.SESSION]: () => void
+  [EVENTS.MANAGER.CHANGE_PASSWORD]: (_data: {
+    currentPassword: string
+    newPassword: string
+  }) => void
+  [EVENTS.MANAGER.ADMIN_RESET_PASSWORD]: (_data: {
+    userId: string
+    newPassword: string
+  }) => void
+  [EVENTS.MANAGER.FORGOT_PASSWORD]: (_data: { username: string }) => void
+  [EVENTS.MANAGER.DISMISS_NOTIFICATION]: (_data: { requestId: string }) => void
   // Manager actions
   [EVENTS.GAME.CREATE]: (_quizzId: string) => void
   [EVENTS.MANAGER.AUTH]: (_password: string) => void
@@ -134,12 +198,28 @@ export interface ClientToServerEvents {
   [EVENTS.MANAGER.END_GAME]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.GET_CONFIG]: () => void
   [EVENTS.MANAGER.LOGOUT]: () => void
-  [EVENTS.MANAGER.UPDATE_SETTINGS]: (_settings: { defaultWallpaper?: string; defaultAudio?: string }) => void
-  [EVENTS.MANAGER.UPDATE_GAME_SETTINGS]: (_message: { gameId: string; wallpaper?: string; audio?: string }) => void
-  [EVENTS.MANAGER.SIGN_UP]: (_credentials: { username: string; password: string }) => void
-  [EVENTS.MANAGER.SIGN_IN]: (_credentials: { username: string; password: string }) => void
+  [EVENTS.MANAGER.UPDATE_SETTINGS]: (_settings: {
+    defaultWallpaper?: string
+    defaultAudio?: string
+  }) => void
+  [EVENTS.MANAGER.UPDATE_GAME_SETTINGS]: (_message: {
+    gameId: string
+    wallpaper?: string
+    audio?: string
+  }) => void
+  [EVENTS.MANAGER.SIGN_UP]: (_credentials: {
+    username: string
+    password: string
+  }) => void
+  [EVENTS.MANAGER.SIGN_IN]: (_credentials: {
+    username: string
+    password: string
+  }) => void
   [EVENTS.MANAGER.GET_USERS]: () => void
-  [EVENTS.MANAGER.UPDATE_USER_ROLE]: (_data: { userId: string; role: "admin" | "quizmaster" | "analyst" | "quizzer" }) => void
+  [EVENTS.MANAGER.UPDATE_USER_ROLE]: (_data: {
+    userId: string
+    role: "admin" | "quizmaster" | "analyst" | "quizzer"
+  }) => void
   [EVENTS.MANAGER.DELETE_USER]: (_userId: string) => void
   [EVENTS.MANAGER.GET_CURRENT_USER]: () => void
 
@@ -163,9 +243,7 @@ export interface ClientToServerEvents {
 
   // Player actions
   [EVENTS.PLAYER.JOIN]: (_inviteCode: string) => void
-  [EVENTS.PLAYER.LOGIN]: (
-    _message: MessageWithoutStatus<{ username: string }>,
-  ) => void
+  [EVENTS.PLAYER.LOGIN]: (_message: { ticket: string }) => void
   [EVENTS.PLAYER.RECONNECT]: (_message: { gameId: string }) => void
   [EVENTS.PLAYER.LEAVE]: (_message: { gameId: string }) => void
   [EVENTS.PLAYER.SELECTED_ANSWER]: (

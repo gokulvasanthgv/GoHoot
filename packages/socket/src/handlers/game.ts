@@ -4,12 +4,13 @@ import type { SocketContext } from "@razzia/socket/handlers/types"
 import { getQuizz } from "@razzia/socket/services/config"
 import Game from "@razzia/socket/services/game"
 import Registry from "@razzia/socket/services/registry"
-import { withGame } from "@razzia/socket/utils/game"
+import { withManagerGame, withPlayerGame } from "@razzia/socket/utils/game"
 import manager from "@razzia/socket/services/manager"
+import { verifyJoinTicket } from "@razzia/socket/services/auth"
 
 export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
   const registry = Registry.getInstance()
-  const clientId = socket.handshake.auth.clientId as string
+  const { clientId } = socket.data
 
   const handleManagerLeave = (game: Game) => {
     game.setManagerDisconnected()
@@ -54,7 +55,14 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
   socket.on(EVENTS.MANAGER.RECONNECT, ({ gameId }) => {
     const game = registry.getManagerGame(gameId, clientId)
 
-    if (game) {
+    const user = manager.getUser(socket)
+
+    if (
+      game &&
+      user &&
+      (user.role === "admin" || user.role === "quizmaster") &&
+      user.id === game.creatorId
+    ) {
       game.reconnect(socket)
 
       return
@@ -65,8 +73,10 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
 
   socket.on(EVENTS.GAME.CREATE, (quizzId) => {
     const user = manager.getUser(socket)
+
     if (!user || (user.role !== "admin" && user.role !== "quizmaster")) {
       socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:unauthorized")
+
       return
     }
 
@@ -79,8 +89,24 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
       return
     }
 
+    if (quizz.incompatible) {
+      socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:quizz.incompatible")
+
+      return
+    }
+
+    if (
+      registry.getAllGames().filter((game) => game.creatorId === user.id)
+        .length >= 10
+    ) {
+      socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:game.tooManyGames")
+
+      return
+    }
+
     if (user.role === "quizmaster" && quizz.creatorId !== user.id) {
       socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:unauthorized")
+
       return
     }
 
@@ -106,6 +132,7 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
     }
 
     const existingPlayer = game.players.find((p) => p.clientId === clientId)
+
     if (existingPlayer) {
       socket.emit(EVENTS.GAME.SUCCESS_ROOM, {
         gameId: game.gameId,
@@ -122,20 +149,44 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
     })
   })
 
-  socket.on(EVENTS.PLAYER.LOGIN, ({ gameId, data }) =>
-    withGame(gameId, socket, (game) => game.join(socket, data.username)),
-  )
+  socket.on(EVENTS.PLAYER.LOGIN, ({ ticket }) => {
+    void verifyJoinTicket(ticket)
+      .then((claims) => {
+        if (claims.sub !== clientId) {
+          socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:auth.unauthorized")
+
+          return
+        }
+
+        const game = registry.getGameById(claims.gameId)
+
+        if (!game || !claims.username) {
+          socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:game.notFound")
+
+          return
+        }
+
+        game.join(socket, claims.username)
+      })
+      .catch(() =>
+        socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:auth.joinTicketInvalid"),
+      )
+  })
 
   socket.on(EVENTS.MANAGER.KICK_PLAYER, ({ gameId, playerId }) =>
-    withGame(gameId, socket, (game) => game.kickPlayer(socket, playerId)),
+    withManagerGame(gameId, socket, (game) =>
+      game.kickPlayer(socket, playerId),
+    ),
   )
 
   socket.on(EVENTS.MANAGER.START_GAME, ({ gameId, mode, options }) =>
-    withGame(gameId, socket, (game) => game.start(socket, mode, options)),
+    withManagerGame(gameId, socket, (game) =>
+      game.start(socket, mode, options),
+    ),
   )
 
   socket.on(EVENTS.PLAYER.SELECTED_ANSWER, ({ gameId, data }) =>
-    withGame(gameId, socket, (game) => {
+    withPlayerGame(gameId, socket, (game) => {
       const keys = Array.isArray(data.answerKey)
         ? data.answerKey
         : typeof data.answerKey === "number"
@@ -146,29 +197,33 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
   )
 
   socket.on(EVENTS.MANAGER.ABORT_QUIZ, ({ gameId }) =>
-    withGame(gameId, socket, (game) => game.abortRound(socket)),
+    withManagerGame(gameId, socket, (game) => game.abortRound(socket)),
   )
 
   socket.on(EVENTS.MANAGER.NEXT_QUESTION, ({ gameId }) =>
-    withGame(gameId, socket, (game) => game.nextRound(socket)),
+    withManagerGame(gameId, socket, (game) => game.nextRound(socket)),
   )
 
   socket.on(EVENTS.MANAGER.SHOW_LEADERBOARD, ({ gameId }) =>
-    withGame(gameId, socket, (game) => game.showLeaderboard()),
+    withManagerGame(gameId, socket, (game) => game.showLeaderboard()),
   )
 
   socket.on(EVENTS.MANAGER.GO_TO_QUESTION, ({ gameId, index }) =>
-    withGame(gameId, socket, (game) => game.goToQuestion(socket, index)),
+    withManagerGame(gameId, socket, (game) => game.goToQuestion(socket, index)),
   )
 
   socket.on(EVENTS.MANAGER.END_GAME, ({ gameId }) =>
-    withGame(gameId, socket, (game) => game.endGame(socket)),
+    withManagerGame(gameId, socket, (game) => game.endGame(socket)),
   )
 
   socket.on(EVENTS.MANAGER.LEAVE, ({ gameId }) => {
     const game = registry.getManagerGame(gameId, clientId)
 
-    if (game) {
+    if (
+      game &&
+      game.manager.id === socket.id &&
+      manager.getUser(socket)?.id === game.creatorId
+    ) {
       console.log(`Manager left game ${game.inviteCode}`)
       handleManagerLeave(game)
     }
@@ -189,7 +244,18 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
 
     if (managerGame) {
       console.log(`Manager disconnected from game ${managerGame.inviteCode}`)
-      handleManagerLeave(managerGame)
+      managerGame.setManagerDisconnected()
+      registry.markGameAsEmpty(managerGame)
+
+      if (!managerGame.started) {
+        managerGame.waitForManager(() => {
+          io.to(managerGame.gameId).emit(
+            EVENTS.GAME.RESET,
+            "errors:game.managerDisconnected",
+          )
+          registry.removeGame(managerGame.gameId)
+        })
+      }
 
       return
     }
@@ -197,7 +263,7 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
     const playerGame = registry.getGameByPlayerSocketId(socket.id)
 
     if (playerGame) {
-      handlePlayerLeave(playerGame)
+      playerGame.setPlayerDisconnected(socket.id)
     }
   })
 }

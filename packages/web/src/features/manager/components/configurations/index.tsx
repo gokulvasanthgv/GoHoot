@@ -1,3 +1,4 @@
+import type { PasswordResetRequest } from "@razzia/common/types/auth"
 import { EVENTS } from "@razzia/common/constants"
 import type { ManagerConfig } from "@razzia/common/types/manager"
 import Card from "@razzia/web/components/Card"
@@ -18,7 +19,7 @@ import ConfigTabButton from "@razzia/web/features/manager/components/configurati
 import { ConfigProvider } from "@razzia/web/features/manager/contexts/config-context"
 import { LogOut, Bell, X } from "lucide-react"
 import toast from "react-hot-toast"
-import { useState, useEffect } from "react"
+import { useState, type ComponentType } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "@tanstack/react-router"
 
@@ -39,13 +40,13 @@ const Configurations = ({ data }: Props) => {
   const navigate = useNavigate()
 
   const [showNotifications, setShowNotifications] = useState(false)
-  const [notificationsList, setNotificationsList] = useState<any[]>(
-    data.notifications || [],
-  )
+  const [notificationsList, setNotificationsList] = useState<
+    PasswordResetRequest[]
+  >(data.notifications ?? [])
   const [resettingReqId, setResettingReqId] = useState<string | null>(null)
   const [resetPasswordValue, setResetPasswordValue] = useState("")
 
-  useEvent("manager:notifications", (reqs: any[]) => {
+  useEvent("manager:notifications", (reqs) => {
     setNotificationsList(reqs)
   })
 
@@ -58,14 +59,17 @@ const Configurations = ({ data }: Props) => {
     toast.success("Request dismissed")
   }
 
-  const handleNotificationReset = (username: string, requestId: string) => {
-    if (resetPasswordValue.length < 4) {
-      toast.error("Password must be at least 4 characters")
+  const handleNotificationReset = (username: string) => {
+    if (resetPasswordValue.length < 8) {
+      toast.error("Password must be at least 8 characters")
+
       return
     }
+
     const userObj = data.users?.find(
       (u) => u.username.toLowerCase() === username.toLowerCase(),
     )
+
     if (userObj) {
       socket.emit(EVENTS.MANAGER.ADMIN_RESET_PASSWORD, {
         userId: userObj.id,
@@ -78,7 +82,15 @@ const Configurations = ({ data }: Props) => {
     }
   }
 
-  const activeTabs: { nameKey: string; component: any }[] = []
+  const activeTabs: Array<{
+    nameKey: string
+    component: ComponentType<{
+      quizzFilter?: { creatorId: string; username: string } | null
+      onClearFilter?: () => void
+      onOpenQuizzes?: (userId: string, username: string) => void
+    }>
+  }> = []
+
   if (user?.role === "admin") {
     activeTabs.push(
       { nameKey: "manager:tabs.play", component: ConfigSelectQuizz },
@@ -102,13 +114,8 @@ const Configurations = ({ data }: Props) => {
     })
   }
 
-  useEffect(() => {
-    if (selectedTab >= activeTabs.length) {
-      setSelectedTab(0)
-    }
-  }, [activeTabs.length, selectedTab])
-
-  const TabComponent = activeTabs[selectedTab]?.component || (() => null)
+  const activeIndex = Math.min(selectedTab, Math.max(0, activeTabs.length - 1))
+  const TabComponent = activeTabs.at(activeIndex)?.component
 
   const handleSelect = (index: number) => () => {
     setSelectedTab(index)
@@ -222,10 +229,7 @@ const Configurations = ({ data }: Props) => {
                                 />
                                 <button
                                   onClick={() =>
-                                    handleNotificationReset(
-                                      req.username,
-                                      req.id,
-                                    )
+                                    handleNotificationReset(req.username)
                                   }
                                   className="min-h-11 rounded-lg bg-green-700 px-3 py-2 text-sm font-bold text-white hover:bg-green-800"
                                 >
@@ -288,7 +292,7 @@ const Configurations = ({ data }: Props) => {
           {activeTabs.map((tab, index) => (
             <ConfigTabButton
               key={tab.nameKey}
-              active={index === selectedTab}
+              active={index === activeIndex}
               onClick={handleSelect(index)}
             >
               {i18n.exists(tab.nameKey)
@@ -299,19 +303,22 @@ const Configurations = ({ data }: Props) => {
         </nav>
         <hr className="my-5 text-gray-100" />
         <div className="flex min-w-0 flex-col">
-          <TabComponent
-            quizzFilter={quizzFilter}
-            onClearFilter={() => setQuizzFilter(null)}
-            onOpenQuizzes={(userId: string, username: string) => {
-              const quizIdx = activeTabs.findIndex(
-                (t) => t.nameKey === "manager:tabs.quizz",
-              )
-              if (quizIdx !== -1) {
-                setQuizzFilter({ creatorId: userId, username })
-                setSelectedTab(quizIdx)
-              }
-            }}
-          />
+          {TabComponent && (
+            <TabComponent
+              quizzFilter={quizzFilter}
+              onClearFilter={() => setQuizzFilter(null)}
+              onOpenQuizzes={(userId: string, username: string) => {
+                const quizIdx = activeTabs.findIndex(
+                  (tab) => tab.nameKey === "manager:tabs.quizz",
+                )
+
+                if (quizIdx !== -1) {
+                  setQuizzFilter({ creatorId: userId, username })
+                  setSelectedTab(quizIdx)
+                }
+              }}
+            />
+          )}
         </div>
       </Card>
     </ConfigProvider>

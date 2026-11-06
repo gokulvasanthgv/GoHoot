@@ -18,15 +18,18 @@ const QuestionEditorAnswers = () => {
   const isTrueOrFalse = currentQuestion.type === "true_or_false"
 
   const updateAnswer = (index: number, value: string) => {
-    if (isTrueOrFalse) return
-    const next = [...(currentQuestion.answers || [])]
+    if (isTrueOrFalse) {
+      return
+    }
+
+    const next = [...(currentQuestion.answers ?? [])]
     next[index] = value
     updateQuestion(currentIndex, { answers: next })
   }
 
   const answersList = isTrueOrFalse
     ? ["True", "False"]
-    : currentQuestion.answers || []
+    : (currentQuestion.answers ?? [])
 
   const addAnswer = () => {
     if (answersList.length >= 7 || isTrueOrFalse) {
@@ -43,7 +46,7 @@ const QuestionEditorAnswers = () => {
 
     const next = answersList.slice(0, -1)
     const maxIndex = next.length - 1
-    const nextSolution = (currentQuestion.solutions || []).filter(
+    const nextSolution = (currentQuestion.solutions ?? []).filter(
       (s) => s <= maxIndex,
     )
 
@@ -56,10 +59,11 @@ const QuestionEditorAnswers = () => {
   const toggleSolution = (index: number) => {
     if (isTrueOrFalse) {
       updateQuestion(currentIndex, { solutions: [index] })
+
       return
     }
 
-    const current = currentQuestion.solutions || []
+    const current = currentQuestion.solutions ?? []
 
     if (current.includes(index)) {
       const next = current.filter((s) => s !== index)
@@ -98,7 +102,7 @@ const QuestionEditorAnswers = () => {
 
       <div className="grid grid-cols-2 gap-3">
         {answersList.map((answer, i) => {
-          const isSelected = (currentQuestion.solutions || []).includes(i)
+          const isSelected = (currentQuestion.solutions ?? []).includes(i)
           const isPuzzle = currentQuestion.type === "puzzle"
 
           return (

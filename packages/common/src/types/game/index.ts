@@ -17,8 +17,7 @@ export interface Answer {
 }
 
 export type QuestionMediaType =
-  | (typeof MEDIA_TYPES)[keyof typeof MEDIA_TYPES]
-  | undefined
+  (typeof MEDIA_TYPES)[keyof typeof MEDIA_TYPES] | undefined
 
 export interface QuestionMedia {
   type?: QuestionMediaType
@@ -69,7 +68,11 @@ export interface PlayerAnswerRecord {
   playerName: string
   answerIds: number[] | null
   userId?: string
+  correct?: boolean
+  points?: number
 }
+
+export type PodiumPlayer = Pick<Player, "username" | "points">
 
 export type QuestionResult = Question & {
   playerAnswers: PlayerAnswerRecord[]
@@ -101,4 +104,24 @@ export interface GameResultMeta {
   playerCount: number
   mode?: "classic" | "accuracy"
   creatorId?: string
+}
+
+export interface AttendedQuiz {
+  id: string
+  quizzId?: string
+  subject: string
+  date: string
+  mode?: "classic" | "accuracy"
+  points: number
+  rank: number
+  totalPlayers: number
+  questions: Array<{
+    question: string
+    type?: QuestionType
+    correct: boolean
+    points?: number
+    selectedAnswers: number[] | null
+    answers?: string[]
+    solutions?: number[]
+  }>
 }

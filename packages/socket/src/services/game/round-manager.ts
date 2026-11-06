@@ -1,34 +1,54 @@
-// oxlint-disable typescript/no-unnecessary-condition
 import { EVENTS, MEDIA_TYPES } from "@razzia/common/constants"
 import type {
-  Answer,
   GameResult,
   Player,
+  PodiumPlayer,
   Question,
   QuestionResult,
   Quizz,
 } from "@razzia/common/types/game"
 import type { Server, Socket } from "@razzia/common/types/game/socket"
 import {
-  type Status,
   STATUS,
+  type Status,
   type StatusDataMap,
 } from "@razzia/common/types/game/status"
-import { CooldownTimer } from "@razzia/socket/services/game/cooldown-timer"
-import { PlayerManager } from "@razzia/socket/services/game/player-manager"
-import { timeToPoint } from "@razzia/socket/utils/game"
-import sleep from "@razzia/socket/utils/sleep"
-import { nanoid } from "nanoid"
+import type { CooldownTimer } from "@razzia/socket/services/game/cooldown-timer"
+import type { PlayerManager } from "@razzia/socket/services/game/player-manager"
+import { scoreAnswer } from "@razzia/socket/services/scoring/choice"
+import { gameSpeed } from "@razzia/socket/env"
+import { randomInt, randomUUID } from "node:crypto"
 
-type BroadcastFn = <T extends Status>(
-  _status: T,
-  _data: StatusDataMap[T],
-) => void
+type Phase =
+  | "lobby"
+  | "starting"
+  | "prepared"
+  | "question"
+  | "answer"
+  | "responses"
+  | "leaderboard"
+  | "slide"
+  | "finished"
 type SendFn = <T extends Status>(
   _target: string,
   _status: T,
   _data: StatusDataMap[T],
 ) => void
+type BroadcastFn = <T extends Status>(
+  _status: T,
+  _data: StatusDataMap[T],
+) => void
+interface GameOptions {
+  shuffleQuestions?: boolean
+  doubleTime?: boolean
+  shuffleAnswers?: boolean
+  hideTextOnClient?: boolean
+}
+interface CachedRound {
+  question: QuestionResult
+  responses: Record<number, number>
+  results: Map<string, { correct: boolean; points: number }>
+}
 
 export interface RoundManagerOptions {
   quizz: Quizz
@@ -43,761 +63,531 @@ export interface RoundManagerOptions {
   onGameFinished: (_result: GameResult) => void
 }
 
+const shuffled = <T>(values: T[]): T[] => {
+  const result = [...values]
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const other = randomInt(index + 1)
+    ;[result[index], result[other]] = [result[other], result[index]]
+  }
+
+  return result
+}
+
 export class RoundManager {
   private readonly opts: RoundManagerOptions
-  private started = false
+  private phase: Phase = "lobby"
   private currentQuestion = 0
-  private playersAnswers: Answer[] = []
-  private startTime = 0
-  private leaderboard: Player[] = []
-  private tempOldLeaderboard: Player[] | null = null
-  private questionsHistory: QuestionResult[] = []
-  private currentShuffleMap: number[] | null = null
-  private playersHistoryState: {
-    clientId: string
-    points: number
-    streak: number
-  }[][] = []
-  private maxQuestionReached = 0
-  private answeredQuestionsState = new Map<
-    number,
-    {
-      responses: Record<number, number>
-      playerResults: {
-        clientId: string
-        correct: boolean
-        message: string
-        points: number
-        myPoints: number
-        rank: number
-        aheadOfMe: string | null
-      }[]
-    }
-  >()
-
+  private questions: Question[]
   private mode: "classic" | "accuracy" = "classic"
-  private options = {
-    shuffleQuestions: false,
-    doubleTime: false,
-    shuffleAnswers: false,
-    hideTextOnClient: false,
-  }
-  private questions: Question[] = []
-
+  private options: GameOptions = {}
+  private run = 0
+  private maxQuestionReached = 0
+  private startTime = 0
+  private acceptingAnswers = false
+  private submissions = new Map<
+    string,
+    { answerIds: number[]; basePoints: number }
+  >()
+  private history = new Map<number, CachedRound>()
+  private puzzleMap: number[] | undefined
+  private oldLeaderboard: Player[] = []
   constructor(opts: RoundManagerOptions) {
     this.opts = opts
-    this.questions = JSON.parse(JSON.stringify(opts.quizz.questions))
+    this.questions = structuredClone(opts.quizz.questions)
   }
-
   isStarted(): boolean {
-    return this.started
+    return this.phase !== "lobby" && this.phase !== "finished"
   }
-
+  hasFinished(): boolean {
+    return this.phase === "finished"
+  }
   getReconnectInfo() {
-    return {
-      current: this.currentQuestion + 1,
-      total: this.questions.length,
-    }
+    return { current: this.currentQuestion + 1, total: this.questions.length }
   }
+  getReconnectStatus(status: { name: Status; data: StatusDataMap[Status] }): {
+    name: Status
+    data: StatusDataMap[Status]
+  } {
+    if (status.name === STATUS.SELECT_ANSWER && this.phase === "answer") {
+      return {
+        ...status,
+        data: { ...status.data, time: this.opts.cooldown.remaining() },
+      }
+    }
 
+    if (status.name === STATUS.SHOW_QUESTION && this.phase === "question") {
+      return {
+        ...status,
+        data: { ...status.data, cooldown: this.opts.cooldown.remaining() },
+      }
+    }
+
+    return status
+  }
+  dispose(): void {
+    this.run += 1
+    this.phase = "finished"
+    this.acceptingAnswers = false
+    this.opts.cooldown.abort()
+  }
+  private valid(run: number): boolean {
+    return run === this.run && this.isStarted()
+  }
+  private players(): Player[] {
+    return [...this.opts.players.getAll()].sort((a, b) => b.points - a.points)
+  }
+  private rank(player: Player, players = this.players()): number {
+    return this.mode === "accuracy"
+      ? [...new Set(players.map((item) => item.points))].indexOf(
+          player.points,
+        ) + 1
+      : players.findIndex((item) => item.clientId === player.clientId) + 1
+  }
+  private sendResult(
+    player: Player,
+    result: { correct: boolean; points: number },
+  ): void {
+    const players = this.players()
+    const index = players.findIndex((item) => item.clientId === player.clientId)
+    const ahead =
+      index > 0 && players[index - 1].points > player.points
+        ? players[index - 1].username
+        : null
+    this.opts.send(player.id, STATUS.SHOW_RESULT, {
+      ...result,
+      message: result.correct ? "game:correct" : "game:wrong",
+      myPoints: player.points,
+      rank: this.rank(player, players),
+      aheadOfMe: ahead,
+    })
+  }
   async start(
     socket: Socket,
     mode: "classic" | "accuracy" = "classic",
-    options?: { shuffleQuestions?: boolean; doubleTime?: boolean; shuffleAnswers?: boolean; hideTextOnClient?: boolean },
+    options: GameOptions = {},
   ): Promise<void> {
-    if (this.opts.getManagerId() !== socket.id) {
+    if (socket.id !== this.opts.getManagerId() || this.phase !== "lobby") {
       return
     }
 
-    if (this.started) {
-      return
-    }
+    this.opts.players.removeDisconnected()
 
-    if (this.opts.players.count() === 0) {
+    if (!this.opts.players.count()) {
       socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:game.noPlayersConnected")
 
       return
     }
 
     this.mode = mode
-    if (options) {
-      this.options = {
-        shuffleQuestions: !!options.shuffleQuestions,
-        doubleTime: !!options.doubleTime,
-        shuffleAnswers: !!options.shuffleAnswers,
-        hideTextOnClient: !!options.hideTextOnClient,
-      }
-    }
+    this.options = options
 
-    if (this.options.shuffleAnswers) {
-      this.questions.forEach((q) => {
-        if (q.type === "slide" || q.type === "puzzle" || q.type === "true_or_false" || !q.answers || q.answers.length <= 1) {
-          return
+    if (options.shuffleAnswers) {
+      this.questions = this.questions.map((question) => {
+        if (
+          !question.answers ||
+          question.type === "slide" ||
+          question.type === "puzzle" ||
+          question.type === "true_or_false"
+        ) {
+          return question
         }
 
-        const originalSolutions = q.solutions ?? []
-        const indexedAnswers = q.answers.map((text, idx) => ({ text, idx }))
+        const order = shuffled(question.answers.map((_, index) => index))
 
-        for (let i = indexedAnswers.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1))
-          ;[indexedAnswers[i], indexedAnswers[j]] = [
-            indexedAnswers[j],
-            indexedAnswers[i],
-          ]
+        return {
+          ...question,
+          answers: order.map((index) => (question.answers ?? [])[index]),
+          solutions: (question.solutions ?? []).map((index) =>
+            order.indexOf(index),
+          ),
         }
-
-        q.answers = indexedAnswers.map((item) => item.text)
-
-        const newSolutions: number[] = []
-        originalSolutions.forEach((origIdx) => {
-          const newIdx = indexedAnswers.findIndex((item) => item.idx === origIdx)
-          if (newIdx !== -1) {
-            newSolutions.push(newIdx)
-          }
-        })
-        q.solutions = newSolutions
       })
     }
 
-    if (this.options.shuffleQuestions) {
-      for (let i = this.questions.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1))
-        ;[this.questions[i], this.questions[j]] = [
-          this.questions[j],
-          this.questions[i],
-        ]
-      }
+    if (options.shuffleQuestions) {
+      this.questions = shuffled(this.questions)
     }
 
-    this.started = true
-
+    this.phase = "starting"
+    this.run += 1
+    const { run } = this
     this.opts.broadcast(STATUS.SHOW_START, {
       time: 3,
       subject: this.opts.quizz.subject,
     })
+    await this.opts.cooldown.start(3, false)
 
-    await sleep(3)
+    if (!this.valid(run)) {
+      return
+    }
 
     this.opts.io.to(this.opts.gameId).emit(EVENTS.GAME.START_COOLDOWN)
     await this.opts.cooldown.start(3)
 
-    void this.newQuestion()
-  }
-
-  async newQuestion(): Promise<void> {
-    if (!this.started) {
+    if (!this.valid(run)) {
       return
     }
 
-    const currentPlayers = this.opts.players.getAll()
-    this.playersHistoryState[this.currentQuestion] = currentPlayers.map(
-      (p) => ({
-        clientId: p.clientId,
-        points: p.points,
-        streak: p.streak,
-      }),
+    await this.newQuestion()
+  }
+  private async newQuestion(): Promise<void> {
+    this.run += 1
+    const { run } = this
+    this.opts.cooldown.abort()
+    this.acceptingAnswers = false
+    this.submissions.clear()
+    const question = this.questions.at(this.currentQuestion)
+
+    if (!question) {
+      this.finish()
+
+      return
+    }
+
+    this.maxQuestionReached = Math.max(
+      this.maxQuestionReached,
+      this.currentQuestion,
     )
-
-    this.maxQuestionReached = Math.max(this.maxQuestionReached, this.currentQuestion)
-
-    const question = this.questions[this.currentQuestion]
-
     this.opts.onNewQuestion()
-
-    this.opts.io.to(this.opts.gameId).emit(EVENTS.GAME.UPDATE_QUESTION, {
-      current: this.currentQuestion + 1,
-      total: this.questions.length,
-    })
+    this.opts.io
+      .to(this.opts.gameId)
+      .emit(EVENTS.GAME.UPDATE_QUESTION, this.getReconnectInfo())
 
     if (question.type === "slide") {
+      this.phase = "slide"
       this.opts.broadcast(STATUS.SHOW_SLIDE, {
         question: question.question,
         text: question.text ?? "",
         media: question.media,
       })
 
-      return
-    }
-
-    if (this.answeredQuestionsState.has(this.currentQuestion)) {
-      const state = this.answeredQuestionsState.get(this.currentQuestion)!
-
-      if (question.type === "puzzle") {
-        this.opts.send(this.opts.getManagerId(), STATUS.SHOW_RESPONSES, {
-          ...question,
-          answers: question.answers ?? [],
-          solutions: [],
-          responses: state.responses,
-          type: "puzzle",
-        })
-      } else {
-        this.opts.send(this.opts.getManagerId(), STATUS.SHOW_RESPONSES, {
-          ...question,
-          answers: question.answers ?? [],
-          responses: state.responses,
-          solutions: question.solutions ?? [],
+      if (!this.history.has(this.currentQuestion)) {
+        this.history.set(this.currentQuestion, {
+          question: { ...question, playerAnswers: [] },
+          responses: {},
+          results: new Map(),
         })
       }
 
-      state.playerResults.forEach((res) => {
-        const player = this.opts.players.findByClientId(res.clientId)
-        if (player) {
-          const currentRank = this.leaderboard.findIndex((p) => p.clientId === res.clientId) + 1
-          const rank = currentRank > 0 ? currentRank : res.rank
-          const aheadPlayer = rank > 1 ? this.leaderboard[rank - 2] : null
-          const aheadOfMe = aheadPlayer ? aheadPlayer.username : null
+      return
+    }
 
-          this.opts.send(player.id, STATUS.SHOW_RESULT, {
-            correct: res.correct,
-            message: res.message,
-            points: res.points,
-            myPoints: player.points,
-            rank,
-            aheadOfMe,
-          })
-        }
-      })
+    const previous = this.history.get(this.currentQuestion)
+
+    if (previous) {
+      this.phase = "responses"
+      this.reveal(previous)
 
       return
     }
 
+    this.phase = "prepared"
     this.opts.broadcast(STATUS.SHOW_PREPARED, {
       totalAnswers: question.answers?.length ?? 0,
       questionNumber: this.currentQuestion + 1,
     })
+    await this.opts.cooldown.start(2, false)
 
-    await sleep(2)
-
-    if (!this.started) {
+    if (!this.valid(run)) {
       return
     }
 
-    const imageMedia =
-      question.media?.type === MEDIA_TYPES.IMAGE ? question.media : undefined
-
-    const questionTime = this.options.doubleTime ? question.time * 2 : question.time
-
+    this.phase = "question"
     this.opts.broadcast(STATUS.SHOW_QUESTION, {
       question: question.question,
-      media: imageMedia,
+      media:
+        question.media?.type === MEDIA_TYPES.IMAGE ? question.media : undefined,
       cooldown: question.cooldown,
       type: question.type ?? "quiz",
       hideTextOnClient: this.options.hideTextOnClient,
-      answersCount: question.type === "true_or_false" ? 2 : (question.answers?.length ?? 0),
-      doublePoints: !!question.doublePoints,
+      answersCount: question.answers?.length ?? 0,
+      doublePoints: Boolean(question.doublePoints),
     })
+    await this.opts.cooldown.start(question.cooldown, false)
 
-    await sleep(question.cooldown)
-
-    if (!this.started) {
+    if (!this.valid(run)) {
       return
     }
 
+    this.puzzleMap =
+      question.type === "puzzle"
+        ? shuffled((question.answers ?? []).map((_, index) => index))
+        : undefined
+    this.phase = "answer"
+    this.acceptingAnswers = true
     this.startTime = Date.now()
-
-    let answersToSend = question.answers ?? []
-    this.currentShuffleMap = null
-
-    if (question.type === "puzzle") {
-      const originalAnswers = question.answers ?? []
-      const indices = originalAnswers.map((_, idx) => idx)
-
-      for (let i = indices.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1))
-        ;[indices[i], indices[j]] = [indices[j], indices[i]]
-      }
-
-      this.currentShuffleMap = indices
-      answersToSend = indices.map((idx) => originalAnswers[idx])
-    }
-
+    const time = this.options.doubleTime ? question.time * 2 : question.time
     this.opts.broadcast(STATUS.SELECT_ANSWER, {
       question: question.question,
-      answers: answersToSend,
+      answers: this.puzzleMap
+        ? this.puzzleMap.map((index) => (question.answers ?? [])[index])
+        : (question.answers ?? []),
       media: question.media,
-      time: questionTime,
-      totalPlayer: this.opts.players.count(),
+      time,
+      totalPlayer: this.opts.players.connectedCount(),
       type: question.type ?? "quiz",
       multiSelect:
-        question.type === "quiz" && (question.solutions?.length ?? 0) > 1,
+        (question.type ?? "quiz") === "quiz" &&
+        (question.solutions?.length ?? 0) > 1,
       hideTextOnClient: this.options.hideTextOnClient,
     })
+    await this.opts.cooldown.start(time)
 
-    await this.opts.cooldown.start(questionTime)
-
-    if (!this.started) {
+    if (!this.valid(run)) {
       return
     }
 
-    this.showResults(question)
+    this.acceptingAnswers = false
+    this.phase = "responses"
+    this.score(question)
   }
+  private score(question: Question): void {
+    this.oldLeaderboard = this.players().map((player) => ({ ...player }))
+    const responses: Record<number, number> = {}
+    const results = new Map<string, { correct: boolean; points: number }>()
+    const playerAnswers = this.opts.players.getAll().map((player) => {
+      const submission = this.submissions.get(player.clientId)
+      const score = submission
+        ? scoreAnswer(
+            question,
+            submission.answerIds,
+            submission.basePoints,
+            this.puzzleMap,
+          )
+        : { correct: false, points: 0, canonical: [] }
 
-  private showResults(question: Question): void {
-    const currentPlayers = this.opts.players.getAll()
-
-    const oldLeaderboard = (() => {
-      if (this.leaderboard.length === 0) {
-        return currentPlayers.map((p) => ({ ...p }))
-      }
-
-      return this.leaderboard.map((p) => ({ ...p }))
-    })()
-
-    const totalType: Record<number, number> = {}
-
-    if (question.type === "puzzle") {
-      let correctCount = 0
-      this.playersAnswers.forEach((a) => {
-        const hasCorrectAnswers =
-          a.answerIds.length === (question.answers?.length ?? 0)
-        const isOrderCorrect =
-          hasCorrectAnswers &&
-          a.answerIds
-            .map((idx) => this.currentShuffleMap![idx])
-            .every((val, index) => val === index)
-        if (isOrderCorrect) {
-          correctCount++
-        }
-      })
-      const incorrectCount = currentPlayers.length - correctCount
-      totalType[0] = correctCount
-      totalType[1] = incorrectCount
-    } else {
-      this.playersAnswers.forEach(({ answerIds }) => {
-        answerIds.forEach((id) => {
-          totalType[id] = (totalType[id] || 0) + 1
+      if (question.type === "puzzle") {
+        responses[score.correct ? 0 : 1] =
+          (Object.hasOwn(responses, score.correct ? 0 : 1)
+            ? responses[score.correct ? 0 : 1]
+            : 0) + 1
+      } else {
+        submission?.answerIds.forEach((index) => {
+          responses[index] = (responses[index] ?? 0) + 1
         })
-      })
-    }
-
-    const sortedPlayers = currentPlayers
-      .map((player) => {
-        const playerAnswer = this.playersAnswers.find(
-          (a) => a.playerId === player.id,
-        )
-
-        let isCorrect = false
-        let points = 0
-
-        if (playerAnswer) {
-          const pointsMultiplier = question.doublePoints ? 2 : 1
-          if (question.type === "puzzle") {
-            const hasCorrectAnswers =
-              playerAnswer.answerIds.length === (question.answers?.length ?? 0)
-            const isOrderCorrect =
-              hasCorrectAnswers &&
-              playerAnswer.answerIds
-                .map((idx) => this.currentShuffleMap![idx])
-                .every((val, index) => val === index)
-            isCorrect = isOrderCorrect
-            points = isCorrect ? Math.round(playerAnswer.points * pointsMultiplier) : 0
-          } else {
-            const submitted = playerAnswer.answerIds
-            const solutions = question.solutions ?? []
-            const hasWrong = submitted.some((ans) => !solutions.includes(ans))
-
-            if (submitted.length > 0 && !hasWrong) {
-              const correctCount = submitted.filter((ans) =>
-                solutions.includes(ans),
-              ).length
-              const totalSolutions = solutions.length
-              isCorrect = true
-              points = Math.round(
-                playerAnswer.points * (correctCount / totalSolutions) * pointsMultiplier,
-              )
-            } else {
-              isCorrect = false
-              points = 0
-            }
-          }
-        }
-
-        player.points += points
-        player.streak = isCorrect ? player.streak + 1 : 0
-
-        return { ...player, lastCorrect: isCorrect, lastPoints: points }
-      })
-      .sort((a, b) => b.points - a.points)
-
-    this.opts.players.replace(sortedPlayers)
-
-    const uniqueScores = this.mode === "accuracy"
-      ? Array.from(new Set(sortedPlayers.map((p) => p.points))).sort((a, b) => b - a)
-      : []
-
-    const getPlayerRank = (points: number, idx: number): number => {
-      if (this.mode === "accuracy") {
-        const scoreIndex = uniqueScores.indexOf(points)
-        return scoreIndex !== -1 ? scoreIndex + 1 : idx + 1
       }
-      return idx + 1
+
+      player.points += score.points
+      player.streak = score.correct ? player.streak + 1 : 0
+      results.set(player.clientId, {
+        correct: score.correct,
+        points: score.points,
+      })
+
+      return {
+        playerName: player.username,
+        userId: player.userId,
+        answerIds: submission ? score.canonical : null,
+        correct: score.correct,
+        points: score.points,
+      }
+    })
+    this.opts.players.replace(this.players())
+    const cached = {
+      question: { ...question, playerAnswers },
+      responses,
+      results,
     }
-
-    sortedPlayers.forEach((player, index) => {
-      const rank = getPlayerRank(player.points, index)
-      const aheadPlayer = (index > 0 && sortedPlayers[index - 1].points > player.points) ? sortedPlayers[index - 1] : null
-
-      this.opts.send(player.id, STATUS.SHOW_RESULT, {
-        correct: player.lastCorrect,
-        message: player.lastCorrect ? "game:correct" : "game:wrong",
-        points: player.lastPoints,
-        myPoints: player.points,
-        rank,
-        aheadOfMe: aheadPlayer ? aheadPlayer.username : null,
-      })
-    })
-
-    if (question.type === "puzzle") {
-      this.opts.send(this.opts.getManagerId(), STATUS.SHOW_RESPONSES, {
-        ...question,
-        answers: question.answers ?? [],
-        solutions: [],
-        responses: totalType,
-        type: "puzzle",
-      })
-    } else {
-      this.opts.send(this.opts.getManagerId(), STATUS.SHOW_RESPONSES, {
-        ...question,
-        answers: question.answers ?? [],
-        responses: totalType,
-        solutions: question.solutions ?? [],
-      })
-    }
-
-    this.questionsHistory.push({
-      ...question,
-      playerAnswers: currentPlayers.map((player) => {
-        const pa = this.playersAnswers.find((a) => a.playerId === player.id)
-        let answerIds: number[] | null = null
-        if (pa) {
-          if (question.type === "puzzle" && this.currentShuffleMap) {
-            answerIds = pa.answerIds.map((idx) => this.currentShuffleMap![idx])
-          } else {
-            answerIds = pa.answerIds
-          }
-        }
-        return {
-          playerName: player.username,
-          answerIds,
-        }
-      }),
-    })
-
-    const playerResults: {
-      clientId: string
-      correct: boolean
-      message: string
-      points: number
-      myPoints: number
-      rank: number
-      aheadOfMe: string | null
-    }[] = []
-
-    sortedPlayers.forEach((player, index) => {
-      const rank = getPlayerRank(player.points, index)
-      const aheadPlayer = (index > 0 && sortedPlayers[index - 1].points > player.points) ? sortedPlayers[index - 1] : null
-      playerResults.push({
-        clientId: player.clientId,
-        correct: player.lastCorrect,
-        message: player.lastCorrect ? "game:correct" : "game:wrong",
-        points: player.lastPoints,
-        myPoints: player.points,
-        rank,
-        aheadOfMe: aheadPlayer ? aheadPlayer.username : null,
-      })
-    })
-
-    this.answeredQuestionsState.set(this.currentQuestion, {
-      responses: totalType,
-      playerResults,
-    })
-
-    this.leaderboard = sortedPlayers
-    this.tempOldLeaderboard = oldLeaderboard
-    this.playersAnswers = []
+    this.history.set(this.currentQuestion, cached)
+    this.reveal(cached)
+    this.submissions.clear()
   }
-
+  private reveal(cached: CachedRound): void {
+    const { question } = cached
+    this.opts.send(this.opts.getManagerId(), STATUS.SHOW_RESPONSES, {
+      ...question,
+      answers: question.answers ?? [],
+      solutions: question.type === "puzzle" ? [] : (question.solutions ?? []),
+      responses: cached.responses,
+    })
+    for (const player of this.opts.players.getAll()) {
+      this.sendResult(
+        player,
+        cached.results.get(player.clientId) ?? { correct: false, points: 0 },
+      )
+    }
+  }
   selectAnswer(socket: Socket, answerIds: number[]): void {
     const player = this.opts.players.findById(socket.id)
-    const question = this.opts.quizz.questions[this.currentQuestion]
+    const question = this.questions.at(this.currentQuestion)
 
-    if (!player) {
+    if (
+      !player ||
+      !player.connected ||
+      !this.acceptingAnswers ||
+      this.phase !== "answer" ||
+      !question ||
+      this.submissions.has(player.clientId)
+    ) {
       return
     }
 
-    if (this.playersAnswers.find((a) => a.playerId === socket.id)) {
+    const count = question.answers?.length ?? 0
+
+    if (
+      !answerIds.length ||
+      answerIds.length > count ||
+      new Set(answerIds).size !== answerIds.length ||
+      answerIds.some(
+        (index) => !Number.isInteger(index) || index < 0 || index >= count,
+      )
+    ) {
       return
     }
 
-    const questionTime = this.options.doubleTime ? question.time * 2 : question.time
-    const pts = this.mode === "accuracy" ? 1000 : timeToPoint(this.startTime, questionTime)
+    if (question.type === "puzzle" && answerIds.length !== count) {
+      return
+    }
 
-    this.playersAnswers.push({
-      playerId: player.id,
-      answerIds,
-      points: pts,
+    const time = this.options.doubleTime ? question.time * 2 : question.time
+    const elapsed = (Date.now() - this.startTime) / (1000 * gameSpeed)
+
+    if (elapsed > time) {
+      return
+    }
+
+    this.submissions.set(player.clientId, {
+      answerIds: [...answerIds],
+      basePoints:
+        this.mode === "accuracy"
+          ? 1000
+          : Math.max(0, 1000 * (1 - elapsed / time)),
     })
+    this.opts.send(socket.id, STATUS.WAIT, { text: "game:waitingForAnswers" })
+    this.opts.io
+      .to(this.opts.getManagerId())
+      .emit(EVENTS.GAME.PLAYER_ANSWER, this.submissions.size)
+    this.endIfEveryoneAnswered()
+  }
+  endIfEveryoneAnswered(): void {
+    const connected = this.opts.players
+      .getAll()
+      .filter((player) => player.connected)
 
-    this.opts.send(socket.id, STATUS.WAIT, {
-      text: "game:waitingForAnswers",
-    })
-
-    socket
-      .to(this.opts.gameId)
-      .emit(EVENTS.GAME.PLAYER_ANSWER, this.playersAnswers.length)
-    this.opts.players.broadcastCount()
-
-    if (this.playersAnswers.length === this.opts.players.count()) {
+    if (
+      this.acceptingAnswers &&
+      connected.length > 0 &&
+      connected.every((player) => this.submissions.has(player.clientId))
+    ) {
+      this.acceptingAnswers = false
       this.opts.cooldown.abort()
     }
   }
-
   nextQuestion(socket: Socket): void {
-    if (!this.started) {
+    if (
+      socket.id !== this.opts.getManagerId() ||
+      !["leaderboard", "slide"].includes(this.phase)
+    ) {
       return
     }
 
-    if (socket.id !== this.opts.getManagerId()) {
-      return
-    }
+    if (this.currentQuestion + 1 >= this.questions.length) {
+      this.finish()
 
-    if (!this.questions[this.currentQuestion + 1]) {
-      this.showLeaderboard()
       return
     }
 
     this.currentQuestion += 1
     void this.newQuestion()
   }
-
   abortQuestion(socket: Socket): void {
-    if (!this.started) {
+    if (socket.id !== this.opts.getManagerId() || this.phase !== "answer") {
       return
     }
 
-    if (socket.id !== this.opts.getManagerId()) {
-      return
-    }
-
+    this.acceptingAnswers = false
     this.opts.cooldown.abort()
   }
-
   goToQuestion(socket: Socket, index: number): void {
-    if (!this.started) {
+    if (
+      socket.id !== this.opts.getManagerId() ||
+      !this.isStarted() ||
+      !Number.isInteger(index) ||
+      index < 0 ||
+      index > this.maxQuestionReached
+    ) {
       return
     }
 
-    if (socket.id !== this.opts.getManagerId()) {
-      return
-    }
-
-    if (index < 0 || index >= this.questions.length) {
-      return
-    }
-
-    this.opts.cooldown.abort()
-
-    this.tempOldLeaderboard = null
-    this.playersAnswers = []
     this.currentQuestion = index
     void this.newQuestion()
   }
-
   endGame(socket: Socket): void {
-    if (!this.started) {
+    if (socket.id === this.opts.getManagerId() && this.isStarted()) {
+      this.finish()
+    }
+  }
+  showLeaderboard(): void {
+    if (this.phase !== "responses") {
       return
     }
 
-    if (socket.id !== this.opts.getManagerId()) {
+    if (this.currentQuestion + 1 === this.questions.length) {
+      this.finish()
+
       return
     }
 
+    this.phase = "leaderboard"
+    this.opts.send(this.opts.getManagerId(), STATUS.SHOW_LEADERBOARD, {
+      oldLeaderboard: this.oldLeaderboard.slice(0, 5),
+      leaderboard: this.players().slice(0, 5),
+      previousQuestions: this.questions
+        .slice(0, this.maxQuestionReached + 1)
+        .map((question, index) => ({ index, question: question.question })),
+    })
+  }
+  private finish(): void {
+    if (this.phase === "finished") {
+      return
+    }
+
+    this.phase = "finished"
+    this.acceptingAnswers = false
+    this.run += 1
     this.opts.cooldown.abort()
-    this.started = false
-
-    const uniqueScores = this.mode === "accuracy"
-      ? Array.from(new Set(this.leaderboard.map((p) => p.points))).sort((a, b) => b - a)
-      : []
-
-    const getPlayerRank = (points: number, idx: number): number => {
-      if (this.mode === "accuracy") {
-        const scoreIndex = uniqueScores.indexOf(points)
-        return scoreIndex !== -1 ? scoreIndex + 1 : idx + 1
-      }
-      return idx + 1
-    }
-
-    let top: any[] = []
-    if (this.mode === "accuracy") {
-      const goldPlayers = this.leaderboard.filter((p) => p.points === uniqueScores[0])
-      const silverPlayers = uniqueScores.length > 1 ? this.leaderboard.filter((p) => p.points === uniqueScores[1]) : []
-      const bronzePlayers = uniqueScores.length > 2 ? this.leaderboard.filter((p) => p.points === uniqueScores[2]) : []
-
-      if (goldPlayers.length > 0) {
-        top.push({
-          id: "gold",
-          clientId: "gold",
-          connected: true,
-          username: goldPlayers.map((p) => p.username).join(", "),
-          points: uniqueScores[0],
-          streak: 0,
-        })
-      }
-      if (silverPlayers.length > 0) {
-        top.push({
-          id: "silver",
-          clientId: "silver",
-          connected: true,
-          username: silverPlayers.map((p) => p.username).join(", "),
-          points: uniqueScores[1],
-          streak: 0,
-        })
-      }
-      if (bronzePlayers.length > 0) {
-        top.push({
-          id: "bronze",
-          clientId: "bronze",
-          connected: true,
-          username: bronzePlayers.map((p) => p.username).join(", "),
-          points: uniqueScores[2],
-          streak: 0,
-        })
-      }
-    } else {
-      top = this.leaderboard.slice(0, 3)
-    }
-
-    const result = {
-      id: `${Date.now()}-${nanoid(8)}`,
+    const players = this.players()
+    const top: PodiumPlayer[] =
+      this.mode === "accuracy"
+        ? [...new Set(players.map((player) => player.points))]
+            .slice(0, 3)
+            .map((points) => ({
+              points,
+              username: players
+                .filter((player) => player.points === points)
+                .map((player) => player.username)
+                .join(", "),
+            }))
+        : players
+            .slice(0, 3)
+            .map(({ username, points }) => ({ username, points }))
+    const result: GameResult = {
+      id: randomUUID(),
       subject: this.opts.quizz.subject,
       date: new Date().toISOString(),
-      players: this.leaderboard.map((player, index) => ({
-        username: player.username,
-        points: player.points,
-        rank: getPlayerRank(player.points, index),
-      })),
-      questions: this.questionsHistory,
       mode: this.mode,
+      players: players.map((player) => ({
+        username: player.username,
+        userId: player.userId,
+        points: player.points,
+        rank: this.rank(player, players),
+      })),
+      questions: [...this.history.entries()]
+        .sort(([a], [b]) => a - b)
+        .map(([, entry]) => entry.question),
     }
-
     this.opts.onGameFinished(result)
-
     this.opts.send(this.opts.getManagerId(), STATUS.FINISHED, {
       subject: this.opts.quizz.subject,
       top,
       result,
     })
-
-    this.leaderboard.forEach((player, index) => {
+    for (const player of players) {
       this.opts.send(player.id, STATUS.FINISHED, {
         subject: this.opts.quizz.subject,
         top,
-        rank: getPlayerRank(player.points, index),
+        rank: this.rank(player, players),
       })
-    })
-  }
-
-  showLeaderboard(): void {
-    const isLastRound =
-      this.currentQuestion + 1 === this.questions.length
-
-    if (isLastRound) {
-      this.started = false
-
-      const uniqueScores = this.mode === "accuracy"
-        ? Array.from(new Set(this.leaderboard.map((p) => p.points))).sort((a, b) => b - a)
-        : []
-
-      const getPlayerRank = (points: number, idx: number): number => {
-        if (this.mode === "accuracy") {
-          const scoreIndex = uniqueScores.indexOf(points)
-          return scoreIndex !== -1 ? scoreIndex + 1 : idx + 1
-        }
-        return idx + 1
-      }
-
-      let top: any[] = []
-      if (this.mode === "accuracy") {
-        const goldPlayers = this.leaderboard.filter((p) => p.points === uniqueScores[0])
-        const silverPlayers = uniqueScores.length > 1 ? this.leaderboard.filter((p) => p.points === uniqueScores[1]) : []
-        const bronzePlayers = uniqueScores.length > 2 ? this.leaderboard.filter((p) => p.points === uniqueScores[2]) : []
-
-        if (goldPlayers.length > 0) {
-          top.push({
-            id: "gold",
-            clientId: "gold",
-            connected: true,
-            username: goldPlayers.map((p) => p.username).join(", "),
-            points: uniqueScores[0],
-            streak: 0,
-          })
-        }
-        if (silverPlayers.length > 0) {
-          top.push({
-            id: "silver",
-            clientId: "silver",
-            connected: true,
-            username: silverPlayers.map((p) => p.username).join(", "),
-            points: uniqueScores[1],
-            streak: 0,
-          })
-        }
-        if (bronzePlayers.length > 0) {
-          top.push({
-            id: "bronze",
-            clientId: "bronze",
-            connected: true,
-            username: bronzePlayers.map((p) => p.username).join(", "),
-            points: uniqueScores[2],
-            streak: 0,
-          })
-        }
-      } else {
-        top = this.leaderboard.slice(0, 3)
-      }
-
-      const result = {
-        id: `${Date.now()}-${nanoid(8)}`,
-        subject: this.opts.quizz.subject,
-        date: new Date().toISOString(),
-        players: this.leaderboard.map((player, index) => ({
-          username: player.username,
-          points: player.points,
-          rank: getPlayerRank(player.points, index),
-        })),
-        questions: this.questionsHistory,
-        mode: this.mode,
-      }
-
-      this.opts.onGameFinished(result)
-
-      this.opts.send(this.opts.getManagerId(), STATUS.FINISHED, {
-        subject: this.opts.quizz.subject,
-        top,
-        result,
-      })
-
-      this.leaderboard.forEach((player, index) => {
-        this.opts.send(player.id, STATUS.FINISHED, {
-          subject: this.opts.quizz.subject,
-          top,
-          rank: getPlayerRank(player.points, index),
-        })
-      })
-
-      return
     }
-
-    const oldLeaderboard = this.tempOldLeaderboard ?? this.leaderboard
-
-    this.opts.send(this.opts.getManagerId(), STATUS.SHOW_LEADERBOARD, {
-      oldLeaderboard: oldLeaderboard.slice(0, 5),
-      leaderboard: this.leaderboard.slice(0, 5),
-      previousQuestions: this.questions
-        .slice(0, this.maxQuestionReached + 1)
-        .map((q, idx) => ({ index: idx, question: q.question })),
-    })
-
-    this.tempOldLeaderboard = null
   }
 }

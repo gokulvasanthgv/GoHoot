@@ -31,6 +31,7 @@ const MediaPreview = ({ media }: { media?: QuestionMedia }) => {
 
   if (media?.type === MEDIA_TYPES.VIDEO) {
     const youtubeId = getYoutubeId(media.url)
+
     if (youtubeId) {
       return (
         <img
@@ -70,12 +71,12 @@ const ResultModalAnswers = () => {
   const noAnswerCount = totalPlayers - answeredCount
 
   const rows: AnswerRow[] = [
-    ...(questionResult.answers || []).map((label, ai) => ({
+    ...(questionResult.answers ?? []).map((label, ai) => ({
       label,
       count: questionResult.playerAnswers.filter((pa) =>
         pa.answerIds?.includes(ai),
       ).length,
-      isCorrect: (questionResult.solutions || []).includes(ai),
+      isCorrect: (questionResult.solutions ?? []).includes(ai),
       color: ANSWERS_COLORS[ai % ANSWERS_COLORS.length],
       answerLabel: ANSWERS_LABELS[ai % ANSWERS_LABELS.length],
     })),

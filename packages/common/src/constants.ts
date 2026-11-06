@@ -1,5 +1,6 @@
 export const EVENTS = {
   GAME: {
+    SETTINGS: "game:settings",
     STATUS: "game:status",
     SUCCESS_ROOM: "game:successRoom",
     SUCCESS_JOIN: "game:successJoin",
@@ -22,6 +23,7 @@ export const EVENTS = {
     SELECTED_ANSWER: "player:selectedAnswer",
   },
   MANAGER: {
+    SESSION: "manager:session",
     SUCCESS_RECONNECT: "manager:successReconnect",
     CONFIG: "manager:config",
     GAME_CREATED: "manager:gameCreated",
@@ -82,6 +84,16 @@ export const EVENTS = {
     PLAYER_DASHBOARD_DATA: "player:dashboardData",
   },
 } as const
+
+export const SESSION_ROLES = { PLAYER: "player", MANAGER: "manager" } as const
+
+export const USER_ROLES = ["admin", "quizmaster", "analyst", "quizzer"] as const
+
+export const MAX_ANSWERS = 7
+
+export const MAX_MEDIA_SIZE = 100 * 1024 * 1024
+
+export const MIN_PASSWORD_LENGTH = 8
 
 export const MEDIA_TYPES = {
   IMAGE: "image",

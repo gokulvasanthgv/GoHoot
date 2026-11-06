@@ -1,4 +1,3 @@
-import * as XLSX from "xlsx"
 import type { GameResult, QuestionResult } from "@razzia/common/types/game"
 
 const ANSWERS_LABELS = ["A", "B", "C", "D", "E", "F", "G"]
@@ -31,13 +30,16 @@ const getAnswerLabel = (val: number, type?: string) => {
   return ANSWERS_LABELS[val % ANSWERS_LABELS.length]
 }
 
-export const exportResultsToXlsx = (result: GameResult) => {
+export const createResultsWorkbook = async (result: GameResult) => {
+  const { default: ExcelJS } = await import("exceljs")
   const dateStr = new Date(result.date).toLocaleString()
 
   const rows: Array<Array<string | number>> = [
     [`Subject: ${result.subject}`],
     [`Date: ${dateStr}`],
-    [`Game Mode: ${result.mode === "accuracy" ? "Accuracy Mode" : "Classic Mode"}`],
+    [
+      `Game Mode: ${result.mode === "accuracy" ? "Accuracy Mode" : "Classic Mode"}`,
+    ],
     [],
     [
       "Rank",
@@ -72,7 +74,7 @@ export const exportResultsToXlsx = (result: GameResult) => {
         return
       }
 
-      const correct = isAnswerCorrect(pa.answerIds, q)
+      const correct = pa.correct ?? isAnswerCorrect(pa.answerIds, q)
 
       if (correct) {
         correctCount += 1
@@ -94,14 +96,35 @@ export const exportResultsToXlsx = (result: GameResult) => {
     ])
   })
 
-  const ws = XLSX.utils.aoa_to_sheet(rows)
+  const workbook = new ExcelJS.Workbook()
+  const sheet = workbook.addWorksheet("Quiz Results")
+  sheet.addRows(rows)
+  sheet.getRow(5).font = { bold: true }
+  sheet.views = [{ state: "frozen", ySplit: 5 }]
+  sheet.columns.forEach((column, index) => {
+    column.width = index < 4 ? [8, 24, 16, 20][index] : 42
+  })
+  sheet.eachRow((row) => {
+    row.alignment = { vertical: "top", wrapText: true }
+  })
 
-  const wb = XLSX.utils.book_new()
+  return workbook
+}
 
-  XLSX.utils.book_append_sheet(wb, ws, "Quiz Results")
-
-  XLSX.writeFile(
-    wb,
-    `${result.subject.replace(/[/\\?%*:|"<>\s]+/g, "_")}_results.xlsx`,
+export const exportResultsToXlsx = async (result: GameResult) => {
+  const workbook = await createResultsWorkbook(result)
+  const data = await workbook.xlsx.writeBuffer()
+  const bytes = new Uint8Array(data)
+  const url = URL.createObjectURL(
+    new Blob([bytes], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }),
   )
+  const anchor = document.createElement("a")
+  anchor.href = url
+  anchor.download = `${result.subject.replace(/[/\\?%*:|"<>\s]+/g, "_").slice(0, 120)}_results.xlsx`
+  document.body.append(anchor)
+  anchor.click()
+  anchor.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }

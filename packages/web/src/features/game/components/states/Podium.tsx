@@ -119,25 +119,25 @@ const Podium = ({ data: { subject, top, result } }: Props) => {
           <div className="spotlight"></div>
         </div>
       )}
-      <section className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-between min-h-0 select-none pb-4">
-        <h2 className="anim-show text-center text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white drop-shadow-lg leading-tight shrink-0">
+      <section className="relative mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col items-center justify-between pb-4 select-none">
+        <h2 className="anim-show shrink-0 text-center text-3xl leading-tight font-extrabold text-white drop-shadow-lg sm:text-4xl md:text-5xl lg:text-6xl">
           {subject}
         </h2>
 
         {result && (
           <button
             onClick={() => exportResultsToXlsx(result)}
-            className="z-40 mt-3 flex cursor-pointer items-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white shadow-lg transition-all hover:scale-105 hover:bg-green-700 active:scale-95 shrink-0"
+            className="z-40 mt-3 flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white shadow-lg transition-all hover:scale-105 hover:bg-green-700 active:scale-95"
           >
             <Download className="size-4" />
             {t("manager:result.export")}
           </button>
         )}
 
-        <div className="flex-1 w-full flex items-end justify-center min-h-0 mt-4 overflow-visible shrink">
+        <div className="mt-4 flex min-h-0 w-full flex-1 shrink items-end justify-center overflow-visible">
           <div
             style={{ gridTemplateColumns: `repeat(${top.length}, 1fr)` }}
-            className="grid w-full max-w-4xl h-[45vh] sm:h-[50vh] md:h-[55vh] items-end justify-center overflow-visible"
+            className="grid h-[45vh] w-full max-w-4xl items-end justify-center overflow-visible sm:h-[50vh] md:h-[55vh]"
           >
             {top[1] && (
               <div
@@ -148,7 +148,7 @@ const Podium = ({ data: { subject, top, result } }: Props) => {
               >
                 <p
                   className={clsx(
-                    "overflow-visible text-center text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold whitespace-nowrap text-white drop-shadow-lg",
+                    "overflow-visible text-center text-xl font-extrabold whitespace-nowrap text-white drop-shadow-lg sm:text-2xl md:text-3xl lg:text-4xl",
                     {
                       "anim-balanced": apparition >= 4,
                     },
@@ -156,9 +156,9 @@ const Podium = ({ data: { subject, top, result } }: Props) => {
                 >
                   {top[1].username}
                 </p>
-                <div className="bg-primary flex h-full w-full flex-col items-center gap-2 rounded-t-2xl pt-4 sm:pt-6 text-center shadow-2xl">
+                <div className="bg-primary flex h-full w-full flex-col items-center gap-2 rounded-t-2xl pt-4 text-center shadow-2xl sm:pt-6">
                   <Medal rank={2} />
-                  <p className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white drop-shadow-sm">
+                  <p className="text-2xl font-extrabold text-white drop-shadow-sm sm:text-3xl md:text-4xl">
                     {top[1].points}
                   </p>
                 </div>
@@ -178,15 +178,15 @@ const Podium = ({ data: { subject, top, result } }: Props) => {
             >
               <p
                 className={clsx(
-                  "overflow-visible text-center text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold whitespace-nowrap text-white opacity-0 drop-shadow-lg",
+                  "overflow-visible text-center text-xl font-extrabold whitespace-nowrap text-white opacity-0 drop-shadow-lg sm:text-2xl md:text-3xl lg:text-4xl",
                   { "anim-balanced opacity-100": apparition >= 4 },
                 )}
               >
                 {top[0].username}
               </p>
-              <div className="bg-primary flex h-full w-full flex-col items-center gap-2 rounded-t-2xl pt-4 sm:pt-6 text-center shadow-2xl">
+              <div className="bg-primary flex h-full w-full flex-col items-center gap-2 rounded-t-2xl pt-4 text-center shadow-2xl sm:pt-6">
                 <Medal rank={1} />
-                <p className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white drop-shadow-sm">
+                <p className="text-3xl font-extrabold text-white drop-shadow-sm sm:text-4xl md:text-5xl">
                   {top[0].points}
                 </p>
               </div>
@@ -203,7 +203,7 @@ const Podium = ({ data: { subject, top, result } }: Props) => {
               >
                 <p
                   className={clsx(
-                    "overflow-visible text-center text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold whitespace-nowrap text-white drop-shadow-lg",
+                    "overflow-visible text-center text-xl font-extrabold whitespace-nowrap text-white drop-shadow-lg sm:text-2xl md:text-3xl lg:text-4xl",
                     {
                       "anim-balanced": apparition >= 4,
                     },
@@ -211,10 +211,10 @@ const Podium = ({ data: { subject, top, result } }: Props) => {
                 >
                   {top[2].username}
                 </p>
-                <div className="bg-primary flex h-full w-full flex-col items-center gap-2 rounded-t-2xl pt-4 sm:pt-6 text-center shadow-2xl">
+                <div className="bg-primary flex h-full w-full flex-col items-center gap-2 rounded-t-2xl pt-4 text-center shadow-2xl sm:pt-6">
                   <Medal rank={3} />
 
-                  <p className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white drop-shadow-sm">
+                  <p className="text-2xl font-extrabold text-white drop-shadow-sm sm:text-3xl md:text-4xl">
                     {top[2].points}
                   </p>
                 </div>

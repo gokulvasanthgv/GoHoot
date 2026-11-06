@@ -14,9 +14,8 @@ import Registry from "@razzia/socket/services/registry"
 import { createInviteCode } from "@razzia/socket/utils/game"
 import { v7 as uuid } from "uuid"
 
-const registry = Registry.getInstance()
-
 class Game {
+  readonly creatorId: string
   readonly gameId: string
   readonly inviteCode: string
   wallpaper?: string
@@ -31,6 +30,7 @@ class Game {
   private readonly playerManager: PlayerManager
   private readonly round: RoundManager
   private readonly cooldown: CooldownTimer
+  private managerGraceTimer: ReturnType<typeof setTimeout> | null = null
 
   private lastBroadcastStatus: {
     name: Status
@@ -45,16 +45,30 @@ class Game {
     { name: Status; data: StatusDataMap[Status] }
   >()
 
-  constructor(io: Server, socket: Socket, quizz: Quizz & { id: string }, creatorId: string) {
-    const clientId = socket.handshake.auth.clientId as string
+  constructor(
+    io: Server,
+    identity: Socket | string,
+    quizz: Quizz & { id: string },
+    creatorId: string,
+  ) {
+    const socket = typeof identity === "string" ? null : identity
+    const clientId =
+      typeof identity === "string" ? identity : identity.data.clientId
 
     this.io = io
+    this.creatorId = creatorId
     this.gameId = uuid()
-    this.inviteCode = createInviteCode()
+    let inviteCode = createInviteCode()
+
+    while (Registry.getInstance().getGameByInviteCode(inviteCode)) {
+      inviteCode = createInviteCode()
+    }
+
+    this.inviteCode = inviteCode
     this._manager = {
-      id: socket.id,
+      id: socket?.id ?? "",
       clientId,
-      connected: true,
+      connected: socket !== null,
     }
 
     const gameConfig = getGameConfig()
@@ -86,15 +100,21 @@ class Game {
         result.quizzId = quizz.id
         result.creatorId = creatorId
         result.players.forEach((p) => {
-          const gamePlayer = this.playerManager.getAll().find((gp) => gp.username === p.username)
-          if (gamePlayer && gamePlayer.userId) {
+          const gamePlayer = this.playerManager
+            .getAll()
+            .find((gp) => gp.username === p.username)
+
+          if (gamePlayer?.userId) {
             p.userId = gamePlayer.userId
           }
         })
         result.questions.forEach((q) => {
           q.playerAnswers.forEach((pa) => {
-            const gamePlayer = this.playerManager.getAll().find((gp) => gp.username === pa.playerName)
-            if (gamePlayer && gamePlayer.userId) {
+            const gamePlayer = this.playerManager
+              .getAll()
+              .find((gp) => gp.username === pa.playerName)
+
+            if (gamePlayer?.userId) {
               pa.userId = gamePlayer.userId
             }
           })
@@ -103,8 +123,12 @@ class Game {
       },
     })
 
-    socket.join(this.gameId)
-    socket.emit(EVENTS.MANAGER.GAME_CREATED, {
+    this.managerStatus = {
+      name: STATUS.SHOW_ROOM,
+      data: { text: "game:waitingForPlayers", inviteCode: this.inviteCode },
+    }
+    socket?.join(this.gameId)
+    socket?.emit(EVENTS.MANAGER.GAME_CREATED, {
       gameId: this.gameId,
       inviteCode: this.inviteCode,
     })
@@ -161,22 +185,47 @@ class Game {
   // Player actions
 
   join(socket: Socket, username: string) {
+    if (socket.data.clientId === this._manager.clientId) {
+      socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:game.managerCannotJoin")
+
+      return
+    }
+
+    const existing = this.playerManager.findByClientId(socket.data.clientId)
+
+    if (existing) {
+      this.reconnectPlayer(socket)
+      socket.emit(EVENTS.GAME.SUCCESS_JOIN, this.gameId)
+
+      return
+    }
+
+    if (this.started || this.round.hasFinished()) {
+      socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:game.alreadyStarted")
+
+      return
+    }
+
     this.playerManager.join(socket, username)
   }
 
   kickPlayer(socket: Socket, playerId: string) {
     if (this.playerManager.kick(socket, playerId)) {
       this.playerStatus.delete(playerId)
+      this.round.endIfEveryoneAnswered()
     }
   }
 
   updateSettings(wallpaper?: string, audio?: string) {
-    if (wallpaper !== undefined) this.wallpaper = wallpaper
-    if (audio !== undefined) this.audio = audio
+    if (wallpaper !== undefined) {
+      this.wallpaper = wallpaper
+    }
 
-    this.io.to(this.gameId).emit(EVENTS.GAME.STATUS, {
-      name: this.lastBroadcastStatus?.name ?? STATUS.WAIT,
-      data: this.lastBroadcastStatus?.data ?? { text: "game:waitingForPlayers" },
+    if (audio !== undefined) {
+      this.audio = audio
+    }
+
+    this.io.to(this.gameId).emit(EVENTS.GAME.SETTINGS, {
       wallpaper: this.wallpaper,
       audio: this.audio,
     })
@@ -185,7 +234,7 @@ class Game {
   // Reconnect
 
   reconnect(socket: Socket) {
-    const { clientId } = socket.handshake.auth
+    const { clientId } = socket.data
 
     if (this._manager.clientId === clientId) {
       this.reconnectManager(socket)
@@ -197,17 +246,22 @@ class Game {
   }
 
   private reconnectManager(socket: Socket) {
-    if (this._manager.connected && this._manager.id !== socket.id) {
-      const oldSocket = this.io.sockets.sockets.get(this._manager.id)
-      if (oldSocket) {
-        oldSocket.leave(this.gameId)
-        oldSocket.emit(EVENTS.GAME.RESET, "errors:game.sessionTakenOver")
-      }
-    }
-
+    const previousSocketId = this._manager.id
+    const wasConnected = this._manager.connected
     socket.join(this.gameId)
     this._manager.id = socket.id
     this._manager.connected = true
+    this.cancelManagerGrace()
+
+    if (wasConnected && previousSocketId !== socket.id) {
+      const oldSocket = this.io.sockets.sockets.get(previousSocketId)
+
+      if (oldSocket) {
+        oldSocket.leave(this.gameId)
+        oldSocket.emit(EVENTS.GAME.RESET, "errors:game.sessionTakenOver")
+        oldSocket.disconnect(true)
+      }
+    }
 
     const status = this.managerStatus ??
       this.lastBroadcastStatus ?? {
@@ -219,38 +273,40 @@ class Game {
       gameId: this.gameId,
       inviteCode: this.inviteCode,
       currentQuestion: this.round.getReconnectInfo(),
-      status,
+      status: this.round.getReconnectStatus(status),
       players: this.playerManager.getAll(),
       wallpaper: this.wallpaper,
       audio: this.audio,
     })
-    socket.emit(EVENTS.GAME.TOTAL_PLAYERS, this.playerManager.count())
+    socket.emit(EVENTS.GAME.TOTAL_PLAYERS, this.playerManager.connectedCount())
 
-    registry.reactivateGame(this.gameId)
+    Registry.getInstance().reactivateGame(this.gameId)
     console.log(`Manager reconnected to game ${this.inviteCode}`)
   }
 
   private reconnectPlayer(socket: Socket) {
-    const clientId = socket.handshake.auth.clientId as string
+    const { clientId } = socket.data
     const player = this.playerManager.findByClientId(clientId)
 
     if (!player) {
       return
     }
 
-    if (player.connected && player.id !== socket.id) {
-      const oldSocket = this.io.sockets.sockets.get(player.id)
+    const oldSocketId = player.id
+    const wasConnected = player.connected
+    socket.join(this.gameId)
+    this.playerManager.updateSocketId(oldSocketId, socket.id)
+    player.connected = true
+
+    if (wasConnected && oldSocketId !== socket.id) {
+      const oldSocket = this.io.sockets.sockets.get(oldSocketId)
+
       if (oldSocket) {
         oldSocket.leave(this.gameId)
         oldSocket.emit(EVENTS.GAME.RESET, "errors:game.sessionTakenOver")
+        oldSocket.disconnect(true)
       }
     }
-
-    socket.join(this.gameId)
-
-    const oldSocketId = player.id
-    this.playerManager.updateSocketId(oldSocketId, socket.id)
-    player.connected = true
 
     const status = this.playerStatus.get(oldSocketId) ??
       this.lastBroadcastStatus ?? {
@@ -268,12 +324,14 @@ class Game {
     socket.emit(EVENTS.PLAYER.SUCCESS_RECONNECT, {
       gameId: this.gameId,
       currentQuestion: this.round.getReconnectInfo(),
-      status,
+      status: this.round.getReconnectStatus(status),
       player: { username: player.username, points: player.points },
       wallpaper: this.wallpaper,
       audio: this.audio,
     })
-    socket.emit(EVENTS.GAME.TOTAL_PLAYERS, this.playerManager.count())
+    socket.emit(EVENTS.GAME.TOTAL_PLAYERS, this.playerManager.connectedCount())
+    this.io.to(this._manager.id).emit(EVENTS.MANAGER.NEW_PLAYER, player)
+    this.playerManager.broadcastCount()
 
     console.log(
       `Player ${player.username} reconnected to game ${this.inviteCode}`,
@@ -300,6 +358,36 @@ class Game {
   setPlayerDisconnected(socketId: string) {
     this.playerManager.setDisconnected(socketId)
     this.playerManager.broadcastCount()
+    const player = this.playerManager.findById(socketId)
+
+    if (player) {
+      this.io.to(this._manager.id).emit(EVENTS.MANAGER.NEW_PLAYER, player)
+    }
+
+    this.round.endIfEveryoneAnswered()
+  }
+
+  waitForManager(onTimeout: () => void): void {
+    this.cancelManagerGrace()
+    this.managerGraceTimer = setTimeout(() => {
+      this.managerGraceTimer = null
+
+      if (!this._manager.connected && !this.started) {
+        onTimeout()
+      }
+    }, 30_000)
+  }
+  private cancelManagerGrace(): void {
+    if (this.managerGraceTimer) {
+      clearTimeout(this.managerGraceTimer)
+    }
+
+    this.managerGraceTimer = null
+  }
+  dispose(): void {
+    this.cancelManagerGrace()
+    this.round.dispose()
+    this.cooldown.abort()
   }
 
   // Game flow
@@ -308,7 +396,11 @@ class Game {
     this.cooldown.abort()
   }
 
-  async start(socket: Socket, mode?: "classic" | "accuracy", options?: { shuffleQuestions?: boolean, doubleTime?: boolean }) {
+  async start(
+    socket: Socket,
+    mode?: "classic" | "accuracy",
+    options?: { shuffleQuestions?: boolean; doubleTime?: boolean },
+  ) {
     await this.round.start(socket, mode, options)
   }
 

@@ -34,7 +34,7 @@ const ResultModal = ({ result, onClose }: Props) => {
         </ResultModalProvider>
       </div>
     </div>,
-    document.body
+    document.body,
   )
 }
 
