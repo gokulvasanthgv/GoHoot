@@ -26,6 +26,20 @@
   "quizzSaved": "Quizz saved successfully",
   "quizzUpdated": "Quizz updated successfully",
   "titleQuizzPlaceholder": "Quizz title...",
+  "editor": {
+    "quizTitle": "Quiz title",
+    "questions": "Questions",
+    "previousQuestion": "Previous question",
+    "nextQuestion": "Next question",
+    "answerWarnings": "Some answer options are over the character limit",
+    "questionSettings": "Question settings",
+    "questionMedia": "Question media",
+    "settings": "Settings",
+    "media": "Media",
+    "mediaUrl": "Media URL",
+    "mediaType": "Media type",
+    "browseMedia": "Browse files"
+  },
   "answerLength": {
     "questionWarning": "Question {{number}}: options exceed {{limit}} characters",
     "optionWarning": "Option {{option}} exceeds {{limit}} characters",

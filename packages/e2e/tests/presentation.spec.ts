@@ -262,6 +262,10 @@ test("conductor colours, response charts, player controls, and music work across
       await handle.focus()
       await guest.keyboard.press("Space")
       await expect(handle).toHaveAttribute("aria-pressed", "true")
+      const activeId = await rows.nth(position).getAttribute("data-sortable-id")
+      await expect(guest.getByRole("status")).toContainText(
+        `droppable area ${activeId}.`,
+      )
       for (let move = position; move > index; move -= 1) {
         const targetId = await rows
           .nth(move - 1)

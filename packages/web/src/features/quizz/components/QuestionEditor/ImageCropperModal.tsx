@@ -442,33 +442,45 @@ const ImageCropperModal = ({
 
   // Render via React Portal to body so it sits outside stack contexts and overlays options
   return createPortal(
-    <div className="animate-in fade-in fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md duration-200">
-      <div className="animate-in zoom-in-95 relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl duration-200">
+    <div className="animate-in fade-in fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 p-2 backdrop-blur-md duration-200 sm:p-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="image-cropper-title"
+        className="animate-in zoom-in-95 relative flex max-h-[calc(100dvh-1rem)] w-full max-w-3xl flex-col overflow-y-auto overscroll-contain rounded-2xl border border-gray-100 bg-white shadow-2xl duration-200 sm:max-h-[calc(100dvh-2rem)]"
+      >
         {/* Header */}
-        <div className="flex flex-none items-center justify-between border-b border-gray-100 px-6 py-4">
+        <div className="flex flex-none items-center justify-between gap-2 border-b border-gray-100 px-3 py-2 sm:px-5">
           <div>
-            <h3 className="text-lg font-bold text-gray-800">Crop Image</h3>
+            <h3
+              id="image-cropper-title"
+              className="text-lg font-bold text-gray-800"
+            >
+              Crop Image
+            </h3>
             <p className="text-xs text-gray-400">
               Drag corners or edges to resize. Drag center to reposition.
             </p>
           </div>
           <button
+            type="button"
+            aria-label="Close image cropper"
             onClick={onCancel}
-            className="cursor-pointer rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            className="grid size-11 shrink-0 place-items-center rounded-full text-gray-600 hover:bg-gray-100"
           >
             <X className="size-5" />
           </button>
         </div>
 
         {/* Cropper Container */}
-        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-gray-950 p-6">
+        <div className="relative flex min-h-28 flex-none items-center justify-center overflow-hidden bg-gray-950 p-5 sm:p-6">
           {imgSrc && (
-            <div className="relative h-fit max-h-[calc(90vh-14rem)] w-fit max-w-[calc(100%-2.5rem)] overflow-visible select-none">
+            <div className="relative h-fit w-fit max-w-full overflow-visible select-none">
               <img
                 ref={imageRef}
                 src={imgSrc}
                 alt="Crop preview"
-                className="pointer-events-none block max-h-[calc(90vh-14rem)] max-w-full select-none"
+                className="pointer-events-none block max-h-[min(48dvh,28rem)] max-w-full select-none"
                 onLoad={handleImageLoad}
                 onError={() => {
                   toast.error(
@@ -581,18 +593,18 @@ const ImageCropperModal = ({
         </div>
 
         {/* Footer controls */}
-        <div className="flex flex-none flex-col justify-between gap-4 border-t border-gray-100 bg-gray-50 px-6 py-4 md:flex-row md:items-center">
+        <div className="flex flex-none flex-wrap items-center justify-between gap-2 border-t border-gray-100 bg-gray-50 px-3 py-2 sm:px-5">
           {/* Aspect Ratio Presets */}
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             <span className="mr-1 text-xs font-bold tracking-wider text-gray-500 uppercase">
               Aspect:
             </span>
-            <div className="flex gap-1 rounded-lg bg-gray-200/60 p-1">
+            <div className="flex flex-wrap gap-1 rounded-lg bg-gray-200/60 p-1">
               {ratios.map((r) => (
                 <button
                   key={r.label}
                   onClick={() => setAspectRatio(r.value)}
-                  className={`cursor-pointer rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+                  className={`min-h-11 rounded-md px-2 py-1 text-xs font-semibold transition-all ${
                     aspectRatio === r.value
                       ? "bg-blue-600 text-white shadow-sm"
                       : "text-gray-600 hover:bg-gray-200/40 hover:text-gray-900"
@@ -605,18 +617,18 @@ const ImageCropperModal = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-2">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             <Button
               onClick={onCancel}
               disabled={isProcessing}
-              className="cursor-pointer bg-transparent px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-200/60"
+              className="min-h-11 bg-transparent px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200/60"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
               disabled={isProcessing}
-              className="cursor-pointer bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md transition-all hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg"
+              className="min-h-11 bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-md hover:bg-indigo-700"
             >
               {isProcessing ? (
                 <>

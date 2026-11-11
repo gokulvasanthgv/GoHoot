@@ -2,13 +2,14 @@ import Input from "@razzia/web/components/Input"
 import { useEffect, useState } from "react"
 
 interface Props {
+  label: string
   value: number
   min?: number
   max?: number
   onChange: (_value: number) => void
 }
 
-const ConfigNumberInput = ({ value, min, max, onChange }: Props) => {
+const ConfigNumberInput = ({ label, value, min, max, onChange }: Props) => {
   const [input, setInput] = useState(String(value))
 
   useEffect(() => {
@@ -32,12 +33,13 @@ const ConfigNumberInput = ({ value, min, max, onChange }: Props) => {
     <Input
       variant="sm"
       type="number"
+      aria-label={label}
       min={min}
       max={max}
       value={input}
       onChange={(e) => handleChange(e.target.value)}
       onBlur={() => setInput(String(value))}
-      className="w-full"
+      className="min-h-11 w-full text-base"
     />
   )
 }

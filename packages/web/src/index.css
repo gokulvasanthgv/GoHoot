@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@custom-variant conductor-compact {
+  @media (width < 64rem), (height < 36rem) {
+    &:where([data-conductor], [data-conductor] *) {
+      @slot;
+    }
+  }
+}
+
 @theme {
   --color-primary: #ff9900;
   --color-secondary: #1a140b;

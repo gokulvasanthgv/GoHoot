@@ -39,7 +39,7 @@ const QuestionEditorConfig = () => {
   }
 
   return (
-    <aside className="z-10 m-3 flex w-68 shrink-0 flex-col gap-6 self-start overflow-auto rounded-xl bg-white p-4 shadow-sm">
+    <section className="flex min-w-0 flex-col gap-5 rounded-xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
       <ConfigSection title="Question Type">
         <ConfigField>
           <ConfigField.Label
@@ -48,9 +48,10 @@ const QuestionEditorConfig = () => {
             unit=""
           />
           <select
+            aria-label="Question type"
             value={currentQuestion.type || "quiz"}
             onChange={handleTypeChange}
-            className="w-full rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-700 outline-none hover:border-gray-300 focus:border-indigo-500"
+            className="min-h-11 w-full min-w-0 rounded-lg border border-gray-200 bg-white p-2 text-base text-gray-700 outline-none hover:border-gray-300 focus:border-indigo-500"
           >
             <option value="quiz">Quiz Question</option>
             <option value="true_or_false">True or False</option>
@@ -70,9 +71,10 @@ const QuestionEditorConfig = () => {
               unit=""
             />
             <textarea
+              aria-label="Slide text"
               value={currentQuestion.text || ""}
               onChange={(e) => handleUpdateQuestion("text")(e.target.value)}
-              className="h-24 w-full resize-none rounded-lg border border-gray-200 p-2 text-sm text-gray-700 outline-none hover:border-gray-300 focus:border-indigo-500"
+              className="h-24 w-full resize-y rounded-lg border border-gray-200 p-2 text-base text-gray-700 outline-none hover:border-gray-300 focus:border-indigo-500"
               placeholder="Enter slide content..."
             />
             <ConfigField.Description>
@@ -90,6 +92,7 @@ const QuestionEditorConfig = () => {
               label={t("quizz:question.config.questionDisplay")}
             />
             <ConfigNumberInput
+              label={t("quizz:question.config.questionDisplay")}
               value={currentQuestion.cooldown}
               min={3}
               onChange={handleUpdateQuestion("cooldown")}
@@ -105,6 +108,7 @@ const QuestionEditorConfig = () => {
               label={t("quizz:question.config.answerTime")}
             />
             <ConfigNumberInput
+              label={t("quizz:question.config.answerTime")}
               value={currentQuestion.time}
               min={5}
               onChange={handleUpdateQuestion("time")}
@@ -120,7 +124,7 @@ const QuestionEditorConfig = () => {
               label="Points Modifier"
             />
             <div className="mt-2.5 flex items-center">
-              <label className="relative inline-flex cursor-pointer items-center select-none">
+              <label className="relative inline-flex min-h-11 cursor-pointer items-center select-none">
                 <input
                   type="checkbox"
                   checked={Boolean(currentQuestion.doublePoints)}
@@ -129,7 +133,7 @@ const QuestionEditorConfig = () => {
                   }
                   className="peer sr-only"
                 />
-                <div className="peer h-5 w-9 rounded-full bg-gray-200 peer-checked:bg-indigo-600 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                <div className="relative h-5 w-9 rounded-full bg-gray-200 peer-checked:bg-indigo-600 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500 after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
                 <span className="ml-3 text-sm font-semibold text-gray-700">
                   Double Points
                 </span>
@@ -141,7 +145,7 @@ const QuestionEditorConfig = () => {
           </ConfigField>
         </ConfigSection>
       )}
-    </aside>
+    </section>
   )
 }
 

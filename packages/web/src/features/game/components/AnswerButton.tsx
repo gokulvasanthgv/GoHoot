@@ -12,7 +12,6 @@ type Props = PropsWithChildren &
     label: string
     correct?: boolean
     largeLabelOnly?: boolean
-    fontSizeClass?: string
   }
 
 const AnswerButton = ({
@@ -21,12 +20,11 @@ const AnswerButton = ({
   children,
   correct,
   largeLabelOnly,
-  fontSizeClass,
   ...otherProps
 }: Props) => {
   const CorrectIcon = correct ? Check : X
   const buttonRef = useRef<HTMLButtonElement>(null)
-  const textRef = useRef<HTMLParagraphElement>(null)
+  const textRef = useRef<HTMLDivElement>(null)
 
   useLayoutEffect(() => {
     const button = buttonRef.current
@@ -37,6 +35,10 @@ const AnswerButton = ({
     }
 
     const adjustFontSize = () => {
+      if (getComputedStyle(text).getPropertyValue("--answer-size")) {
+        return
+      }
+
       const origOverflow = text.style.overflow
       text.style.overflow = "hidden"
       let min = 8
@@ -45,7 +47,7 @@ const AnswerButton = ({
 
       while (min <= max) {
         const mid = Math.floor((min + max) / 2)
-        text.style.setProperty("font-size", `${mid}px`, "important")
+        text.style.setProperty("--fitted-answer-size", `${mid}px`)
 
         const isOverflowing =
           text.scrollHeight > text.clientHeight ||
@@ -60,7 +62,7 @@ const AnswerButton = ({
         }
       }
 
-      text.style.setProperty("font-size", `${optimal}px`, "important")
+      text.style.setProperty("--fitted-answer-size", `${optimal}px`)
       text.style.overflow = origOverflow
     }
 
@@ -99,24 +101,23 @@ const AnswerButton = ({
     <button
       ref={buttonRef}
       className={clsx(
-        "relative flex h-full w-full cursor-pointer touch-manipulation items-center gap-2 overflow-hidden rounded-2xl px-3 py-2 text-left transition-all duration-100 select-none active:scale-[0.98] sm:gap-3 sm:px-5 sm:py-4",
+        "conductor-compact:h-auto conductor-compact:min-h-13 conductor-compact:min-w-0 conductor-compact:rounded-xl conductor-compact:px-2.5 conductor-compact:py-2 relative flex h-full w-full cursor-pointer touch-manipulation items-center gap-2 overflow-hidden rounded-2xl px-3 py-2 text-left transition-all duration-100 select-none active:scale-[0.98] sm:gap-3 sm:px-5 sm:py-4",
         className,
       )}
       {...otherProps}
     >
-      <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-black/20 text-sm font-extrabold sm:size-8 sm:rounded-xl md:size-10 md:text-lg lg:size-12 lg:text-xl">
+      <span className="conductor-compact:size-7 conductor-compact:rounded-lg conductor-compact:text-sm flex size-6 shrink-0 items-center justify-center rounded-lg bg-black/20 text-sm font-extrabold sm:size-8 sm:rounded-xl md:size-10 md:text-lg lg:size-12 lg:text-xl">
         {label}
       </span>
-      <p
+      <div
         ref={textRef}
-        className={clsx(
-          "max-h-full w-full flex-1 overflow-y-auto pr-1 leading-tight font-extrabold break-words drop-shadow-md",
-          fontSizeClass ||
-            "text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl",
-        )}
+        style={{
+          fontSize: "var(--answer-size, var(--fitted-answer-size, 1rem))",
+        }}
+        className="conductor-compact:max-h-none conductor-compact:min-w-0 conductor-compact:overflow-visible conductor-compact:[overflow-wrap:anywhere] conductor-compact:[--answer-size:clamp(1rem,2vw,1.25rem)] max-h-full w-full flex-1 overflow-y-auto pr-1 leading-tight font-extrabold break-words drop-shadow-md"
       >
         {children}
-      </p>
+      </div>
       {correct !== undefined && (
         <CorrectIcon className="size-4 shrink-0 stroke-6 sm:size-6 md:size-8 lg:size-10" />
       )}

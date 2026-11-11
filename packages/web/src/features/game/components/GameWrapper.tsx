@@ -14,6 +14,7 @@ import { useManagerStore } from "@razzia/web/features/game/stores/manager"
 import { GameScreenContext } from "@razzia/web/features/game/contexts/game-screen-context"
 import { MANAGER_SKIP_BTN } from "@razzia/web/features/game/utils/constants"
 import clsx from "clsx"
+import { ChevronLeft } from "lucide-react"
 import { type PropsWithChildren, useEffect, useState } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
@@ -48,6 +49,12 @@ const GameWrapper = ({
   const [isDisabled, setIsDisabled] = useState(false)
   const next = statusName ? MANAGER_SKIP_BTN[statusName] : null
   const activeWallpaper = manager ? managerWallpaper : playerWallpaper
+  const canEndQuiz =
+    statusName &&
+    statusName !== STATUS.FINISHED &&
+    statusName !== STATUS.SHOW_ROOM &&
+    statusName !== STATUS.WAIT &&
+    statusName !== STATUS.SHOW_START
 
   useEvent(EVENTS.GAME.UPDATE_QUESTION, ({ current, total }) => {
     setQuestionStates({
@@ -76,7 +83,10 @@ const GameWrapper = ({
 
   return (
     <GameScreenContext.Provider value={manager ? "manager" : "player"}>
-      <section className="relative flex h-dvh w-full overflow-hidden">
+      <section
+        data-conductor={manager ? "" : undefined}
+        className="relative flex h-dvh w-full overflow-hidden"
+      >
         <div className="fixed top-0 left-0 h-full w-full">
           <img
             className="pointer-events-none h-full w-full object-cover select-none"
@@ -95,14 +105,15 @@ const GameWrapper = ({
             </div>
           ) : (
             <>
-              <div className="flex w-full justify-between p-4">
-                <div className="flex items-center gap-2">
+              <header className="conductor-compact:shrink-0 conductor-compact:flex-wrap conductor-compact:items-center conductor-compact:gap-1.5 conductor-compact:p-2 flex w-full justify-between p-4">
+                <div className="conductor-compact:gap-1.5 flex items-center gap-2">
                   {manager &&
                     questionStates &&
                     questionStates.current > 1 &&
                     statusName !== STATUS.SELECT_ANSWER &&
                     statusName !== STATUS.SHOW_QUESTION && (
                       <Button
+                        aria-label={t("quizz:editor.previousQuestion")}
                         onClick={() => {
                           const index = questionStates.current - 2
                           socket.emit(EVENTS.MANAGER.GO_TO_QUESTION, {
@@ -110,21 +121,21 @@ const GameWrapper = ({
                             index,
                           })
                         }}
-                        className="bg-white px-4 font-bold text-black hover:bg-gray-200"
+                        className="conductor-compact:size-11 conductor-compact:px-1 bg-white px-4 font-bold text-black hover:bg-gray-200"
                       >
-                        ←
+                        <ChevronLeft className="size-5" aria-hidden="true" />
                       </Button>
                     )}
                   {questionStates && (
-                    <div className="flex items-center rounded-md bg-white p-2 px-4 text-lg font-bold text-black">
+                    <div className="conductor-compact:px-2 conductor-compact:text-sm flex items-center rounded-md bg-white p-2 px-4 text-lg font-bold text-black">
                       {`${questionStates.current} / ${questionStates.total}`}
                     </div>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="conductor-compact:ml-auto conductor-compact:min-w-0 conductor-compact:flex-wrap conductor-compact:justify-end conductor-compact:gap-1.5 flex items-center gap-2">
                   {manager && (
-                    <div className="mr-2 flex items-center gap-2 rounded-lg bg-white/10 px-3 py-1.5 backdrop-blur-sm">
+                    <div className="conductor-compact:mr-0 conductor-compact:gap-0 conductor-compact:bg-black/65 conductor-compact:py-0 conductor-compact:pr-2 conductor-compact:pl-0 mr-2 flex items-center gap-2 rounded-lg bg-white/10 px-3 py-1.5 backdrop-blur-sm">
                       <button
                         type="button"
                         aria-label={t(
@@ -132,7 +143,7 @@ const GameWrapper = ({
                         )}
                         aria-pressed={isMuted}
                         onClick={() => setIsMuted(!isMuted)}
-                        className="text-white transition hover:text-gray-200 active:scale-95"
+                        className="conductor-compact:grid conductor-compact:size-11 conductor-compact:place-items-center text-white transition hover:text-gray-200 active:scale-95"
                       >
                         {isMuted ? (
                           <svg
@@ -165,7 +176,7 @@ const GameWrapper = ({
                             setIsMuted(false)
                           }
                         }}
-                        className="h-1 w-20 cursor-pointer appearance-none rounded-lg bg-white/30 accent-white outline-none"
+                        className="conductor-compact:h-8 conductor-compact:w-15 conductor-compact:appearance-auto conductor-compact:bg-transparent h-1 w-20 cursor-pointer appearance-none rounded-lg bg-white/30 accent-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                       />
                     </div>
                   )}
@@ -173,7 +184,7 @@ const GameWrapper = ({
                   {manager && next && (
                     <Button
                       className={clsx(
-                        "bg-white px-4 text-black hover:bg-gray-200",
+                        "conductor-compact:min-h-11 conductor-compact:px-2.5 conductor-compact:text-base bg-white px-4 text-black hover:bg-gray-200",
                         {
                           "pointer-events-none": isDisabled,
                         },
@@ -187,7 +198,7 @@ const GameWrapper = ({
                   {manager && onBack && (
                     <AlertDialog
                       trigger={
-                        <Button className="bg-white px-4 text-black hover:bg-gray-200">
+                        <Button className="conductor-compact:min-h-11 conductor-compact:px-2.5 conductor-compact:text-base bg-white px-4 text-black hover:bg-gray-200">
                           {t("common:exit")}
                         </Button>
                       }
@@ -198,40 +209,60 @@ const GameWrapper = ({
                     />
                   )}
                 </div>
-              </div>
+              </header>
 
-              {children}
-
-              {manager &&
-                statusName &&
-                statusName !== STATUS.FINISHED &&
-                statusName !== STATUS.SHOW_ROOM &&
-                statusName !== STATUS.WAIT &&
-                statusName !== STATUS.SHOW_START && (
-                  <div className="fixed right-4 bottom-4 z-50">
-                    <AlertDialog
-                      trigger={
-                        <Button className="bg-red-600 px-4 font-bold text-white shadow-lg hover:bg-red-700 active:scale-95">
-                          {t("game:endQuiz")}
-                        </Button>
-                      }
-                      title="End Quiz"
-                      description="Are you sure you want to end this quiz? This will stop the game for all participants."
-                      confirmLabel="End Quiz"
-                      onConfirm={() => {
-                        socket.emit(EVENTS.MANAGER.END_GAME, {
-                          gameId: gameId ?? "",
-                        })
-                      }}
-                    />
-                  </div>
-                )}
-
-              {manager && inviteCode && (
-                <div className="fixed bottom-4 left-4 z-50 rounded bg-black/60 px-3 py-1.5 text-xs font-semibold text-white shadow-md backdrop-blur-sm">
-                  Game PIN:{" "}
-                  <span className="font-bold tracking-wider">{inviteCode}</span>
-                </div>
+              {manager ? (
+                <>
+                  <main
+                    key={statusName}
+                    className={clsx(
+                      "conductor-compact:overflow-x-hidden conductor-compact:overflow-y-auto conductor-compact:overscroll-y-contain flex min-h-0 w-full flex-1 flex-col",
+                      statusName === STATUS.SELECT_ANSWER &&
+                        "conductor-compact:scroll-pt-9",
+                    )}
+                  >
+                    {children}
+                  </main>
+                  {(inviteCode || canEndQuiz) && (
+                    <footer
+                      className={clsx(
+                        "conductor-compact:flex conductor-compact:shrink-0 conductor-compact:flex-wrap conductor-compact:items-center conductor-compact:justify-between conductor-compact:gap-2 conductor-compact:px-2 conductor-compact:pt-1 conductor-compact:pb-2 contents",
+                        statusName === STATUS.SHOW_ROOM &&
+                          "conductor-compact:hidden",
+                      )}
+                    >
+                      {inviteCode && (
+                        <div className="conductor-compact:static conductor-compact:z-auto fixed bottom-4 left-4 z-50 rounded bg-black/65 px-3 py-1.5 text-xs font-semibold text-white shadow-md backdrop-blur-sm">
+                          {t("game:gamePinLabel")}{" "}
+                          <span className="font-bold tracking-wider">
+                            {inviteCode}
+                          </span>
+                        </div>
+                      )}
+                      {canEndQuiz && (
+                        <div className="conductor-compact:static conductor-compact:z-auto conductor-compact:ml-auto fixed right-4 bottom-4 z-50">
+                          <AlertDialog
+                            trigger={
+                              <Button className="conductor-compact:min-h-11 conductor-compact:px-3 conductor-compact:text-base bg-red-600 px-4 font-bold text-white shadow-lg hover:bg-red-700 active:scale-95">
+                                {t("game:endQuiz")}
+                              </Button>
+                            }
+                            title="End Quiz"
+                            description="Are you sure you want to end this quiz? This will stop the game for all participants."
+                            confirmLabel="End Quiz"
+                            onConfirm={() => {
+                              socket.emit(EVENTS.MANAGER.END_GAME, {
+                                gameId: gameId ?? "",
+                              })
+                            }}
+                          />
+                        </div>
+                      )}
+                    </footer>
+                  )}
+                </>
+              ) : (
+                children
               )}
 
               {!manager && (

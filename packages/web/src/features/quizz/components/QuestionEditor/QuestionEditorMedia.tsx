@@ -9,7 +9,7 @@ import QuestionMedia, {
 } from "@razzia/web/components/QuestionMedia"
 import { useSocket } from "@razzia/web/features/game/contexts/socket-context"
 import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
-import { Image, ImageOff, Loader2, Music, Video } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { type ChangeEvent, useRef, useState } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
@@ -24,21 +24,15 @@ const QuestionEditorMedia = () => {
 
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [isEditingUrl, setIsEditingUrl] = useState(false)
   const [pendingCropFile, setPendingCropFile] = useState<File | null>(null)
 
-  const hadnleChangeMediaType = (type: QuestionMediaType) => () => {
-    const result = questionMediaValidator.safeParse({
-      type,
-      url: questionMedia?.url,
-    })
-
-    if (!result.success) {
-      toast.error(t(result.error.issues[0].message))
-
-      return
+  const handleChangeMediaType = (e: ChangeEvent<HTMLSelectElement>) => {
+    if (questionMedia?.url) {
+      updateQuestion(currentIndex, {
+        media: { ...questionMedia, type: e.target.value as QuestionMediaType },
+      })
     }
-
-    updateQuestion(currentIndex, { media: result.data })
   }
 
   const handleRemoveMedia = () => {
@@ -59,7 +53,7 @@ const QuestionEditorMedia = () => {
     }
 
     const youtubeId = getYoutubeId(url)
-    const type = youtubeId ? "video" : currentQuestion.media?.type
+    const type = youtubeId ? "video" : (questionMedia?.type ?? "image")
     updateQuestion(currentIndex, {
       media: { url, type },
     })
@@ -243,9 +237,12 @@ const QuestionEditorMedia = () => {
       })
   }
 
+  const hasPreview =
+    !isEditingUrl && questionMediaValidator.safeParse(questionMedia).success
+
   return (
     <div
-      className={`relative z-10 flex flex-1 flex-col items-center justify-center gap-3 p-4 transition-all duration-200 ${
+      className={`relative flex min-w-0 flex-col items-center gap-3 rounded-xl transition-all duration-200 ${
         isDragging
           ? "rounded-lg border-2 border-dashed border-blue-400 bg-blue-50/30"
           : ""
@@ -263,7 +260,7 @@ const QuestionEditorMedia = () => {
       />
 
       {isUploading ? (
-        <Card className="my-auto flex h-60 w-full max-w-xl flex-col items-center justify-center gap-3 border border-gray-100 bg-white shadow-lg">
+        <Card className="flex min-h-36 w-full max-w-xl flex-col items-center justify-center gap-3 border border-gray-100 bg-white p-3 text-center shadow-lg">
           <Loader2 className="size-12 animate-spin text-blue-500" />
           <p className="animate-pulse text-sm font-semibold text-gray-600">
             Processing and uploading media...
@@ -271,111 +268,68 @@ const QuestionEditorMedia = () => {
         </Card>
       ) : (
         <>
-          {questionMedia?.url && (
-            <QuestionMedia media={currentQuestion.media} alt="Question Media" />
-          )}
-
-          {!questionMedia?.url && (
-            <Card
-              className={`my-auto flex max-h-100 w-full max-w-xl flex-1 cursor-pointer flex-col items-center justify-center gap-4 border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md`}
-              onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-                // Prevent clicking on inner interactive elements from triggering file select
-                if ((e.target as HTMLElement).closest(".no-click-trigger")) {
-                  return
-                }
-
-                fileInputRef.current?.click()
-              }}
-            >
-              <div className="flex flex-col items-center gap-2 text-center">
-                <ImageOff className="size-14 stroke-gray-400" />
-                <p className="text-base font-semibold text-gray-700">
-                  Drag & drop media here, or{" "}
-                  <span className="text-blue-600 underline">browse files</span>
-                </p>
-                <p className="text-xs text-gray-400">
-                  Supports Images, Videos (max 50MB), or Audio
-                </p>
-              </div>
-
-              <div className="no-click-trigger flex w-full max-w-md flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="h-px flex-1 bg-gray-200" />
-                  <span className="text-[10px] font-bold tracking-wider text-gray-400 uppercase">
-                    Or enter external URL
-                  </span>
-                  <div className="h-px flex-1 bg-gray-200" />
-                </div>
-
-                <div className="flex w-full flex-col gap-1">
-                  <div className="flex gap-2">
-                    <Input
-                      variant="sm"
-                      className="w-full"
-                      placeholder={t("quizz:question.mediaUrlPlaceholder")}
-                      value={questionMedia?.url ?? ""}
-                      onChange={handleChangeMedia}
-                    />
-                  </div>
-                  <span className="text-center text-[10px] text-gray-400">
-                    YouTube links will be automatically detected and embedded.
-                  </span>
-                </div>
-              </div>
-
-              <div className="no-click-trigger mt-1 flex flex-wrap justify-center gap-2">
-                <Button
-                  onClick={hadnleChangeMediaType("image")}
-                  className="bg-gray-100 px-3 py-1 font-medium text-gray-600 hover:bg-gray-200"
+          <Card className="flex w-full max-w-xl flex-col gap-3 border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+            <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
+              <label className="flex min-w-0 flex-col gap-1.5 text-sm font-semibold text-gray-700">
+                {t("quizz:editor.mediaUrl")}
+                <Input
+                  type="url"
+                  className="min-h-11 w-full min-w-0 scroll-mt-24 text-base"
+                  placeholder={t("quizz:question.mediaUrlPlaceholder")}
+                  value={questionMedia?.url ?? ""}
+                  onFocus={() => setIsEditingUrl(true)}
+                  onBlur={() => setIsEditingUrl(false)}
+                  onChange={handleChangeMedia}
+                />
+              </label>
+              <label className="flex min-w-0 flex-col gap-1.5 text-sm font-semibold text-gray-700">
+                {t("quizz:editor.mediaType")}
+                <select
+                  value={questionMedia?.type ?? "image"}
+                  onChange={handleChangeMediaType}
+                  disabled={!questionMedia?.url}
+                  className="min-h-11 min-w-0 rounded-lg border border-gray-300 bg-white px-2 text-base disabled:bg-gray-100"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <Image className="size-4" />
-                    <span className="text-xs">
-                      {t("quizz:question.media.image")}
-                    </span>
-                  </div>
-                </Button>
-                <Button
-                  onClick={hadnleChangeMediaType("video")}
-                  className="bg-gray-100 px-3 py-1 font-medium text-gray-600 hover:bg-gray-200"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Video className="size-4" />
-                    <span className="text-xs">
-                      {t("quizz:question.media.video")}
-                    </span>
-                  </div>
-                </Button>
-                <Button
-                  onClick={hadnleChangeMediaType("audio")}
-                  className="bg-gray-100 px-3 py-1 font-medium text-gray-600 hover:bg-gray-200"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Music className="size-4" />
-                    <span className="text-xs">
-                      {t("quizz:question.media.audio")}
-                    </span>
-                  </div>
-                </Button>
-              </div>
-            </Card>
-          )}
-
-          {questionMedia?.url && (
-            <div className="absolute bottom-4 flex gap-2">
-              <Button
-                className="rounded-sm bg-gray-200 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-300"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                Change File
-              </Button>
-              <Button
-                className="rounded-sm bg-red-100 px-4 py-2 font-semibold text-red-700 hover:bg-red-200"
-                onClick={handleRemoveMedia}
-              >
-                {t("common:delete")}
-              </Button>
+                  <option value="image">
+                    {t("quizz:question.media.image")}
+                  </option>
+                  <option value="video">
+                    {t("quizz:question.media.video")}
+                  </option>
+                  <option value="audio">
+                    {t("quizz:question.media.audio")}
+                  </option>
+                </select>
+              </label>
             </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="min-h-11 bg-indigo-50 px-3 py-2 text-sm text-indigo-700 hover:bg-indigo-100"
+              >
+                {t("quizz:editor.browseMedia")}
+              </Button>
+              {questionMedia?.url && (
+                <Button
+                  type="button"
+                  className="min-h-11 bg-red-50 px-3 py-2 text-sm text-red-700 hover:bg-red-100"
+                  onClick={handleRemoveMedia}
+                >
+                  {t("common:delete")}
+                </Button>
+              )}
+              <span className="hidden text-sm text-gray-600 lg:inline">
+                Drop an image, video, or audio file here
+              </span>
+            </div>
+          </Card>
+          {hasPreview && (
+            <QuestionMedia
+              media={questionMedia}
+              alt="Question Media"
+              className="max-h-[clamp(8rem,42dvh,24rem)] max-w-full object-contain"
+            />
           )}
         </>
       )}

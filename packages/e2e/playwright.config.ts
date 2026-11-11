@@ -87,6 +87,42 @@ if (!existsSync(join(configPath, "users.json"))) {
       },
     ],
   })
+  write("quizz/mobile.json", {
+    id: "browser-mobile",
+    creatorId: "browser-admin",
+    subject: "Mobile layout quiz",
+    questions: [
+      {
+        ...question,
+        question:
+          "Read the full question and all seven answer options on a small screen",
+        answers: [
+          "Amber",
+          "Blue",
+          "Green",
+          "Pink",
+          "Purple",
+          "Red",
+          "G".repeat(65),
+        ],
+        solutions: [1],
+        media: {
+          type: "image",
+          url: "http://127.0.0.1:18855/gohoot-logo-favicon.webp",
+        },
+      },
+      {
+        ...question,
+        type: "slide",
+        question: "Information slide on a phone",
+        text: "The slide body stays readable after rotating the phone. ".repeat(
+          18,
+        ),
+        answers: undefined,
+        solutions: undefined,
+      },
+    ],
+  })
   write("quizz/solo.json", {
     id: "browser-solo",
     creatorId: "browser-admin",

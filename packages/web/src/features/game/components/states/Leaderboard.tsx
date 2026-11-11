@@ -70,12 +70,13 @@ const Leaderboard = ({
   }, [oldLeaderboard, leaderboard])
 
   return (
-    <section className="relative mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 select-none">
+    <section className="conductor-compact:shrink-0 conductor-compact:basis-auto conductor-compact:px-2 conductor-compact:py-2 relative mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 select-none">
       {previousQuestions && previousQuestions.length > 0 && (
-        <div className="mb-4 flex shrink-0 flex-col items-center gap-2">
+        <div className="conductor-compact:mb-2 mb-4 flex w-full shrink-0 flex-col items-center gap-2">
           <select
             id="previous-questions-select"
-            className="focus:ring-primary max-w-xl cursor-pointer rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-xl font-bold text-white focus:ring-2 focus:outline-none"
+            aria-label={t("game:goToQuestion")}
+            className="focus:ring-primary conductor-compact:min-h-11 conductor-compact:px-2 conductor-compact:text-base max-w-[min(100%,36rem)] min-w-0 cursor-pointer rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-xl font-bold text-white focus:ring-2 focus:outline-none"
             value=""
             onChange={(e) => {
               const val = e.target.value
@@ -100,10 +101,10 @@ const Leaderboard = ({
           </select>
         </div>
       )}
-      <h2 className="mb-4 shrink-0 text-4xl font-extrabold text-white drop-shadow-md sm:text-5xl md:text-6xl">
+      <h2 className="conductor-compact:mb-2 conductor-compact:text-[clamp(1.5rem,5vw,2.5rem)] mb-4 shrink-0 text-center text-4xl font-extrabold text-white drop-shadow-md sm:text-5xl md:text-6xl">
         {t("game:leaderboard")}
       </h2>
-      <div className="flex min-h-0 w-full max-w-3xl shrink flex-col justify-center gap-3">
+      <div className="conductor-compact:gap-2 flex min-h-0 w-full max-w-3xl shrink flex-col justify-center gap-3">
         <AnimatePresence mode="popLayout">
           {displayedLeaderboard.map(({ id, username, points, streak }) => (
             <motion.div
@@ -126,9 +127,9 @@ const Leaderboard = ({
                   damping: 25,
                 },
               }}
-              className="bg-primary flex w-full items-center justify-between rounded-2xl px-6 py-3.5 text-2xl font-extrabold text-white shadow-lg sm:text-3xl md:text-4xl"
+              className="bg-primary conductor-compact:rounded-xl conductor-compact:bg-slate-950 conductor-compact:px-3 conductor-compact:py-2 conductor-compact:text-base flex w-full items-center justify-between gap-2 rounded-2xl px-6 py-3.5 text-2xl font-extrabold text-white shadow-lg sm:text-3xl md:text-4xl"
             >
-              <span className="flex items-center gap-2 drop-shadow-md">
+              <span className="flex min-w-0 items-center gap-2 [overflow-wrap:anywhere] drop-shadow-md">
                 {username}
                 <StreakBadge streak={streak} />
               </span>

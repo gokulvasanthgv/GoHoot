@@ -10,12 +10,14 @@ const Label = ({ icon, label, unit = "sec" }: LabelProps) => (
   <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
     {icon}
     {label}
-    <span className="text-xs font-normal text-gray-400">({unit})</span>
+    {unit && (
+      <span className="text-xs font-normal text-gray-500">({unit})</span>
+    )}
   </div>
 )
 
 const Description = ({ children }: { children: string }) => (
-  <p className="text-xs text-gray-400">{children}</p>
+  <p className="text-sm text-gray-500">{children}</p>
 )
 
 const ConfigField = ({ children }: PropsWithChildren) => (

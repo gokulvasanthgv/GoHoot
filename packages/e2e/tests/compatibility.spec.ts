@@ -168,17 +168,23 @@ test("quiz editing, question reordering, trash, and restore preserve the quiz ID
 }) => {
   await login(page)
   await page.goto("/manager/quizz/browser-solo")
-  await page.locator("header input").fill("Edited compatibility quiz")
+  await page
+    .getByRole("textbox", { name: "Quiz title" })
+    .fill("Edited compatibility quiz")
   const rows = page.locator("[data-sortable-id]")
   const first = page.getByRole("button", {
     name: "Move question 1",
     exact: true,
   })
   const targetId = await rows.nth(1).getAttribute("data-sortable-id")
+  const activeId = await rows.nth(0).getAttribute("data-sortable-id")
   await first.click({ trial: true })
   await first.focus()
   await page.keyboard.press("Space")
   await expect(first).toHaveAttribute("aria-pressed", "true")
+  await expect(page.getByRole("status")).toContainText(
+    `droppable area ${activeId}.`,
+  )
   await page.keyboard.press("ArrowDown")
   await expect(page.getByRole("status")).toContainText(
     `droppable area ${targetId}.`,

@@ -183,24 +183,28 @@ const ManagerGamePage = () => {
       >
         <AlertDialog.Portal>
           <AlertDialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity" />
-          <AlertDialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-gray-100 bg-white p-6 shadow-2xl outline-none">
-            <div className="mb-5 flex items-center gap-2.5 border-b border-gray-100 pb-4">
+          <AlertDialog.Content
+            aria-describedby={undefined}
+            className="fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl outline-none"
+          >
+            <div className="flex shrink-0 items-center gap-2.5 border-b border-gray-100 px-4 py-3 sm:px-6">
               <Settings className="size-6 text-indigo-600" />
               <AlertDialog.Title className="text-xl font-bold text-gray-900">
                 Pre-Game Settings
               </AlertDialog.Title>
             </div>
 
-            <div className="space-y-6">
+            <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
               <div>
                 <label className="mb-3 block text-sm font-semibold text-gray-700">
                   Game Mode
                 </label>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <button
                     type="button"
+                    aria-pressed={gameMode === "classic"}
                     onClick={() => setGameMode("classic")}
-                    className={`relative flex flex-col items-start rounded-xl border p-4 text-left transition-all ${
+                    className={`relative flex flex-col items-start rounded-xl border p-3 text-left transition-all ${
                       gameMode === "classic"
                         ? "border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-600/20"
                         : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
@@ -225,8 +229,9 @@ const ManagerGamePage = () => {
 
                   <button
                     type="button"
+                    aria-pressed={gameMode === "accuracy"}
                     onClick={() => setGameMode("accuracy")}
-                    className={`relative flex flex-col items-start rounded-xl border p-4 text-left transition-all ${
+                    className={`relative flex flex-col items-start rounded-xl border p-3 text-left transition-all ${
                       gameMode === "accuracy"
                         ? "border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-600/20"
                         : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
@@ -255,8 +260,8 @@ const ManagerGamePage = () => {
                 <label className="mb-3 block text-sm font-semibold text-gray-700">
                   Additional Options
                 </label>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <label className="border-gray-150 flex cursor-pointer flex-col justify-between gap-4 rounded-xl border p-3.5 transition-all select-none hover:bg-indigo-50/20">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <label className="flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-xl border border-gray-200 p-2.5 select-none hover:bg-indigo-50/20 sm:flex-col sm:items-stretch">
                     <div className="flex items-start gap-3">
                       <div className="shrink-0 rounded-lg bg-indigo-50 p-2">
                         <Shuffle className="size-4 text-indigo-600" />
@@ -280,7 +285,7 @@ const ManagerGamePage = () => {
                     </div>
                   </label>
 
-                  <label className="border-gray-150 flex cursor-pointer flex-col justify-between gap-4 rounded-xl border p-3.5 transition-all select-none hover:bg-indigo-50/20">
+                  <label className="flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-xl border border-gray-200 p-2.5 select-none hover:bg-indigo-50/20 sm:flex-col sm:items-stretch">
                     <div className="flex items-start gap-3">
                       <div className="shrink-0 rounded-lg bg-indigo-50 p-2">
                         <Timer className="size-4 text-indigo-600" />
@@ -304,7 +309,7 @@ const ManagerGamePage = () => {
                     </div>
                   </label>
 
-                  <label className="border-gray-150 flex cursor-pointer flex-col justify-between gap-4 rounded-xl border p-3.5 transition-all select-none hover:bg-indigo-50/20">
+                  <label className="flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-xl border border-gray-200 p-2.5 select-none hover:bg-indigo-50/20 sm:flex-col sm:items-stretch">
                     <div className="flex items-start gap-3">
                       <div className="shrink-0 rounded-lg bg-indigo-50 p-2">
                         <Shuffle className="size-4 text-indigo-600" />
@@ -328,7 +333,7 @@ const ManagerGamePage = () => {
                     </div>
                   </label>
 
-                  <label className="border-gray-150 flex cursor-pointer flex-col justify-between gap-4 rounded-xl border p-3.5 transition-all select-none hover:bg-indigo-50/20">
+                  <label className="flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-xl border border-gray-200 p-2.5 select-none hover:bg-indigo-50/20 sm:flex-col sm:items-stretch">
                     <div className="flex items-start gap-3">
                       <div className="shrink-0 rounded-lg bg-indigo-50 p-2">
                         <EyeOff className="size-4 text-indigo-600" />
@@ -356,15 +361,19 @@ const ManagerGamePage = () => {
               </div>
             </div>
 
-            <div className="mt-7 flex justify-end gap-3 border-t border-gray-100 pt-4">
+            <div className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-gray-100 px-4 py-2 sm:px-6">
               <AlertDialog.Cancel asChild>
-                <button className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-200">
+                <button
+                  type="button"
+                  className="min-h-11 rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200"
+                >
                   Cancel
                 </button>
               </AlertDialog.Cancel>
               <button
+                type="button"
                 onClick={confirmStartGame}
-                className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-600/10 transition-all hover:bg-indigo-700 active:scale-95"
+                className="min-h-11 rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md hover:bg-indigo-700"
               >
                 Start Game
               </button>

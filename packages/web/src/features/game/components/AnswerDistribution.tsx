@@ -30,7 +30,7 @@ const AnswerDistribution = ({ answers, responses, puzzle }: Props) => {
   return (
     <ol
       aria-label={t("game:roundResults.distribution")}
-      className="mx-auto grid h-full min-h-40 w-full max-w-4xl gap-3 px-2 pt-9 sm:gap-6"
+      className="conductor-compact:gap-2 mx-auto grid h-full min-h-40 w-full max-w-4xl gap-3 px-2 pt-9 sm:gap-6"
       style={{
         gridTemplateColumns: `repeat(${entries.length}, minmax(0, 1fr))`,
       }}

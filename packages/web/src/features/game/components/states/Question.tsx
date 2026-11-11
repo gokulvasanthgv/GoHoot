@@ -50,17 +50,17 @@ const Question = ({
   const count = type === "true_or_false" ? 2 : answersCount || 4
 
   return (
-    <section className="relative mx-auto flex h-full min-h-0 w-full max-w-7xl flex-1 flex-col items-center justify-between px-4">
-      <div className="flex min-h-0 w-full flex-1 shrink flex-col items-center justify-center gap-4 md:gap-6">
+    <section className="conductor-compact:h-auto conductor-compact:shrink-0 conductor-compact:basis-auto conductor-compact:gap-4 conductor-compact:px-2 conductor-compact:py-2 relative mx-auto flex h-full min-h-0 w-full max-w-7xl flex-1 flex-col items-center justify-between px-4">
+      <div className="conductor-compact:basis-auto conductor-compact:gap-3 flex min-h-0 w-full flex-1 shrink flex-col items-center justify-center gap-4 md:gap-6">
         <div
           className={clsx(
-            "mb-2 flex w-full shrink-0 items-center justify-center overflow-y-auto px-2",
+            "conductor-compact:mb-0 conductor-compact:max-h-none conductor-compact:overflow-visible conductor-compact:rounded-xl conductor-compact:bg-black/60 conductor-compact:p-3 mb-2 flex w-full shrink-0 items-center justify-center overflow-y-auto px-2",
             hasMedia ? "max-h-[30vh] sm:max-h-[35vh]" : "max-h-[70vh]",
           )}
         >
           <h2
             className={clsx(
-              "anim-show w-full text-center leading-tight break-words text-white drop-shadow-lg",
+              "anim-show conductor-compact:[overflow-wrap:anywhere] conductor-compact:text-[clamp(1.25rem,4vw,2rem)] w-full text-center leading-tight break-words text-white drop-shadow-lg",
               getFontSizeClass(question.length),
             )}
           >
@@ -69,7 +69,7 @@ const Question = ({
         </div>
 
         {doublePoints && (
-          <div className="animate-double-points my-1 flex shrink-0 items-center gap-2 rounded-full border border-yellow-300/30 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 px-6 py-2 text-sm font-black tracking-wider text-white uppercase shadow-[0_0_20px_rgba(245,158,11,0.5)] select-none sm:text-base">
+          <div className="animate-double-points conductor-compact:my-0 conductor-compact:px-3 conductor-compact:py-1 conductor-compact:text-xs my-1 flex shrink-0 items-center gap-2 rounded-full border border-yellow-300/30 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 px-6 py-2 text-sm font-black tracking-wider text-white uppercase shadow-[0_0_20px_rgba(245,158,11,0.5)] select-none sm:text-base">
             <Sparkles className="animate-spin-slow size-4 text-yellow-100" />
             Double Points
             <Sparkles className="animate-spin-slow size-4 text-yellow-100" />
@@ -80,13 +80,13 @@ const Question = ({
           <img
             alt={question}
             src={media.url}
-            className="max-h-[35vh] min-h-0 w-auto shrink rounded-xl object-contain shadow-2xl sm:max-h-[45vh] md:max-h-[50vh]"
+            className="conductor-compact:max-h-[clamp(6rem,35dvh,16rem)] conductor-compact:max-w-full max-h-[35vh] min-h-0 w-auto shrink rounded-xl object-contain shadow-2xl sm:max-h-[45vh] md:max-h-[50vh]"
           />
         )}
 
         {type !== "slide" && (
-          <div className="anim-show mt-4 flex shrink-0 flex-col items-center gap-2">
-            <span className="text-sm font-semibold tracking-widest text-white/60 uppercase">
+          <div className="anim-show conductor-compact:mt-0 conductor-compact:gap-1 mt-4 flex max-w-full shrink-0 flex-col items-center gap-2">
+            <span className="conductor-compact:rounded-md conductor-compact:bg-black/65 conductor-compact:px-2 conductor-compact:py-1 conductor-compact:text-xs conductor-compact:text-white text-sm font-semibold tracking-widest text-white/60 uppercase">
               {type === "true_or_false"
                 ? "True or False"
                 : type === "puzzle"
@@ -94,10 +94,10 @@ const Question = ({
                   : `${count} Options`}
             </span>
             {type === "true_or_false" ? (
-              <div className="mt-2 flex justify-center gap-4 sm:gap-6">
+              <div className="conductor-compact:gap-2 mt-2 flex justify-center gap-4 sm:gap-6">
                 <div
                   className={clsx(
-                    "animate-tf-balance-a flex h-16 w-24 items-center justify-center rounded-2xl border border-white/20 text-xl font-black text-white shadow-2xl sm:h-20 sm:w-32 sm:text-2xl",
+                    "animate-tf-balance-a conductor-compact:h-10 conductor-compact:w-16 conductor-compact:rounded-xl conductor-compact:text-base flex h-16 w-24 items-center justify-center rounded-2xl border border-white/20 text-xl font-black text-white shadow-2xl sm:h-20 sm:w-32 sm:text-2xl",
                     ANSWERS_COLORS[0],
                   )}
                 >
@@ -105,7 +105,7 @@ const Question = ({
                 </div>
                 <div
                   className={clsx(
-                    "animate-tf-balance-b flex h-16 w-24 items-center justify-center rounded-2xl border border-white/20 text-xl font-black text-white shadow-2xl sm:h-20 sm:w-32 sm:text-2xl",
+                    "animate-tf-balance-b conductor-compact:h-10 conductor-compact:w-16 conductor-compact:rounded-xl conductor-compact:text-base flex h-16 w-24 items-center justify-center rounded-2xl border border-white/20 text-xl font-black text-white shadow-2xl sm:h-20 sm:w-32 sm:text-2xl",
                     ANSWERS_COLORS[1],
                   )}
                 >
@@ -113,8 +113,8 @@ const Question = ({
                 </div>
               </div>
             ) : type === "puzzle" ? (
-              <div className="puzzle-container-card mt-2 rounded-2xl border border-slate-700/50 bg-slate-900/80 p-4 shadow-2xl backdrop-blur-md">
-                <div className="grid min-w-[140px] grid-cols-2 gap-3 sm:min-w-[180px]">
+              <div className="puzzle-container-card conductor-compact:p-2 mt-2 rounded-2xl border border-slate-700/50 bg-slate-900/80 p-4 shadow-2xl backdrop-blur-md">
+                <div className="conductor-compact:min-w-0 conductor-compact:grid-cols-4 conductor-compact:gap-2 grid min-w-[140px] grid-cols-2 gap-3 sm:min-w-[180px]">
                   {Array.from({ length: count }).map((_, i) => {
                     const animClass =
                       i === 0
@@ -131,7 +131,7 @@ const Question = ({
                       <div
                         key={i}
                         className={clsx(
-                          "flex size-12 items-center justify-center rounded-xl border border-white/10 text-lg font-black text-white shadow-lg sm:size-16 sm:text-xl",
+                          "conductor-compact:size-9 conductor-compact:rounded-lg conductor-compact:text-sm flex size-12 items-center justify-center rounded-xl border border-white/10 text-lg font-black text-white shadow-lg sm:size-16 sm:text-xl",
                           ANSWERS_COLORS[i],
                           animClass,
                         )}
@@ -143,12 +143,12 @@ const Question = ({
                 </div>
               </div>
             ) : (
-              <div className="mt-2 flex justify-center gap-3">
+              <div className="conductor-compact:gap-1.5 mt-2 flex flex-wrap justify-center gap-3">
                 {Array.from({ length: count }).map((_, i) => (
                   <div
                     key={i}
                     className={clsx(
-                      "animate-quiz-wave flex size-10 items-center justify-center rounded-full border border-white/15 text-base font-black text-white shadow-lg sm:size-12 sm:text-lg",
+                      "animate-quiz-wave conductor-compact:size-8 conductor-compact:text-sm flex size-10 items-center justify-center rounded-full border border-white/15 text-base font-black text-white shadow-lg sm:size-12 sm:text-lg",
                       ANSWERS_COLORS[i],
                     )}
                     style={{
@@ -164,7 +164,7 @@ const Question = ({
         )}
       </div>
       <div
-        className="bg-primary mb-12 h-4 shrink-0 self-start justify-self-end rounded-full sm:mb-20"
+        className="bg-primary conductor-compact:mb-0 conductor-compact:h-2 mb-12 h-4 shrink-0 self-start justify-self-end rounded-full sm:mb-20"
         style={{ animation: `progressBar ${cooldown}s linear forwards` }}
       ></div>
     </section>

@@ -98,7 +98,7 @@ const QuestionEditorAnswers = () => {
 
   return (
     <div className="@container z-10 flex min-w-0 flex-col gap-3">
-      <div className="flex items-center justify-between px-1">
+      <div className="flex items-center justify-between gap-2 px-1">
         <div className="rounded-lg bg-white px-2 py-1 text-sm font-semibold text-gray-500">
           {answersList.length}
           {t("quizz:answersCountSuffix")}
@@ -108,7 +108,7 @@ const QuestionEditorAnswers = () => {
             aria-label={t("quizz:answerLength.removeLastOption")}
             onClick={removeAnswer}
             disabled={answersList.length <= 2 || isTrueOrFalse}
-            className="flex size-7 items-center justify-center rounded-lg bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-40"
+            className="flex size-11 items-center justify-center rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-40 lg:size-8"
           >
             <Minus className="size-4" />
           </button>
@@ -116,7 +116,7 @@ const QuestionEditorAnswers = () => {
             aria-label={t("quizz:answerLength.addOption")}
             onClick={addAnswer}
             disabled={answersList.length >= 7 || isTrueOrFalse}
-            className="flex size-7 items-center justify-center rounded-lg bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-40"
+            className="flex size-11 items-center justify-center rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-40 lg:size-8"
           >
             <Plus className="size-4" />
           </button>
@@ -150,7 +150,7 @@ const QuestionEditorAnswers = () => {
               key={i}
               id={`${inputId}-option`}
               className={clsx(
-                "flex min-w-0 flex-col gap-3 rounded-2xl p-4",
+                "flex min-w-0 scroll-mt-24 flex-col gap-2 rounded-xl p-3 lg:gap-3 lg:p-4",
                 ANSWERS_COLORS[i],
                 isTooLong && "ring-2 ring-red-600 ring-offset-2",
               )}
@@ -182,8 +182,8 @@ const QuestionEditorAnswers = () => {
               <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
                 <textarea
                   id={inputId}
-                  rows={3}
-                  className="min-h-16 w-full min-w-0 resize-y rounded-md bg-transparent leading-relaxed font-semibold [overflow-wrap:anywhere] text-white placeholder-white/70 outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  rows={2}
+                  className="field-sizing-content min-h-12 w-full min-w-0 resize-none scroll-mt-24 rounded-md bg-transparent px-1 text-base leading-relaxed font-semibold [overflow-wrap:anywhere] text-white placeholder-white/80 outline-none focus-visible:ring-2 focus-visible:ring-white lg:resize-y"
                   placeholder={
                     isPuzzle ? `Step ${i + 1}` : t("quizz:addAnswerPlaceholder")
                   }
@@ -207,7 +207,7 @@ const QuestionEditorAnswers = () => {
                     aria-pressed={isSelected}
                     onClick={() => toggleSolution(i)}
                     className={clsx(
-                      "flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                      "flex size-11 shrink-0 items-center justify-center rounded-full border-2 transition-colors lg:size-7",
                       isSelected
                         ? "border-white bg-white text-green-600"
                         : "border-white/60 bg-transparent",

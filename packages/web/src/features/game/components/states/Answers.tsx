@@ -123,28 +123,8 @@ const Answers = ({
     return "text-sm sm:text-base md:text-lg lg:text-xl font-bold"
   }
 
-  const maxAnswerLength = Math.max(...answers.map((a) => a.length))
-
-  const getOptionFontSizeClass = (maxLen: number) => {
-    if (maxLen < 20) {
-      return "text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl"
-    }
-
-    if (maxLen < 45) {
-      return "text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl"
-    }
-
-    if (maxLen < 75) {
-      return "text-[11px] sm:text-xs md:text-sm lg:text-base xl:text-lg"
-    }
-
-    return "text-[10px] sm:text-[11px] md:text-xs lg:text-sm xl:text-base"
-  }
-
-  const optionFontSizeClass = getOptionFontSizeClass(maxAnswerLength)
-
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col justify-between p-2 select-none sm:p-4">
+    <div className="conductor-compact:h-auto conductor-compact:shrink-0 conductor-compact:basis-auto conductor-compact:justify-start conductor-compact:gap-2 conductor-compact:px-2 conductor-compact:pt-0 conductor-compact:pb-2 flex h-full min-h-0 flex-1 flex-col justify-between p-2 select-none sm:p-4">
       {isManager && (
         <ConductorMusic
           enabled={
@@ -155,13 +135,16 @@ const Answers = ({
       )}
       <div
         className={clsx(
-          "mx-auto mb-2 flex min-h-0 w-full max-w-7xl shrink flex-col items-center justify-center gap-2 px-4",
+          "conductor-compact:mb-0 conductor-compact:flex-none conductor-compact:px-0 conductor-compact:py-0 mx-auto mb-2 flex min-h-0 w-full max-w-7xl shrink flex-col items-center justify-center gap-2 px-4",
+          media && "sm:conductor-compact:flex-row",
           type === "puzzle" || !media ? "shrink-0 py-1" : "flex-1",
         )}
       >
         <div
           className={clsx(
-            "mb-1 flex w-full shrink-0 items-center justify-center overflow-y-auto px-2",
+            "conductor-compact:mb-0 conductor-compact:max-h-none conductor-compact:overflow-visible conductor-compact:rounded-xl conductor-compact:bg-black/60 conductor-compact:p-2.5 mb-1 flex w-full shrink-0 items-center justify-center overflow-y-auto px-2",
+            media &&
+              "sm:conductor-compact:min-w-0 sm:conductor-compact:flex-1 sm:conductor-compact:self-stretch",
             type === "puzzle"
               ? "max-h-[15vh]"
               : media
@@ -172,7 +155,7 @@ const Answers = ({
           {!shouldHideText && (
             <h2
               className={clsx(
-                "w-full text-center leading-tight break-words text-white drop-shadow-lg",
+                "conductor-compact:[overflow-wrap:anywhere] conductor-compact:text-[clamp(1.125rem,3.5vw,1.75rem)] sm:conductor-compact:text-[clamp(1.125rem,5.5dvh,1.5rem)] w-full text-center leading-tight break-words text-white drop-shadow-lg",
                 getFontSizeClass(question.length),
               )}
             >
@@ -182,26 +165,26 @@ const Answers = ({
         </div>
 
         {!shouldHideText && media && (
-          <div className="flex h-[22vh] min-h-0 shrink items-center justify-center overflow-hidden sm:h-[26vh] md:h-[30vh]">
+          <div className="conductor-compact:h-auto conductor-compact:max-h-[clamp(6rem,35dvh,15rem)] conductor-compact:w-full sm:conductor-compact:max-h-[clamp(4rem,19dvh,8rem)] sm:conductor-compact:w-[min(36%,15rem)] sm:conductor-compact:shrink-0 flex h-[22vh] min-h-0 shrink items-center justify-center overflow-hidden sm:h-[26vh] md:h-[30vh]">
             <QuestionMedia
               media={media}
               alt={question}
-              className="max-h-full max-w-full object-contain"
+              className="conductor-compact:m-0 conductor-compact:max-h-[clamp(6rem,35dvh,15rem)] sm:conductor-compact:max-h-[clamp(4rem,19dvh,8rem)] max-h-full max-w-full object-contain"
             />
           </div>
         )}
       </div>
 
-      <div className="flex h-0 flex-1 flex-col">
-        <div className="mx-auto mb-2 flex w-full max-w-7xl shrink-0 justify-between gap-1 px-2 text-sm font-bold text-white sm:mb-4 sm:text-lg md:text-xl">
-          <div className="flex flex-col items-center rounded-lg bg-black/40 px-3 py-1 text-xs font-bold sm:px-4 sm:text-lg">
-            <span className="text-[10px] text-gray-300 sm:text-sm">
+      <div className="conductor-compact:contents flex h-0 flex-1 flex-col">
+        <div className="conductor-compact:sticky conductor-compact:top-0 conductor-compact:z-10 conductor-compact:order-first conductor-compact:mb-0 conductor-compact:rounded-lg conductor-compact:bg-slate-950 conductor-compact:px-1 mx-auto mb-2 flex w-full max-w-7xl shrink-0 justify-between gap-1 px-2 text-sm font-bold text-white sm:mb-4 sm:text-lg md:text-xl">
+          <div className="conductor-compact:flex-row conductor-compact:gap-2 conductor-compact:bg-transparent conductor-compact:px-2 conductor-compact:text-base flex flex-col items-center rounded-lg bg-black/40 px-3 py-1 text-xs font-bold sm:px-4 sm:text-lg">
+            <span className="conductor-compact:text-xs text-[10px] text-gray-300 sm:text-sm">
               {t("game:hud.time")}
             </span>
             <span className="font-extrabold">{cooldown}</span>
           </div>
-          <div className="flex flex-col items-center rounded-lg bg-black/40 px-3 py-1 text-xs font-bold sm:px-4 sm:text-lg">
-            <span className="text-[10px] text-gray-300 sm:text-sm">
+          <div className="conductor-compact:flex-row conductor-compact:gap-2 conductor-compact:bg-transparent conductor-compact:px-2 conductor-compact:text-base flex flex-col items-center rounded-lg bg-black/40 px-3 py-1 text-xs font-bold sm:px-4 sm:text-lg">
+            <span className="conductor-compact:text-xs text-[10px] text-gray-300 sm:text-sm">
               {t("game:hud.answers")}
             </span>
             <span className="font-extrabold">
@@ -218,8 +201,8 @@ const Answers = ({
               sfxPop()
             }}
             label={(_item, index) => `Move answer ${index + 1}`}
-            className="mx-auto flex h-full min-h-0 w-full max-w-2xl flex-1 flex-col gap-2 px-4 pb-2"
-            itemClassName="min-h-0 flex-1"
+            className="conductor-compact:h-auto conductor-compact:flex-none conductor-compact:px-0 conductor-compact:pb-0 mx-auto flex h-full min-h-0 w-full max-w-2xl flex-1 flex-col gap-2 px-4 pb-2"
+            itemClassName="min-h-0 flex-1 conductor-compact:flex-none"
             renderItem={(item, index, handle) => (
               <div
                 className={clsx(
@@ -238,15 +221,26 @@ const Answers = ({
             )}
           />
         ) : (
-          <div className="mx-auto grid h-0 w-full max-w-7xl flex-1 auto-rows-fr grid-cols-2 gap-2 px-2 pb-4 text-xl font-extrabold text-white sm:text-2xl md:text-3xl">
+          <div
+            className={clsx(
+              "conductor-compact:h-auto conductor-compact:flex-none conductor-compact:auto-rows-auto conductor-compact:px-0 conductor-compact:pb-0 mx-auto grid h-0 w-full max-w-7xl flex-1 auto-rows-fr grid-cols-2 gap-2 px-2 pb-4 text-xl font-extrabold text-white sm:text-2xl md:text-3xl",
+              answers.length === 6
+                ? "sm:conductor-compact:grid-cols-3"
+                : answers.length >= 4 && "sm:conductor-compact:grid-cols-4",
+            )}
+          >
             {answers.map((answer, key) => (
               <AnswerButton
                 key={key}
                 largeLabelOnly={shouldHideText}
-                fontSizeClass={optionFontSizeClass}
                 className={clsx(
                   ANSWERS_COLORS[key],
                   "disabled:cursor-default",
+                  answers.length % 2 === 1 &&
+                    key === answers.length - 1 &&
+                    (answers.length === 5
+                      ? "conductor-compact:col-span-2 sm:conductor-compact:col-span-4"
+                      : "conductor-compact:col-span-2"),
                   multiSelect &&
                     selectedKeys.includes(key) &&
                     "ring-4 ring-white",
@@ -263,7 +257,7 @@ const Answers = ({
                 }
               >
                 <div className="flex w-full items-center justify-between">
-                  <span className="flex-1 pr-1 sm:pr-2">{answer}</span>
+                  <span className="min-w-0 flex-1 pr-1 sm:pr-2">{answer}</span>
                   {multiSelect && selectedKeys.includes(key) && (
                     <svg
                       className="size-4 shrink-0 fill-current stroke-2 text-white sm:size-5"
