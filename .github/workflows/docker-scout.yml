@@ -11,6 +11,14 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            category: docker-scout
+          - platform: linux/arm64
+            category: docker-scout-arm64
     permissions:
       contents: read
       security-events: write
@@ -29,7 +37,7 @@ jobs:
         with:
           command: cves
           image: registry://gokulvasanthd/gohoot:latest
-          platform: linux/amd64
+          platform: ${{ matrix.platform }}
           sarif-file: scout.sarif
 
       - name: Upload results to GitHub Security
@@ -37,15 +45,14 @@ jobs:
         uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           sarif_file: scout.sarif
-          category: docker-scout
+          category: ${{ matrix.category }}
 
-      - name: Fail on fixable critical or high vulnerabilities
+      - name: Fail on affected critical or high vulnerabilities
         uses: docker/scout-action@a4119c5a8c5076236a54e4ce99531f7e4dd2ef84 # v1.27.0
         with:
           command: cves
           image: registry://gokulvasanthd/gohoot:latest
-          platform: linux/amd64
-          only-fixed: true
+          platform: ${{ matrix.platform }}
           only-severities: critical,high
           vex-location: docker/vex
           vex-author: https://github.com/gokulvasanthgv/GoHoot

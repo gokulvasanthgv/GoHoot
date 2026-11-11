@@ -22,8 +22,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "pnpm build && pnpm --filter @razzia/e2e test",
     "test:e2e:ui": "pnpm build && pnpm --filter @razzia/e2e test:ui",
-    "docker:build": "docker build -t gohoot:local .",
-    "docker:scout": "pnpm docker:build && docker scout quickview gohoot:local && docker scout cves gohoot:local --only-severity critical,high --only-fixed --vex-location docker/vex --vex-author https://github.com/gokulvasanthgv/GoHoot --only-vex-affected --exit-code",
+    "docker:build": "docker build --no-cache-filter runner -t gohoot:local .",
+    "docker:scout": "pnpm docker:build && docker scout quickview gohoot:local && docker scout cves gohoot:local --only-severity critical,high --vex-location docker/vex --vex-author https://github.com/gokulvasanthgv/GoHoot --only-vex-affected --exit-code",
     "act:release": "act release -W .github/workflows/docker-release.yml --env GITHUB_REF_NAME=v0.0.1 -P ubuntu-latest=catthehacker/ubuntu:act-latest -s DOCKERHUB_USERNAME=dry-run",
     "types": "pnpm -r run types"
   },
