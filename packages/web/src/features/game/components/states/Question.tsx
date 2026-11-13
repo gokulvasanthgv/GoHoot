@@ -10,6 +10,7 @@ import useSound from "use-sound"
 import clsx from "clsx"
 import { Sparkles } from "lucide-react"
 import { useIsManagerScreen } from "@razzia/web/features/game/contexts/game-screen-context"
+import QuestionHeading from "@razzia/web/features/game/components/QuestionHeading"
 
 interface Props {
   data: CommonStatusDataMap["SHOW_QUESTION"]
@@ -34,39 +35,17 @@ const Question = ({
     sfxShow()
   }, [sfxShow])
 
-  const getFontSizeClass = (len: number) => {
-    if (len < 50) {
-      return "text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold"
-    }
-
-    if (len < 100) {
-      return "text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold"
-    }
-
-    return "text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold"
-  }
-
-  const hasMedia = media?.type === MEDIA_TYPES.IMAGE
   const count = type === "true_or_false" ? 2 : answersCount || 4
 
   return (
-    <section className="conductor-compact:h-auto conductor-compact:shrink-0 conductor-compact:basis-auto conductor-compact:gap-4 conductor-compact:px-2 conductor-compact:py-2 relative mx-auto flex h-full min-h-0 w-full max-w-7xl flex-1 flex-col items-center justify-between px-4">
-      <div className="conductor-compact:basis-auto conductor-compact:gap-3 flex min-h-0 w-full flex-1 shrink flex-col items-center justify-center gap-4 md:gap-6">
-        <div
-          className={clsx(
-            "conductor-compact:mb-0 conductor-compact:max-h-none conductor-compact:overflow-visible conductor-compact:rounded-xl conductor-compact:bg-black/60 conductor-compact:p-3 mb-2 flex w-full shrink-0 items-center justify-center overflow-y-auto px-2",
-            hasMedia ? "max-h-[30vh] sm:max-h-[35vh]" : "max-h-[70vh]",
-          )}
-        >
-          <h2
-            className={clsx(
-              "anim-show conductor-compact:[overflow-wrap:anywhere] conductor-compact:text-[clamp(1.25rem,4vw,2rem)] w-full text-center leading-tight break-words text-white drop-shadow-lg",
-              getFontSizeClass(question.length),
-            )}
-          >
-            {!hideText && question}
-          </h2>
-        </div>
+    <section className="conductor-compact:h-auto conductor-compact:shrink-0 conductor-compact:basis-auto conductor-compact:gap-4 conductor-compact:overflow-visible conductor-compact:px-2 conductor-compact:py-2 relative mx-auto flex h-full min-h-0 w-full max-w-7xl flex-1 flex-col items-center justify-between overflow-x-hidden overflow-y-auto px-4">
+      <div className="conductor-compact:basis-auto conductor-compact:gap-3 flex w-full flex-auto flex-col items-center justify-center gap-4 pb-3 md:gap-6">
+        {!hideText && (
+          <QuestionHeading
+            question={question}
+            className="anim-show conductor-compact:rounded-xl conductor-compact:bg-black/35 conductor-compact:p-3 w-full px-2"
+          />
+        )}
 
         {doublePoints && (
           <div className="animate-double-points conductor-compact:my-0 conductor-compact:px-3 conductor-compact:py-1 conductor-compact:text-xs my-1 flex shrink-0 items-center gap-2 rounded-full border border-yellow-300/30 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 px-6 py-2 text-sm font-black tracking-wider text-white uppercase shadow-[0_0_20px_rgba(245,158,11,0.5)] select-none sm:text-base">
@@ -80,7 +59,7 @@ const Question = ({
           <img
             alt={question}
             src={media.url}
-            className="conductor-compact:max-h-[clamp(6rem,35dvh,16rem)] conductor-compact:max-w-full max-h-[35vh] min-h-0 w-auto shrink rounded-xl object-contain shadow-2xl sm:max-h-[45vh] md:max-h-[50vh]"
+            className="conductor-compact:max-h-[clamp(6rem,35dvh,16rem)] max-h-[35dvh] max-w-full rounded-xl object-contain shadow-2xl sm:max-h-[42dvh]"
           />
         )}
 

@@ -2,7 +2,7 @@ import AlertDialog from "@razzia/web/components/AlertDialog"
 import Button from "@razzia/web/components/Button"
 import { createGame } from "@razzia/web/features/manager/queries"
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
-import { STATUS } from "@razzia/common/types/game/status"
+import { useQuestionStore } from "@razzia/web/features/game/stores/question"
 import { useNavigate } from "@tanstack/react-router"
 import { useMutation } from "@tanstack/react-query"
 import { useConfig } from "@razzia/web/features/manager/contexts/config-context"
@@ -16,15 +16,13 @@ const ConfigSelectQuizz = () => {
   const navigate = useNavigate()
   const create = useMutation({
     mutationFn: createGame,
-    onSuccess: ({ gameId, inviteCode }) => {
-      const store = useManagerStore.getState()
-      store.setGameId(gameId)
-      store.setInviteCode(inviteCode)
-      store.setStatus(STATUS.SHOW_ROOM, {
-        text: "game:waitingForPlayers",
-        inviteCode,
+    onSuccess: (game) => {
+      useManagerStore.getState().openLobby(game)
+      useQuestionStore.getState().setQuestionStates(null)
+      navigate({
+        to: "/party/manager/$gameId",
+        params: { gameId: game.gameId },
       })
-      navigate({ to: "/party/manager/$gameId", params: { gameId } })
     },
     onError: (error: Error) => toast.error(t(error.message)),
   })

@@ -1,9 +1,12 @@
 import { test, expect, type Page } from "@playwright/test"
 
 const musicUrl = "http://127.0.0.1:18855/sounds/answersMusic.mp3?conductor=1"
+const wallpaperUrl =
+  "http://127.0.0.1:18855/gohoot-logo-favicon.webp?wallpaper=presentation"
+const baseWallpaperPattern = /\/assets\/background-[^/]+\.png$/u
 
-const playingMusic = (page: Page) =>
-  page.evaluate(() => {
+const playingTracks = (page: Page, loop: boolean) =>
+  page.evaluate((looping) => {
     const howler = (
       window as unknown as {
         Howler?: {
@@ -18,9 +21,22 @@ const playingMusic = (page: Page) =>
     ).Howler
 
     return (howler?._howls ?? [])
-      .filter((track) => track._loop && track.playing())
+      .filter((track) => track._loop === looping && track.playing())
       .map((track) => ({ source: track._src, volume: track.volume() }))
-  })
+  }, loop)
+
+const playingMusic = (page: Page) => playingTracks(page, true)
+const playingAnnouncement = async (page: Page) =>
+  (await playingTracks(page, false)).some(
+    ({ source }) =>
+      new URL(source, page.url()).pathname === "/sounds/results.mp3",
+  )
+
+const expectCustomWallpaper = async (page: Page) => {
+  const layer = page.locator("[data-game-wallpaper]")
+  await expect(layer.locator("img")).toHaveAttribute("src", wallpaperUrl)
+  await expect(layer.locator("div")).toHaveCSS("opacity", "0.65")
+}
 
 const whiteContrast = (background: string) => {
   const channels = (background.match(/[\d.]+/gu) ?? []).slice(0, 3).map(Number)
@@ -72,6 +88,13 @@ test("conductor colours, response charts, player controls, and music work across
     .getByRole("button", { name: "Configurations", exact: true })
     .click()
   await expect.poll(() => playingMusic(page)).toEqual([])
+  const baseWallpaperRequests: string[] = []
+  const recordBaseWallpaper = (url: string) => {
+    if (baseWallpaperPattern.test(new URL(url).pathname)) {
+      baseWallpaperRequests.push(url)
+    }
+  }
+  page.on("request", (request) => recordBaseWallpaper(request.url()))
   await page.getByText("Conductor presentation checks", { exact: true }).click()
   await page.getByRole("button", { name: "Start game", exact: true }).click()
   await page
@@ -79,6 +102,7 @@ test("conductor colours, response charts, player controls, and music work across
     .getByRole("button", { name: "Start", exact: true })
     .click()
   const pin = (await page.locator("p.text-6xl").innerText()).replace(/\s/gu, "")
+  await expectCustomWallpaper(page)
   await expect
     .poll(() => playingMusic(page))
     .toEqual([{ source: musicUrl, volume: 0.2 }])
@@ -89,6 +113,8 @@ test("conductor colours, response charts, player controls, and music work across
   const guest = await guestContext.newPage()
   const guestMusicRequests: string[] = []
   guest.on("request", (request) => {
+    recordBaseWallpaper(request.url())
+
     if (request.url().includes("answersMusic.mp3")) {
       guestMusicRequests.push(request.url())
     }
@@ -101,6 +127,7 @@ test("conductor colours, response charts, player controls, and music work across
     await expect(
       page.getByText("Presentation player", { exact: true }),
     ).toBeVisible()
+    await expectCustomWallpaper(guest)
     await page.getByRole("button", { name: "Start Game", exact: true }).click()
     await page.getByLabel("Double time").check()
     await page.getByRole("button", { name: "Start Game", exact: true }).click()
@@ -118,6 +145,8 @@ test("conductor colours, response charts, player controls, and music work across
       .poll(() => playingMusic(page))
       .toEqual([{ source: musicUrl, volume: 0.2 }])
     await expect.poll(() => playingMusic(guest)).toEqual([])
+    await expectCustomWallpaper(page)
+    await expectCustomWallpaper(guest)
 
     const firstColours = (await answerStyles(page)).map(
       (style) => style.background,
@@ -144,6 +173,8 @@ test("conductor colours, response charts, player controls, and music work across
       exact: true,
     })
     await expect(chart).toBeVisible()
+    await expect.poll(() => playingAnnouncement(page)).toBe(true)
+    await expect.poll(() => playingMusic(page)).toEqual([])
     for (const label of ["A: 1", "B: 0", "C: 1", "D: 1"]) {
       await expect(
         chart.getByRole("listitem", { name: label, exact: true }),
@@ -197,6 +228,12 @@ test("conductor colours, response charts, player controls, and music work across
     })
     await volume.focus()
     await volume.press("End")
+    await expect.poll(() => playingMusic(page)).toEqual([])
+
+    await nextQuestion(page)
+    await expect(
+      guest.getByRole("button", { name: "B Blue", exact: true }),
+    ).toBeVisible()
     await expect
       .poll(() => playingMusic(page))
       .toEqual([{ source: musicUrl, volume: 1 }])
@@ -213,10 +250,6 @@ test("conductor colours, response charts, player controls, and music work across
       .poll(() => playingMusic(page))
       .toEqual([{ source: musicUrl, volume: 1 }])
 
-    await nextQuestion(page)
-    await expect(
-      guest.getByRole("button", { name: "B Blue", exact: true }),
-    ).toBeVisible()
     const sevenStyles = await answerStyles(page)
     expect(sevenStyles).toHaveLength(7)
     for (const style of sevenStyles) {
@@ -290,6 +323,9 @@ test("conductor colours, response charts, player controls, and music work across
     await expect(
       guest.getByRole("button", { name: "A True", exact: true }),
     ).toBeVisible()
+    await expect
+      .poll(() => playingMusic(page))
+      .toEqual([{ source: musicUrl, volume: 1 }])
     await page.getByRole("button", { name: "Skip", exact: true }).click()
     await expect(
       chart.getByRole("listitem", { name: "A: 0", exact: true }),
@@ -297,9 +333,10 @@ test("conductor colours, response charts, player controls, and music work across
     await expect(
       chart.getByRole("listitem", { name: "B: 0", exact: true }),
     ).toBeVisible()
-    await expect
-      .poll(() => playingMusic(page))
-      .toEqual([{ source: musicUrl, volume: 1 }])
+    await expect.poll(() => playingAnnouncement(page)).toBe(true)
+    await expect.poll(() => playingMusic(page)).toEqual([])
+    await expectCustomWallpaper(page)
+    expect(baseWallpaperRequests).toEqual([])
     expect(guestMusicRequests).toEqual([])
     await expect.poll(() => playingMusic(guest)).toEqual([])
 
@@ -307,6 +344,17 @@ test("conductor colours, response charts, player controls, and music work across
     await page.goBack()
     await expect(page).toHaveURL(/\/manager\/config$/u)
     await expect.poll(() => playingMusic(page)).toEqual([])
+
+    await page.getByText("Live compatibility quiz", { exact: true }).click()
+    await page.getByRole("button", { name: "Start game", exact: true }).click()
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Start", exact: true })
+      .click()
+    await expect(page.locator("[data-game-wallpaper] img")).toHaveAttribute(
+      "src",
+      baseWallpaperPattern,
+    )
   } finally {
     await guestContext.close()
   }

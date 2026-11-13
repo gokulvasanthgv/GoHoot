@@ -31,17 +31,14 @@ import {
 const ManagerGamePage = () => {
   const navigate = useNavigate()
   const { gameId: gameIdParam } = useParams({ from: "/party/manager/$gameId" })
-  const { socket } = useSocket()
+  const { socket, isConnected } = useSocket()
   const {
     gameId,
     status,
-    setGameId,
-    setInviteCode,
-    setStatus,
-    setPlayers,
     reset,
-    setWallpaper,
-    setAudio,
+    restoreGame,
+    applyGameStatus,
+    applyGameSettings,
   } = useManagerStore()
   const { setQuestionStates } = useQuestionStore()
   const { t } = useTranslation()
@@ -52,9 +49,10 @@ const ManagerGamePage = () => {
   const [doubleTime, setDoubleTime] = useState(false)
   const [shuffleAnswers, setShuffleAnswers] = useState(false)
   const [hideTextOnClient, setHideTextOnClient] = useState(false)
-  useEvent(EVENTS.GAME.SETTINGS, ({ wallpaper, audio }) => {
-    setWallpaper(wallpaper ?? null)
-    setAudio(audio ?? null)
+  useEvent(EVENTS.GAME.SETTINGS, (settings) => {
+    if (settings.gameId === gameIdParam) {
+      applyGameSettings(settings)
+    }
   })
 
   const confirmStartGame = () => {
@@ -71,50 +69,27 @@ const ManagerGamePage = () => {
     setShowPreGameMenu(false)
   }
 
-  useEvent(EVENTS.GAME.STATUS, ({ name, data, wallpaper, audio }) => {
-    if (name in GAME_STATE_COMPONENTS_MANAGER) {
-      setStatus(name, data)
-      setWallpaper(wallpaper ?? null)
-      setAudio(audio ?? null)
+  useEvent(EVENTS.GAME.STATUS, (update) => {
+    if (
+      update.gameId === gameIdParam &&
+      update.name in GAME_STATE_COMPONENTS_MANAGER
+    ) {
+      applyGameStatus(update)
+    }
+  })
+
+  useEvent(EVENTS.MANAGER.SUCCESS_RECONNECT, (game) => {
+    if (game.gameId === gameIdParam) {
+      restoreGame(game)
+      setQuestionStates(game.currentQuestion)
     }
   })
 
   useEffect(() => {
-    if (socket.connected && gameIdParam) {
+    if (isConnected) {
       socket.emit(EVENTS.MANAGER.RECONNECT, { gameId: gameIdParam })
     }
-  }, [socket.connected, gameIdParam, socket])
-
-  useEvent("connect", () => {
-    if (gameIdParam) {
-      socket.emit(EVENTS.MANAGER.RECONNECT, { gameId: gameIdParam })
-    }
-  })
-
-  useEvent(
-    EVENTS.MANAGER.SUCCESS_RECONNECT,
-    ({
-      gameId: reconnectGameId,
-      inviteCode: reconnectInviteCode,
-      status: reconnectStatus,
-      players,
-      currentQuestion,
-      wallpaper,
-      audio,
-    }) => {
-      setGameId(reconnectGameId)
-
-      if (reconnectInviteCode) {
-        setInviteCode(reconnectInviteCode)
-      }
-
-      setStatus(reconnectStatus.name, reconnectStatus.data)
-      setPlayers(players)
-      setQuestionStates(currentQuestion)
-      setWallpaper(wallpaper ?? null)
-      setAudio(audio ?? null)
-    },
-  )
+  }, [isConnected, gameIdParam, socket])
 
   useEvent(EVENTS.GAME.RESET, (message) => {
     navigate({ to: "/manager/config" })
@@ -162,8 +137,8 @@ const ManagerGamePage = () => {
       ? GAME_STATE_COMPONENTS_MANAGER[status.name]
       : null
 
-  if (!status) {
-    return null
+  if (!status || gameId !== gameIdParam) {
+    return <GameWrapper statusName={undefined} manager />
   }
 
   return (

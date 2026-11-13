@@ -56,6 +56,7 @@ export interface MessageGameId {
 
 export interface ServerToClientEvents {
   [EVENTS.GAME.SETTINGS]: (_settings: {
+    gameId: string
     wallpaper?: string
     audio?: string
   }) => void
@@ -74,6 +75,7 @@ export interface ServerToClientEvents {
 
   // Game events
   [EVENTS.GAME.STATUS]: (_data: {
+    gameId: string
     name: Status
     data: StatusDataMap[Status]
     wallpaper?: string
@@ -126,6 +128,8 @@ export interface ServerToClientEvents {
   [EVENTS.MANAGER.GAME_CREATED]: (_data: {
     gameId: string
     inviteCode: string
+    wallpaper?: string
+    audio?: string
   }) => void
   [EVENTS.MANAGER.STATUS_UPDATE]: (_data: {
     status: Status

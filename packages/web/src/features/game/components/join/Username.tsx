@@ -1,5 +1,4 @@
 import { EVENTS } from "@razzia/common/constants"
-import { STATUS } from "@razzia/common/types/game/status"
 import Button from "@razzia/web/components/Button"
 import Card from "@razzia/web/components/Card"
 import Input from "@razzia/web/components/Input"
@@ -17,7 +16,7 @@ import toast from "react-hot-toast"
 
 const Username = () => {
   const { socket } = useSocket()
-  const { gameId, inviteCode, login, setStatus } = usePlayerStore()
+  const { gameId, inviteCode, login } = usePlayerStore()
   const navigate = useNavigate()
   const [username, setUsername] = useState("")
   const { t } = useTranslation()
@@ -58,7 +57,6 @@ const Username = () => {
   }
 
   useEvent(EVENTS.GAME.SUCCESS_JOIN, (joinedGameId) => {
-    setStatus(STATUS.WAIT, { text: "game:waitingForPlayers" })
     login(username)
 
     navigate({ to: "/party/$gameId", params: { gameId: joinedGameId } })

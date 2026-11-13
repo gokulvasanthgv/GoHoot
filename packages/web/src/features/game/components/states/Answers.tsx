@@ -3,6 +3,7 @@ import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
 import QuestionMedia from "@razzia/web/components/QuestionMedia"
 import AnswerButton from "@razzia/web/features/game/components/AnswerButton"
 import ConductorMusic from "@razzia/web/features/game/components/ConductorMusic"
+import QuestionHeading from "@razzia/web/features/game/components/QuestionHeading"
 import { useIsManagerScreen } from "@razzia/web/features/game/contexts/game-screen-context"
 import {
   useEvent,
@@ -15,7 +16,7 @@ import {
   SFX,
 } from "@razzia/web/features/game/utils/constants"
 import clsx from "clsx"
-import { useEffect, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import useSound from "use-sound"
 import SortableList from "@razzia/web/components/SortableList"
@@ -40,6 +41,7 @@ const Answers = ({
   const { player, gameId } = usePlayerStore()
   const isManager = useIsManagerScreen()
   const shouldHideText = Boolean(hideTextOnClient) && !isManager
+  const answerGridRef = useRef<HTMLDivElement>(null)
 
   const [cooldown, setCooldown] = useState(time)
   const [totalAnswer, setTotalAnswer] = useState(0)
@@ -61,6 +63,75 @@ const Answers = ({
       )
     }
   }, [answers, type])
+
+  useLayoutEffect(() => {
+    const grid = answerGridRef.current
+
+    if (!grid) {
+      return
+    }
+
+    const labels = [...grid.querySelectorAll<HTMLElement>("[data-answer-text]")]
+
+    if (labels.length === 0) {
+      return
+    }
+
+    const [firstLabel] = labels
+    const fitAnswers = () => {
+      const widths = labels.map((label) => ({
+        label,
+        available: label.clientWidth,
+      }))
+
+      if (widths.some(({ available }) => available === 0)) {
+        return
+      }
+
+      // Let the browser measure the widest part of each answer it would keep together.
+      grid.dataset.measuringAnswers = ""
+      const preferred = Number.parseFloat(getComputedStyle(firstLabel).fontSize)
+      const minimum = Number.parseFloat(getComputedStyle(grid).fontSize)
+      const ratio = Math.min(
+        1,
+        ...widths.map(({ label, available }) => {
+          const needed = label.offsetWidth
+
+          // A token that would wrap at the readable minimum should not shrink the other options.
+          return needed * (minimum / preferred) > available
+            ? 1
+            : (available - 1) / Math.max(1, needed)
+        }),
+      )
+      delete grid.dataset.measuringAnswers
+      grid.style.setProperty("--answer-fitted-size", `${preferred * ratio}px`)
+    }
+
+    let frame: number | undefined = undefined
+    const scheduleFit = () => {
+      frame ??= requestAnimationFrame(() => {
+        frame = undefined
+        fitAnswers()
+      })
+    }
+    const observer = new ResizeObserver(scheduleFit)
+
+    fitAnswers()
+    observer.observe(grid)
+    window.addEventListener("resize", scheduleFit)
+    document.fonts.addEventListener("loadingdone", scheduleFit)
+
+    return () => {
+      if (frame !== undefined) {
+        cancelAnimationFrame(frame)
+      }
+
+      observer.disconnect()
+      window.removeEventListener("resize", scheduleFit)
+      document.fonts.removeEventListener("loadingdone", scheduleFit)
+      grid.style.removeProperty("--answer-fitted-size")
+    }
+  }, [answers, shouldHideText, type])
 
   const handleAnswer = (answerKey: number) => () => {
     if (!player || !gameId) {
@@ -111,20 +182,8 @@ const Answers = ({
 
   const isMultiOrPuzzle = type === "puzzle" || multiSelect
 
-  const getFontSizeClass = (len: number) => {
-    if (len < 50) {
-      return "text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold"
-    }
-
-    if (len < 100) {
-      return "text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold"
-    }
-
-    return "text-sm sm:text-base md:text-lg lg:text-xl font-bold"
-  }
-
   return (
-    <div className="conductor-compact:h-auto conductor-compact:shrink-0 conductor-compact:basis-auto conductor-compact:justify-start conductor-compact:gap-2 conductor-compact:px-2 conductor-compact:pt-0 conductor-compact:pb-2 flex h-full min-h-0 flex-1 flex-col justify-between p-2 select-none sm:p-4">
+    <div className="conductor-compact:h-auto conductor-compact:shrink-0 conductor-compact:basis-auto conductor-compact:justify-start conductor-compact:gap-2 conductor-compact:overflow-visible conductor-compact:px-2 conductor-compact:pt-0 conductor-compact:pb-2 flex h-full min-h-0 flex-1 flex-col justify-between overflow-x-hidden overflow-y-auto p-2 select-none sm:p-4">
       {isManager && (
         <ConductorMusic
           enabled={
@@ -135,37 +194,23 @@ const Answers = ({
       )}
       <div
         className={clsx(
-          "conductor-compact:mb-0 conductor-compact:flex-none conductor-compact:px-0 conductor-compact:py-0 mx-auto mb-2 flex min-h-0 w-full max-w-7xl shrink flex-col items-center justify-center gap-2 px-4",
+          "conductor-compact:mb-0 conductor-compact:px-0 conductor-compact:py-0 mx-auto mb-2 flex w-full max-w-7xl shrink-0 flex-col items-center justify-center gap-2 px-4",
           media && "sm:conductor-compact:flex-row",
-          type === "puzzle" || !media ? "shrink-0 py-1" : "flex-1",
         )}
       >
-        <div
-          className={clsx(
-            "conductor-compact:mb-0 conductor-compact:max-h-none conductor-compact:overflow-visible conductor-compact:rounded-xl conductor-compact:bg-black/60 conductor-compact:p-2.5 mb-1 flex w-full shrink-0 items-center justify-center overflow-y-auto px-2",
-            media &&
-              "sm:conductor-compact:min-w-0 sm:conductor-compact:flex-1 sm:conductor-compact:self-stretch",
-            type === "puzzle"
-              ? "max-h-[15vh]"
-              : media
-                ? "max-h-[18vh] sm:max-h-[22vh]"
-                : "max-h-[35vh]",
-          )}
-        >
-          {!shouldHideText && (
-            <h2
-              className={clsx(
-                "conductor-compact:[overflow-wrap:anywhere] conductor-compact:text-[clamp(1.125rem,3.5vw,1.75rem)] sm:conductor-compact:text-[clamp(1.125rem,5.5dvh,1.5rem)] w-full text-center leading-tight break-words text-white drop-shadow-lg",
-                getFontSizeClass(question.length),
-              )}
-            >
-              {question}
-            </h2>
-          )}
-        </div>
+        {!shouldHideText && (
+          <div
+            className={clsx(
+              "conductor-compact:rounded-xl conductor-compact:bg-black/35 conductor-compact:p-2.5 sm:conductor-compact:p-2 w-full min-w-0 px-2",
+              media && "sm:conductor-compact:flex-1",
+            )}
+          >
+            <QuestionHeading question={question} />
+          </div>
+        )}
 
         {!shouldHideText && media && (
-          <div className="conductor-compact:h-auto conductor-compact:max-h-[clamp(6rem,35dvh,15rem)] conductor-compact:w-full sm:conductor-compact:max-h-[clamp(4rem,19dvh,8rem)] sm:conductor-compact:w-[min(36%,15rem)] sm:conductor-compact:shrink-0 flex h-[22vh] min-h-0 shrink items-center justify-center overflow-hidden sm:h-[26vh] md:h-[30vh]">
+          <div className="conductor-compact:h-auto conductor-compact:max-h-[clamp(6rem,35dvh,15rem)] conductor-compact:w-full sm:conductor-compact:max-h-[clamp(4rem,19dvh,8rem)] sm:conductor-compact:w-[min(36%,15rem)] flex h-[clamp(4rem,24dvh,18rem)] min-h-0 shrink-0 items-center justify-center overflow-hidden">
             <QuestionMedia
               media={media}
               alt={question}
@@ -175,7 +220,7 @@ const Answers = ({
         )}
       </div>
 
-      <div className="conductor-compact:contents flex h-0 flex-1 flex-col">
+      <div className="conductor-compact:contents flex flex-1 flex-col">
         <div className="conductor-compact:sticky conductor-compact:top-0 conductor-compact:z-10 conductor-compact:order-first conductor-compact:mb-0 conductor-compact:rounded-lg conductor-compact:bg-slate-950 conductor-compact:px-1 mx-auto mb-2 flex w-full max-w-7xl shrink-0 justify-between gap-1 px-2 text-sm font-bold text-white sm:mb-4 sm:text-lg md:text-xl">
           <div className="conductor-compact:flex-row conductor-compact:gap-2 conductor-compact:bg-transparent conductor-compact:px-2 conductor-compact:text-base flex flex-col items-center rounded-lg bg-black/40 px-3 py-1 text-xs font-bold sm:px-4 sm:text-lg">
             <span className="conductor-compact:text-xs text-[10px] text-gray-300 sm:text-sm">
@@ -201,8 +246,8 @@ const Answers = ({
               sfxPop()
             }}
             label={(_item, index) => `Move answer ${index + 1}`}
-            className="conductor-compact:h-auto conductor-compact:flex-none conductor-compact:px-0 conductor-compact:pb-0 mx-auto flex h-full min-h-0 w-full max-w-2xl flex-1 flex-col gap-2 px-4 pb-2"
-            itemClassName="min-h-0 flex-1 conductor-compact:flex-none"
+            className="answer-puzzle conductor-compact:flex-none conductor-compact:px-0 conductor-compact:pb-0 mx-auto flex w-full max-w-2xl flex-1 flex-col gap-2 px-4 pb-2"
+            itemClassName="flex-auto"
             renderItem={(item, index, handle) => (
               <div
                 className={clsx(
@@ -213,7 +258,10 @@ const Answers = ({
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/20 text-sm font-extrabold">
                   {index + 1}
                 </span>
-                <span className="min-w-0 flex-1 text-base font-bold [overflow-wrap:anywhere] sm:text-xl">
+                <span
+                  data-answer-text=""
+                  className="min-w-0 flex-1 leading-snug font-bold"
+                >
                   {item.text}
                 </span>
                 {!isManager && handle}
@@ -222,8 +270,9 @@ const Answers = ({
           />
         ) : (
           <div
+            ref={answerGridRef}
             className={clsx(
-              "conductor-compact:h-auto conductor-compact:flex-none conductor-compact:auto-rows-auto conductor-compact:px-0 conductor-compact:pb-0 mx-auto grid h-0 w-full max-w-7xl flex-1 auto-rows-fr grid-cols-2 gap-2 px-2 pb-4 text-xl font-extrabold text-white sm:text-2xl md:text-3xl",
+              "answer-grid conductor-compact:flex-none conductor-compact:auto-rows-auto conductor-compact:px-0 conductor-compact:pb-0 mx-auto grid w-full max-w-7xl flex-1 auto-rows-fr grid-cols-2 gap-2 px-2 pb-4 text-white max-[300px]:grid-cols-1",
               answers.length === 6
                 ? "sm:conductor-compact:grid-cols-3"
                 : answers.length >= 4 && "sm:conductor-compact:grid-cols-4",
@@ -238,36 +287,22 @@ const Answers = ({
                   "disabled:cursor-default",
                   answers.length % 2 === 1 &&
                     key === answers.length - 1 &&
-                    (answers.length === 5
-                      ? "conductor-compact:col-span-2 sm:conductor-compact:col-span-4"
-                      : "conductor-compact:col-span-2"),
-                  multiSelect &&
-                    selectedKeys.includes(key) &&
-                    "ring-4 ring-white",
+                    (answers.length === 7
+                      ? "conductor-compact:col-span-full sm:conductor-compact:col-span-2"
+                      : "conductor-compact:col-span-full"),
                 )}
                 disabled={isManager}
-                aria-pressed={
+                selected={
                   !isManager && multiSelect
                     ? selectedKeys.includes(key)
                     : undefined
                 }
                 label={ANSWERS_LABELS[key]}
+                answer={answer}
                 onClick={
                   multiSelect ? () => handleToggle(key) : handleAnswer(key)
                 }
-              >
-                <div className="flex w-full items-center justify-between">
-                  <span className="min-w-0 flex-1 pr-1 sm:pr-2">{answer}</span>
-                  {multiSelect && selectedKeys.includes(key) && (
-                    <svg
-                      className="size-4 shrink-0 fill-current stroke-2 text-white sm:size-5"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-                    </svg>
-                  )}
-                </div>
-              </AnswerButton>
+              />
             ))}
           </div>
         )}

@@ -131,6 +131,8 @@ class Game {
     socket?.emit(EVENTS.MANAGER.GAME_CREATED, {
       gameId: this.gameId,
       inviteCode: this.inviteCode,
+      wallpaper: this.wallpaper,
+      audio: this.audio,
     })
 
     console.log(
@@ -157,6 +159,7 @@ class Game {
     this.lastBroadcastStatus = statusData
     this.io.to(this.gameId).emit(EVENTS.GAME.STATUS, {
       ...statusData,
+      gameId: this.gameId,
       wallpaper: this.wallpaper,
       audio: this.audio,
     })
@@ -177,6 +180,7 @@ class Game {
 
     this.io.to(target).emit(EVENTS.GAME.STATUS, {
       ...statusData,
+      gameId: this.gameId,
       wallpaper: this.wallpaper,
       audio: this.audio,
     })
@@ -226,6 +230,7 @@ class Game {
     }
 
     this.io.to(this.gameId).emit(EVENTS.GAME.SETTINGS, {
+      gameId: this.gameId,
       wallpaper: this.wallpaper,
       audio: this.audio,
     })

@@ -100,6 +100,10 @@ test("all four fork question types work in solo mode and results export", async 
     await handle.focus()
     await page.keyboard.press("Space")
     await expect(handle).toHaveAttribute("aria-pressed", "true")
+    const activeId = await rows.nth(position).getAttribute("data-sortable-id")
+    await expect(page.getByRole("status")).toContainText(
+      `droppable area ${activeId}.`,
+    )
     for (let move = position; move > index; move -= 1) {
       const targetId = await rows.nth(move - 1).getAttribute("data-sortable-id")
       await page.keyboard.press("ArrowUp")

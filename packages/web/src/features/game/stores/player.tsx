@@ -1,4 +1,6 @@
 import type { StatusDataMap } from "@razzia/common/types/game/status"
+import type { ServerToClientEvents } from "@razzia/common/types/game/socket"
+import type { EVENTS } from "@razzia/common/constants"
 import {
   createStatus,
   type Status,
@@ -19,16 +21,13 @@ interface PlayerStore<T> {
   wallpaper: string | null
   audio: string | null
 
-  setGameId: (_gameId: string | null) => void
-
-  setPlayer: (_state: PlayerState) => void
-  login: (_gameId: string) => void
-  join: (_username: string) => void
+  login: (_username: string) => void
+  join: (_gameId: string) => void
   updatePoints: (_points: number) => void
 
-  setStatus: <K extends keyof T>(_name: K, _data: T[K]) => void
-  setWallpaper: (_wallpaper: string | null) => void
-  setAudio: (_audio: string | null) => void
+  restoreGame: ServerToClientEvents[typeof EVENTS.PLAYER.SUCCESS_RECONNECT]
+  applyGameStatus: ServerToClientEvents[typeof EVENTS.GAME.STATUS]
+  applyGameSettings: ServerToClientEvents[typeof EVENTS.GAME.SETTINGS]
 
   reset: () => void
 }
@@ -46,9 +45,6 @@ export const usePlayerStore = create<PlayerStore<StatusDataMap>>((set) => ({
   ...initialState,
   setInviteCode: (inviteCode) => set({ inviteCode }),
 
-  setGameId: (gameId) => set({ gameId }),
-
-  setPlayer: (player: PlayerState) => set({ player }),
   login: (username) =>
     set((state) => ({
       player: { ...state.player, username },
@@ -58,6 +54,9 @@ export const usePlayerStore = create<PlayerStore<StatusDataMap>>((set) => ({
     set((state) => ({
       gameId,
       player: { ...state.player, points: 0 },
+      status: null,
+      wallpaper: null,
+      audio: null,
     }))
 
     if (gameId) {
@@ -71,9 +70,22 @@ export const usePlayerStore = create<PlayerStore<StatusDataMap>>((set) => ({
       player: { ...state.player, points },
     })),
 
-  setStatus: (name, data) => set({ status: createStatus(name, data) }),
-  setWallpaper: (wallpaper) => set({ wallpaper }),
-  setAudio: (audio) => set({ audio }),
+  restoreGame: ({ gameId, status, player, wallpaper, audio }) =>
+    set({
+      gameId,
+      status: createStatus(status.name, status.data),
+      player,
+      wallpaper: wallpaper ?? null,
+      audio: audio ?? null,
+    }),
+  applyGameStatus: ({ name, data, wallpaper, audio }) =>
+    set({
+      status: createStatus(name, data),
+      wallpaper: wallpaper ?? null,
+      audio: audio ?? null,
+    }),
+  applyGameSettings: ({ wallpaper, audio }) =>
+    set({ wallpaper: wallpaper ?? null, audio: audio ?? null }),
 
   reset: () => {
     localStorage.removeItem("active_game_id")

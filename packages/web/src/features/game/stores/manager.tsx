@@ -1,5 +1,7 @@
 import type { Player } from "@razzia/common/types/game"
-import type { StatusDataMap } from "@razzia/common/types/game/status"
+import { STATUS, type StatusDataMap } from "@razzia/common/types/game/status"
+import type { ServerToClientEvents } from "@razzia/common/types/game/socket"
+import type { EVENTS } from "@razzia/common/constants"
 import type { ManagerConfig } from "@razzia/common/types/manager"
 import {
   createStatus,
@@ -20,13 +22,10 @@ interface ManagerStore<T> {
   isMuted: boolean
 
   setConfig: (_config: ManagerConfig) => void
-  setGameId: (_gameId: string | null) => void
-  setInviteCode: (_inviteCode: string | null) => void
-  setStatus: <K extends keyof T>(_name: K, _data: T[K]) => void
-  resetStatus: () => void
-  setPlayers: (_players: Player[]) => void
-  setWallpaper: (_wallpaper: string | null) => void
-  setAudio: (_audio: string | null) => void
+  openLobby: ServerToClientEvents[typeof EVENTS.MANAGER.GAME_CREATED]
+  restoreGame: ServerToClientEvents[typeof EVENTS.MANAGER.SUCCESS_RECONNECT]
+  applyGameStatus: ServerToClientEvents[typeof EVENTS.GAME.STATUS]
+  applyGameSettings: ServerToClientEvents[typeof EVENTS.GAME.SETTINGS]
   setVolume: (_volume: number) => void
   setIsMuted: (_isMuted: boolean) => void
 
@@ -50,15 +49,35 @@ export const useManagerStore = create<ManagerStore<StatusDataMap>>((set) => ({
 
   setConfig: (config) => set({ config }),
 
-  setGameId: (gameId) => set({ gameId }),
-  setInviteCode: (inviteCode) => set({ inviteCode }),
-
-  setStatus: (name, data) => set({ status: createStatus(name, data) }),
-  resetStatus: () => set({ status: null }),
-
-  setPlayers: (players) => set({ players }),
-  setWallpaper: (wallpaper) => set({ wallpaper }),
-  setAudio: (audio) => set({ audio }),
+  openLobby: ({ gameId, inviteCode, wallpaper, audio }) =>
+    set({
+      gameId,
+      inviteCode,
+      status: createStatus(STATUS.SHOW_ROOM, {
+        text: "game:waitingForPlayers",
+        inviteCode,
+      }),
+      players: [],
+      wallpaper: wallpaper ?? null,
+      audio: audio ?? null,
+    }),
+  restoreGame: ({ gameId, inviteCode, status, players, wallpaper, audio }) =>
+    set({
+      gameId,
+      inviteCode: inviteCode ?? null,
+      status: createStatus(status.name, status.data),
+      players,
+      wallpaper: wallpaper ?? null,
+      audio: audio ?? null,
+    }),
+  applyGameStatus: ({ name, data, wallpaper, audio }) =>
+    set({
+      status: createStatus(name, data),
+      wallpaper: wallpaper ?? null,
+      audio: audio ?? null,
+    }),
+  applyGameSettings: ({ wallpaper, audio }) =>
+    set({ wallpaper: wallpaper ?? null, audio: audio ?? null }),
   setVolume: (volume) => set({ volume }),
   setIsMuted: (isMuted) => set({ isMuted }),
 

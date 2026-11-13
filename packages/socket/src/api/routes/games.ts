@@ -51,7 +51,15 @@ export const games = apiFactory
       registry.addGame(game)
       registry.markGameAsEmpty(game)
 
-      return c.json({ gameId: game.gameId, inviteCode: game.inviteCode }, 201)
+      return c.json(
+        {
+          gameId: game.gameId,
+          inviteCode: game.inviteCode,
+          wallpaper: game.wallpaper,
+          audio: game.audio,
+        },
+        201,
+      )
     },
   )
   .post(

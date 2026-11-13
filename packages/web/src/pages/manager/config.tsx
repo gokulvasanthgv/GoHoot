@@ -1,5 +1,4 @@
 import { EVENTS } from "@razzia/common/constants"
-import { STATUS } from "@razzia/common/types/game/status"
 import Background from "@razzia/web/components/Background"
 import Loader from "@razzia/web/components/Loader"
 import {
@@ -7,6 +6,7 @@ import {
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
+import { useQuestionStore } from "@razzia/web/features/game/stores/question"
 import { useUserStore } from "@razzia/web/features/game/stores/user"
 import Configurations from "@razzia/web/features/manager/components/configurations"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
@@ -17,8 +17,7 @@ import { queryClient } from "@razzia/web/lib/query-client"
 
 const ManagerConfigPage = () => {
   const { socket, isConnected } = useSocket()
-  const { setGameId, setInviteCode, setStatus, setConfig, config } =
-    useManagerStore()
+  const { openLobby, setConfig, config } = useManagerStore()
   const { user } = useUserStore()
   const navigate = useNavigate()
   const configuration = useQuery({
@@ -52,14 +51,13 @@ const ManagerConfigPage = () => {
     }
   })
 
-  useEvent(EVENTS.MANAGER.GAME_CREATED, ({ gameId, inviteCode }) => {
-    setGameId(gameId)
-    setInviteCode(inviteCode)
-    setStatus(STATUS.SHOW_ROOM, {
-      text: "game:waitingForPlayers",
-      inviteCode,
+  useEvent(EVENTS.MANAGER.GAME_CREATED, (game) => {
+    openLobby(game)
+    useQuestionStore.getState().setQuestionStates(null)
+    navigate({
+      to: "/party/manager/$gameId",
+      params: { gameId: game.gameId },
     })
-    navigate({ to: "/party/manager/$gameId", params: { gameId } })
   })
 
   if (!isConnected || (user && !config)) {

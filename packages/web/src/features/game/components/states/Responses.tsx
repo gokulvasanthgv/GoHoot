@@ -1,8 +1,7 @@
-import { MEDIA_TYPES } from "@razzia/common/constants"
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
 import QuestionMedia from "@razzia/web/components/QuestionMedia"
 import AnswerDistribution from "@razzia/web/features/game/components/AnswerDistribution"
-import ConductorMusic from "@razzia/web/features/game/components/ConductorMusic"
+import QuestionHeading from "@razzia/web/features/game/components/QuestionHeading"
 import {
   ANSWERS_COLORS,
   ANSWERS_LABELS,
@@ -25,9 +24,6 @@ const Responses = ({
   const { t } = useTranslation()
   const [sfxResults] = useSound(SFX.RESULTS_SOUND, { volume: 0.2 })
   const isPuzzle = type === "puzzle"
-  const playingMedia =
-    showMedia &&
-    (media?.type === MEDIA_TYPES.AUDIO || media?.type === MEDIA_TYPES.VIDEO)
 
   useEffect(() => {
     sfxResults()
@@ -35,11 +31,11 @@ const Responses = ({
 
   return (
     <div className="conductor-compact:shrink-0 conductor-compact:basis-auto conductor-compact:overflow-visible conductor-compact:px-2 conductor-compact:pb-3 mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col gap-3 overflow-y-auto px-3 pt-1 pb-20 text-white select-none sm:gap-4 sm:px-6">
-      <ConductorMusic enabled={!playingMedia} />
       <div className="conductor-compact:rounded-xl conductor-compact:bg-black/60 conductor-compact:p-2.5 flex shrink-0 flex-wrap items-center justify-center gap-2">
-        <h2 className="conductor-compact:max-h-none conductor-compact:min-w-[min(100%,12rem)] conductor-compact:overflow-visible conductor-compact:text-[clamp(1.125rem,3.5vw,1.75rem)] max-h-[18dvh] min-w-0 flex-1 overflow-y-auto text-center text-xl leading-tight font-extrabold [overflow-wrap:anywhere] text-white drop-shadow-lg sm:text-2xl lg:text-3xl">
-          {question}
-        </h2>
+        <QuestionHeading
+          question={question}
+          className="min-w-[min(100%,12rem)] flex-1 [--question-max-size:1.875rem] max-sm:basis-full"
+        />
         {media && (
           <button
             type="button"
@@ -75,7 +71,7 @@ const Responses = ({
 
       <ol
         aria-label={t("game:roundResults.options")}
-        className="conductor-compact:grid-cols-[repeat(auto-fit,minmax(min(100%,11rem),1fr))] grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4"
+        className="round-answer-list conductor-compact:grid-cols-[repeat(auto-fit,minmax(min(100%,11rem),1fr))] grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4"
       >
         {answers.map((answer, index) => {
           const correct = isPuzzle || solutions.includes(index)
@@ -85,7 +81,7 @@ const Responses = ({
             <li
               key={index}
               className={clsx(
-                "conductor-compact:min-h-11 conductor-compact:px-2 conductor-compact:text-sm flex min-h-14 min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold sm:text-base",
+                "conductor-compact:min-h-11 conductor-compact:px-2 flex min-h-14 min-w-0 items-center gap-2 rounded-xl px-3 py-2 font-semibold",
                 ANSWERS_COLORS[index],
                 answers.length % 2 === 1 &&
                   index === answers.length - 1 &&
@@ -95,7 +91,7 @@ const Responses = ({
               <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-black/20 text-sm font-extrabold">
                 {isPuzzle ? index + 1 : ANSWERS_LABELS[index]}
               </span>
-              <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+              <span data-answer-text="" className="min-w-0 flex-1 leading-snug">
                 {answer}
               </span>
               <CorrectIcon

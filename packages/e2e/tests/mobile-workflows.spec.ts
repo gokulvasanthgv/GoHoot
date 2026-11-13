@@ -48,6 +48,105 @@ const expectPageWidth = async (page: Page) => {
   ).toBe(true)
 }
 
+const expectAnswerTypography = async (page: Page) => {
+  const answers = page.locator(".answer-grid [data-answer-text]")
+  await expect(answers).toHaveCount(7)
+  await page.evaluate(async () => {
+    await document.fonts.ready
+  })
+  await expect
+    .poll(() =>
+      answers.evaluateAll((labels) => {
+        const sizes = labels.map((label) =>
+          Number.parseFloat(getComputedStyle(label).fontSize),
+        )
+        const range = document.createRange()
+        const wordsIntact = labels.every((label) => {
+          const text = label.firstChild
+
+          if (!(text instanceof Text)) {
+            return false
+          }
+
+          for (const match of text.data.matchAll(/\S+/gu)) {
+            const [word] = match
+
+            if (word === "G".repeat(65)) {
+              continue
+            }
+
+            const start = match.index
+            range.setStart(text, start)
+            range.setEnd(text, start + word.length)
+
+            if (range.getClientRects().length !== 1) {
+              return false
+            }
+          }
+
+          return true
+        })
+
+        return {
+          uniformSize: new Set(sizes).size === 1,
+          readableSize: sizes.every((size) => size >= 16),
+          wordsIntact,
+          textFits: labels.every(
+            (label) =>
+              label.scrollWidth <= label.clientWidth + 1 &&
+              label.scrollHeight <= label.clientHeight + 1,
+          ),
+        }
+      }),
+    )
+    .toEqual({
+      uniformSize: true,
+      readableSize: true,
+      wordsIntact: true,
+      textFits: true,
+    })
+}
+
+const expectTextToScale = async (page: Page) => {
+  const heading = page.getByRole("heading", { name: questionText, exact: true })
+  const answer = page.locator(".answer-grid [data-answer-text]").first()
+  const fontSize = (element: Element) =>
+    Number.parseFloat(getComputedStyle(element).fontSize)
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expectAnswerTypography(page)
+  const phoneHeading = await heading.evaluate(fontSize)
+  const phoneAnswer = await answer.evaluate(fontSize)
+
+  await page.setViewportSize({ width: 460, height: 844 })
+  await expect
+    .poll(() => heading.evaluate(fontSize))
+    .toBeGreaterThan(phoneHeading)
+  await expect
+    .poll(() => answer.evaluate(fontSize))
+    .toBeGreaterThan(phoneAnswer)
+
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await expectAnswerTypography(page)
+  const desktopHeading = await heading.evaluate(fontSize)
+  const desktopAnswer = await answer.evaluate(fontSize)
+  expect(desktopHeading).toBeGreaterThan(phoneHeading)
+  expect(desktopAnswer).toBeGreaterThan(phoneAnswer)
+
+  await page.setViewportSize({ width: 850, height: 720 })
+  await expect
+    .poll(() => heading.evaluate(fontSize))
+    .toBeLessThan(desktopHeading)
+  await expect.poll(() => answer.evaluate(fontSize)).toBeLessThan(desktopAnswer)
+
+  await page.setViewportSize({ width: 1280, height: 460 })
+  await expect
+    .poll(() => heading.evaluate(fontSize))
+    .toBeLessThan(desktopHeading)
+  await expect.poll(() => answer.evaluate(fontSize)).toBeLessThan(desktopAnswer)
+  await expectAnswerTypography(page)
+}
+
 const swipeUp = async (page: Page, x: number, fromY: number, toY: number) => {
   const session = await page.context().newCDPSession(page)
 
@@ -264,13 +363,29 @@ test("mobile conductor can start a live quiz and scroll its stage with controls 
     await expect(end).toBeInViewport({ ratio: 1 })
     await expectPageWidth(page)
 
+    for (const viewport of [portrait, { width: 667, height: 375 }]) {
+      await page.setViewportSize(viewport)
+      await expectAnswerTypography(page)
+      await expectPageWidth(page)
+    }
+    await expectTextToScale(page)
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await stage.evaluate((element) => element.scrollTo(0, 0))
+    await expectAnswerTypography(page)
+    await page.screenshot({
+      path: testInfo.outputPath("mobile-answer-options.png"),
+    })
+
     await page.setViewportSize(landscape)
     await stage.evaluate((element) => element.scrollTo(0, 0))
+    await expectAnswerTypography(page)
     await expect(lastAnswer).toBeInViewport({ ratio: 0.99 })
     await page.screenshot({
       path: testInfo.outputPath("mobile-conductor-landscape.png"),
     })
 
+    await expectTextToScale(guest)
     await guest.getByRole("button", { name: "B Blue", exact: true }).click()
     const chart = page.getByRole("list", { name: "Answer distribution" })
     await expect(

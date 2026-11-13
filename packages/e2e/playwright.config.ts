@@ -57,6 +57,7 @@ if (!existsSync(join(configPath, "users.json"))) {
     id: "browser-presentation",
     creatorId: "browser-admin",
     subject: "Conductor presentation checks",
+    wallpaper: "http://127.0.0.1:18855/gohoot-logo-favicon.webp?wallpaper=presentation",
     audio: "http://127.0.0.1:18855/sounds/answersMusic.mp3?conductor=1",
     questions: [
       {
@@ -97,10 +98,10 @@ if (!existsSync(join(configPath, "users.json"))) {
         question:
           "Read the full question and all seven answer options on a small screen",
         answers: [
-          "Amber",
+          "COSMETIC DEFORMITY",
           "Blue",
-          "Green",
-          "Pink",
+          "OPTIC NERVE COMPRESSION",
+          "INFECTION RISK",
           "Purple",
           "Red",
           "G".repeat(65),

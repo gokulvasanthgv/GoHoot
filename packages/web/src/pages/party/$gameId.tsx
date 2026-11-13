@@ -18,62 +18,42 @@ import { useEffect } from "react"
 
 const PlayerGamePage = () => {
   const navigate = useNavigate()
-  const { socket } = useSocket()
+  const { socket, isConnected } = useSocket()
   const { gameId: gameIdParam } = useParams({ from: "/party/$gameId" })
   const {
+    gameId,
     status,
-    setPlayer,
-    setGameId,
-    setStatus,
     reset,
-    setWallpaper,
-    setAudio,
+    restoreGame,
+    applyGameStatus,
+    applyGameSettings,
   } = usePlayerStore()
   const { setQuestionStates } = useQuestionStore()
   const { t } = useTranslation()
 
+  useEvent(EVENTS.PLAYER.SUCCESS_RECONNECT, (game) => {
+    if (game.gameId === gameIdParam) {
+      restoreGame(game)
+      setQuestionStates(game.currentQuestion)
+    }
+  })
+
   useEffect(() => {
-    if (socket.connected && gameIdParam && !status) {
+    if (isConnected) {
       socket.emit(EVENTS.PLAYER.RECONNECT, { gameId: gameIdParam })
     }
-  }, [socket.connected, gameIdParam, socket, status])
+  }, [isConnected, gameIdParam, socket])
 
-  useEvent("connect", () => {
-    if (gameIdParam) {
-      socket.emit(EVENTS.PLAYER.RECONNECT, { gameId: gameIdParam })
+  useEvent(EVENTS.GAME.STATUS, (update) => {
+    if (update.gameId === gameIdParam && update.name in GAME_STATE_COMPONENTS) {
+      applyGameStatus(update)
     }
   })
 
-  useEvent(
-    EVENTS.PLAYER.SUCCESS_RECONNECT,
-    ({
-      gameId: reconnectGameId,
-      status: reconnectStatus,
-      player,
-      currentQuestion,
-      wallpaper,
-      audio,
-    }) => {
-      setGameId(reconnectGameId)
-      setStatus(reconnectStatus.name, reconnectStatus.data)
-      setPlayer(player)
-      setQuestionStates(currentQuestion)
-      setWallpaper(wallpaper ?? null)
-      setAudio(audio ?? null)
-    },
-  )
-
-  useEvent(EVENTS.GAME.STATUS, ({ name, data, wallpaper, audio }) => {
-    if (name in GAME_STATE_COMPONENTS) {
-      setStatus(name, data)
-      setWallpaper(wallpaper ?? null)
-      setAudio(audio ?? null)
+  useEvent(EVENTS.GAME.SETTINGS, (settings) => {
+    if (settings.gameId === gameIdParam) {
+      applyGameSettings(settings)
     }
-  })
-
-  useEvent(EVENTS.GAME.SETTINGS, ({ wallpaper, audio }) => {
-    setWallpaper(wallpaper ?? null)
-    setAudio(audio ?? null)
   })
 
   useEvent(EVENTS.GAME.RESET, (message) => {
@@ -83,17 +63,13 @@ const PlayerGamePage = () => {
     toast.error(t(message))
   })
 
-  if (!gameIdParam) {
-    return null
-  }
-
   const CurrentComponent =
     status && isKeyOf(GAME_STATE_COMPONENTS, status.name)
       ? GAME_STATE_COMPONENTS[status.name]
       : null
 
-  if (!status) {
-    return null
+  if (!status || gameId !== gameIdParam) {
+    return <GameWrapper statusName={undefined} />
   }
 
   return (

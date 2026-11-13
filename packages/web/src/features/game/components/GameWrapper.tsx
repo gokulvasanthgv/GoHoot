@@ -33,7 +33,7 @@ const GameWrapper = ({
   onBack,
   manager,
 }: Props) => {
-  const { socket, isConnected } = useSocket()
+  const { socket } = useSocket()
   const {
     gameId,
     inviteCode,
@@ -85,18 +85,25 @@ const GameWrapper = ({
     <GameScreenContext.Provider value={manager ? "manager" : "player"}>
       <section
         data-conductor={manager ? "" : undefined}
-        className="relative flex h-dvh w-full overflow-hidden"
+        className="relative flex h-dvh w-full overflow-hidden bg-slate-950"
       >
-        <div className="fixed top-0 left-0 h-full w-full">
-          <img
-            className="pointer-events-none h-full w-full object-cover select-none"
-            src={activeWallpaper || background}
-            alt="background"
-          />
-        </div>
+        {statusName && (
+          <div
+            data-game-wallpaper=""
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0"
+          >
+            <img
+              className="h-full w-full object-cover select-none"
+              src={activeWallpaper || background}
+              alt=""
+            />
+            <div className="absolute inset-0 bg-black opacity-65" />
+          </div>
+        )}
 
         <div className="z-10 flex min-h-0 w-full flex-1 flex-col justify-between overflow-hidden">
-          {!isConnected && !statusName ? (
+          {!statusName ? (
             <div className="flex h-full w-full flex-1 flex-col items-center justify-center">
               <Loader className="h-30" />
               <h1 className="text-4xl font-bold text-white">

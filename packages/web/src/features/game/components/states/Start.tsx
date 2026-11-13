@@ -1,8 +1,8 @@
 import { EVENTS } from "@razzia/common/constants"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
 import { useEvent } from "@razzia/web/features/game/contexts/socket-context"
+import QuestionHeading from "@razzia/web/features/game/components/QuestionHeading"
 import { SFX } from "@razzia/web/features/game/utils/constants"
-import clsx from "clsx"
 import { useState } from "react"
 import useSound from "use-sound"
 
@@ -31,23 +31,19 @@ const Start = ({ data: { time, subject } }: Props) => {
   return (
     <section className="conductor-compact:shrink-0 conductor-compact:basis-auto conductor-compact:px-3 conductor-compact:py-4 relative mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-center">
       {showTitle ? (
-        <h2 className="anim-show conductor-compact:[overflow-wrap:anywhere] conductor-compact:text-[clamp(1.5rem,5vw,2.5rem)] text-center text-3xl font-bold text-white drop-shadow-lg md:text-4xl lg:text-5xl">
-          {subject}
-        </h2>
+        <QuestionHeading question={subject} className="anim-show w-full px-2" />
       ) : (
-        <>
+        <div className="live-countdown relative grid aspect-square place-items-center">
           <div
-            className={clsx(
-              `anim-show bg-primary conductor-compact:h-[clamp(4rem,22dvh,8rem)] aspect-square h-32 rounded-2xl transition-all md:h-60`,
-            )}
+            className="anim-show bg-primary absolute inset-0 rounded-2xl transition-transform"
             style={{
               transform: `rotate(${45 * (time - cooldown)}deg)`,
             }}
           ></div>
-          <span className="conductor-compact:text-[clamp(2.5rem,13dvh,4rem)] absolute text-6xl font-bold text-white drop-shadow-md md:text-8xl">
+          <span className="relative leading-none font-bold text-white drop-shadow-md">
             {cooldown}
           </span>
-        </>
+        </div>
       )}
     </section>
   )
