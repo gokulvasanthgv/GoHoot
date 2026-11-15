@@ -20,6 +20,7 @@ interface ManagerStore<T> {
   audio: string | null
   volume: number
   isMuted: boolean
+  soundsEnabled: boolean
 
   setConfig: (_config: ManagerConfig) => void
   openLobby: ServerToClientEvents[typeof EVENTS.MANAGER.GAME_CREATED]
@@ -28,6 +29,7 @@ interface ManagerStore<T> {
   applyGameSettings: ServerToClientEvents[typeof EVENTS.GAME.SETTINGS]
   setVolume: (_volume: number) => void
   setIsMuted: (_isMuted: boolean) => void
+  setSoundsEnabled: (enabled: boolean) => void
 
   reset: () => void
 }
@@ -42,6 +44,7 @@ const initialState = {
   audio: null,
   volume: 0.2,
   isMuted: false,
+  soundsEnabled: true,
 }
 
 export const useManagerStore = create<ManagerStore<StatusDataMap>>((set) => ({
@@ -80,6 +83,7 @@ export const useManagerStore = create<ManagerStore<StatusDataMap>>((set) => ({
     set({ wallpaper: wallpaper ?? null, audio: audio ?? null }),
   setVolume: (volume) => set({ volume }),
   setIsMuted: (isMuted) => set({ isMuted }),
+  setSoundsEnabled: (soundsEnabled) => set({ soundsEnabled }),
 
   reset: () => set(initialState),
 }))

@@ -28,5 +28,27 @@
   "wrong": "Mala suerte",
   "goToQuestion": "Ir a la pregunta anterior",
   "selectQuestion": "Selecciona una pregunta anterior",
-  "endQuiz": "Terminar juego"
+  "resizeWindow": "Cambia el tamaño de la ventana para mejorar la visualización.",
+  "dismissResizeNotice": "Cerrar aviso sobre el tamaño de la ventana",
+  "endQuiz": "Terminar juego",
+  "getReady": "¡Prepárate!",
+  "muteSounds": "Silenciar efectos de sonido y audio de las preguntas",
+  "unmuteSounds": "Activar efectos de sonido y audio de las preguntas",
+  "answerShapes": {
+    "triangle": "Triángulo",
+    "diamond": "Rombo",
+    "circle": "Círculo",
+    "hexagon": "Hexágono",
+    "plus": "Más",
+    "square": "Cuadrado",
+    "pentagon": "Pentágono"
+  },
+  "questionMode": {
+    "single": "Una respuesta correcta",
+    "multiple": "Selección múltiple",
+    "trueOrFalse": "Verdadero o falso",
+    "order": "Ordena las opciones",
+    "slide": "Diapositiva",
+    "quiz": "Opción múltiple"
+  }
 }

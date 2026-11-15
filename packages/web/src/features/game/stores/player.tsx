@@ -20,6 +20,10 @@ interface PlayerStore<T> {
   status: Status<T> | null
   wallpaper: string | null
   audio: string | null
+  musicEnabled: boolean
+  soundsEnabled: boolean
+  setMusicEnabled: (enabled: boolean) => void
+  setSoundsEnabled: (enabled: boolean) => void
 
   login: (_username: string) => void
   join: (_gameId: string) => void
@@ -39,10 +43,14 @@ const initialState = {
   status: null,
   wallpaper: null,
   audio: null,
+  musicEnabled: false,
+  soundsEnabled: true,
 }
 
 export const usePlayerStore = create<PlayerStore<StatusDataMap>>((set) => ({
   ...initialState,
+  setMusicEnabled: (musicEnabled) => set({ musicEnabled }),
+  setSoundsEnabled: (soundsEnabled) => set({ soundsEnabled }),
   setInviteCode: (inviteCode) => set({ inviteCode }),
 
   login: (username) =>
@@ -57,6 +65,8 @@ export const usePlayerStore = create<PlayerStore<StatusDataMap>>((set) => ({
       status: null,
       wallpaper: null,
       audio: null,
+      musicEnabled: initialState.musicEnabled,
+      soundsEnabled: initialState.soundsEnabled,
     }))
 
     if (gameId) {

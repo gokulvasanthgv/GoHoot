@@ -2,7 +2,7 @@ import { api, unwrap } from "@razzia/web/lib/api"
 import QuestionMedia from "@razzia/web/components/QuestionMedia"
 import SortableList from "@razzia/web/components/SortableList"
 import toast from "react-hot-toast"
-import { EVENTS } from "@razzia/common/constants"
+import { EVENTS, MEDIA_TYPES } from "@razzia/common/constants"
 import type { QuizzWithId } from "@razzia/common/types/game"
 import Background from "@razzia/web/components/Background"
 import Button from "@razzia/web/components/Button"
@@ -13,6 +13,11 @@ import {
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
 import { useUserStore } from "@razzia/web/features/game/stores/user"
+import AnswerShape from "@razzia/web/features/game/components/AnswerShape"
+import GameAudioControls from "@razzia/web/features/game/components/GameAudioControls"
+import GameMusic from "@razzia/web/features/game/components/GameMusic"
+import { useGameSoundsEnabled } from "@razzia/web/features/game/hooks/useGameSound"
+import QuestionMode from "@razzia/web/features/game/components/QuestionMode"
 import { ANSWERS_COLORS } from "@razzia/web/features/game/utils/constants"
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
 import {
@@ -30,6 +35,7 @@ const SoloGamePage = () => {
   const { socket, isConnected } = useSocket()
   const { user } = useUserStore()
   const navigate = useNavigate()
+  const soundsEnabled = useGameSoundsEnabled()
 
   const [quizz, setQuizz] = useState<QuizzWithId | null>(null)
   const [loading, setLoading] = useState(true)
@@ -222,8 +228,17 @@ const SoloGamePage = () => {
     )
   }
 
+  const currentQuestion = quizz.questions[currentIdx]
+
   return (
     <Background>
+      {gameState === "question" &&
+        !isAnswered &&
+        currentQuestion.type !== "slide" &&
+        currentQuestion.media?.type !== MEDIA_TYPES.AUDIO &&
+        currentQuestion.media?.type !== MEDIA_TYPES.VIDEO && (
+          <GameMusic customSource={quizz.audio ?? null} />
+        )}
       <div className="z-10 flex max-h-[calc(100dvh-160px)] w-full max-w-2xl touch-auto scrollbar-thin flex-col items-center overflow-y-auto p-4">
         {gameState === "lobby" && (
           <motion.div
@@ -272,7 +287,8 @@ const SoloGamePage = () => {
                   of {quizz.questions.length} Questions
                 </span>
               </div>
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <GameAudioControls />
                 <div className="text-right">
                   <span className="text-[10px] font-semibold tracking-wider text-gray-400 uppercase">
                     Score
@@ -286,6 +302,13 @@ const SoloGamePage = () => {
 
             <Card className="flex min-h-[180px] w-full flex-col justify-between border border-gray-100 bg-white/95 p-4 shadow-md sm:min-h-[260px] sm:p-6">
               <div className="flex flex-1 flex-col items-center justify-center py-2 sm:py-4">
+                <QuestionMode
+                  type={quizz.questions[currentIdx].type}
+                  multiSelect={
+                    (quizz.questions[currentIdx].solutions?.length ?? 0) > 1
+                  }
+                  className="mb-2"
+                />
                 {quizz.questions[currentIdx].doublePoints && (
                   <span className="mb-3 animate-pulse rounded-full bg-amber-500/10 px-3 py-1 text-[10px] font-extrabold tracking-widest text-amber-600 uppercase">
                     🔥 Double Points
@@ -299,6 +322,7 @@ const SoloGamePage = () => {
                   <div className="mt-2 aspect-video max-h-[20dvh] w-full max-w-xs overflow-hidden rounded-lg border border-gray-200 shadow-sm sm:max-w-md">
                     <QuestionMedia
                       media={quizz.questions[currentIdx].media}
+                      muted={!soundsEnabled}
                       className="max-h-full max-w-full object-contain"
                     />
                   </div>
@@ -335,7 +359,13 @@ const SoloGamePage = () => {
                   label={(_item, index) => `Move answer ${index + 1}`}
                   className="flex flex-col gap-2"
                   renderItem={(item, index, handle) => (
-                    <div className="flex min-h-14 items-center gap-3 rounded-xl bg-white p-3 text-gray-800">
+                    <div
+                      className={`flex min-h-14 items-center gap-3 rounded-xl p-3 text-white ${ANSWERS_COLORS[item.index]}`}
+                    >
+                      <AnswerShape
+                        index={item.index}
+                        className="size-6 shrink-0 rounded-md text-white"
+                      />
                       <span>{index + 1}</span>
                       <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
                         {item.text}
@@ -380,11 +410,20 @@ const SoloGamePage = () => {
                       key={idx}
                       disabled={isAnswered}
                       onClick={() => handleAnswerClick(idx)}
-                      className={`flex items-center justify-between rounded-xl border-b-4 border-black/20 p-4 text-left text-base font-bold transition-all duration-150 active:scale-[0.98] ${colorClass}`}
+                      className={`answer-option relative flex items-center rounded-xl border-b-4 border-black/20 p-4 text-center text-base font-bold text-white transition-all duration-150 active:scale-[0.98] ${colorClass}`}
                     >
-                      <span>{ans}</span>
+                      <span className="answer-option-content">
+                        <AnswerShape
+                          index={idx}
+                          className="answer-option-shape"
+                        />
+                        <span>{ans}</span>
+                      </span>
                       {isAnswered && isCorrectSol && (
-                        <CheckCircle className="ml-2 size-5 shrink-0" />
+                        <CheckCircle
+                          className="absolute end-2 top-2 size-5"
+                          aria-hidden="true"
+                        />
                       )}
                       {isAnswered && isUserSelected && !isCorrectSol && (
                         <XCircle className="ml-2 size-5 shrink-0" />

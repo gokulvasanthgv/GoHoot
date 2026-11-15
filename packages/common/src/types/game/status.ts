@@ -24,7 +24,12 @@ export type Status = (typeof STATUS)[keyof typeof STATUS]
 
 export interface CommonStatusDataMap {
   SHOW_START: { time: number; subject: string }
-  SHOW_PREPARED: { totalAnswers: number; questionNumber: number }
+  SHOW_PREPARED: {
+    totalAnswers: number
+    questionNumber: number
+    type?: QuestionType
+    multiSelect?: boolean
+  }
   SHOW_QUESTION: {
     question: string
     media?: QuestionMedia
@@ -32,6 +37,7 @@ export interface CommonStatusDataMap {
     type?: QuestionType
     hideTextOnClient?: boolean
     answersCount?: number
+    multiSelect?: boolean
     doublePoints?: boolean
   }
   SELECT_ANSWER: {
@@ -49,6 +55,7 @@ export interface CommonStatusDataMap {
     message: string
     points: number
     myPoints: number
+    streak?: number
     rank: number
     aheadOfMe: string | null
   }

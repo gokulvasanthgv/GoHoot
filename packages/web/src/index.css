@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./features/game/conductor.css";
 
 @custom-variant conductor-compact {
   @media (width < 64rem), (height < 36rem) {
@@ -82,22 +83,32 @@ button:not(:disabled),
   container: answer-option / inline-size;
 }
 
-@container answer-option (width < 11rem) {
+.answer-option-content {
+  --answer-glyph-size: clamp(0.875rem, calc(12cqi - 0.25rem), 2rem);
+  display: grid;
+  grid-template-columns: var(--answer-glyph-size) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(0.25rem, calc(5cqi - 0.25rem), 0.625rem);
+  padding-inline: clamp(0rem, calc((100cqi - 10rem) / 6), 0.25rem);
+  inline-size: 100%;
+}
+
+[data-answer-hidden] .answer-option-content {
+  --answer-glyph-size: clamp(1.5rem, 20cqi, 3rem);
+}
+
+.answer-option-shape {
+  inline-size: var(--answer-glyph-size);
+  block-size: var(--answer-glyph-size);
+}
+
+@container answer-option (width >= 14rem) {
   .answer-option-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.375rem;
-  }
-
-  .answer-option-content [data-answer-text] {
-    flex: none;
-    inline-size: 100%;
-  }
-
-  .answer-selection {
-    position: absolute;
-    inset-block-start: 0.625rem;
-    inset-inline-end: 0.75rem;
+    grid-template-columns: var(--answer-glyph-size) minmax(0, 1fr) var(
+        --answer-glyph-size
+      );
+    gap: 0.625rem;
+    padding-inline: 0;
   }
 }
 
@@ -111,11 +122,6 @@ button:not(:disabled),
   visibility: hidden;
   font-size: var(--answer-preferred-size);
   overflow-wrap: normal;
-}
-
-.answer-letter {
-  inline-size: clamp(2.5rem, min(48cqi, 16vmin), 9rem);
-  font-size: clamp(1.375rem, min(28cqi, 8vmin), 4.5rem);
 }
 
 .live-countdown {
@@ -174,16 +180,38 @@ button:not(:disabled),
   animation: timer 1s ease-out infinite;
 }
 
-.anim-quizz {
-  animation: quizz 0.8s linear;
-  transform: perspective(1200px) rotateY(-15deg) rotateX(15deg)
-    translateZ(100px);
-  box-shadow: 10px 10px 0 rgba(20, 24, 29, 1);
+@media (prefers-reduced-motion: no-preference) {
+  .question-mode-cue {
+    animation: question-mode-enter 580ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  }
+
+  .question-mode-mark {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: question-mode-mark 400ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  }
 }
 
-.anim-quizz .button {
-  box-shadow: rgba(0, 0, 0, 0.25) -4px -4px inset;
-  animation: quizzButton 0.8s ease-out;
+@keyframes question-mode-enter {
+  from {
+    transform: translateY(5px) scale(0.84);
+    opacity: 0.52;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes question-mode-mark {
+  from {
+    transform: translateY(3px) scale(0.8);
+    opacity: 0.12;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
 }
 
 .anim-balanced {
@@ -243,40 +271,6 @@ button:not(:disabled),
     transform: scale(0.8) rotate(6deg);
   }
   80% {
-    transform: scale(1);
-  }
-}
-
-@keyframes quizz {
-  0% {
-    transform: scale(0) perspective(1200px) rotateY(-60deg) rotateX(60deg)
-      translateZ(100px);
-  }
-  60% {
-    transform: scale(1) perspective(1200px) rotateY(-15deg) rotateX(15deg)
-      translateZ(100px);
-  }
-  80% {
-    transform: scale(0.8) perspective(1200px) rotateY(-15deg) rotateX(15deg)
-      translateZ(100px);
-  }
-  100% {
-    transform: scale(1) perspective(1200px) rotateY(-15deg) rotateX(15deg)
-      translateZ(100px);
-  }
-}
-
-@keyframes quizzButton {
-  0% {
-    transform: scale(0);
-  }
-  60% {
-    transform: scale(1);
-  }
-  80% {
-    transform: scale(0.8);
-  }
-  100% {
     transform: scale(1);
   }
 }

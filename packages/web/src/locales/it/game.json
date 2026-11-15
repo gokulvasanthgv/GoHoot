@@ -28,5 +28,27 @@
   "wrong": "Peccato",
   "goToQuestion": "Vai alla domanda precedente",
   "selectQuestion": "Seleziona una domanda precedente",
-  "endQuiz": "Termina quiz"
+  "resizeWindow": "Ridimensiona la finestra per una visualizzazione migliore.",
+  "dismissResizeNotice": "Chiudi l’avviso di ridimensionamento",
+  "endQuiz": "Termina quiz",
+  "getReady": "Preparati!",
+  "muteSounds": "Disattiva gli effetti sonori e l’audio delle domande",
+  "unmuteSounds": "Attiva gli effetti sonori e l’audio delle domande",
+  "answerShapes": {
+    "triangle": "Triangolo",
+    "diamond": "Rombo",
+    "circle": "Cerchio",
+    "hexagon": "Esagono",
+    "plus": "Più",
+    "square": "Quadrato",
+    "pentagon": "Pentagono"
+  },
+  "questionMode": {
+    "single": "Una sola risposta corretta",
+    "multiple": "Selezione multipla",
+    "trueOrFalse": "Vero o falso",
+    "order": "Metti in ordine",
+    "slide": "Diapositiva",
+    "quiz": "Scelta multipla"
+  }
 }

@@ -157,6 +157,7 @@ export class RoundManager {
       ...result,
       message: result.correct ? "game:correct" : "game:wrong",
       myPoints: player.points,
+      streak: player.streak,
       rank: this.rank(player, players),
       aheadOfMe: ahead,
     })
@@ -281,10 +282,14 @@ export class RoundManager {
       return
     }
 
+    const type = question.type ?? "quiz"
+    const multiSelect = type === "quiz" && (question.solutions?.length ?? 0) > 1
     this.phase = "prepared"
     this.opts.broadcast(STATUS.SHOW_PREPARED, {
       totalAnswers: question.answers?.length ?? 0,
       questionNumber: this.currentQuestion + 1,
+      type,
+      multiSelect,
     })
     await this.opts.cooldown.start(2, false)
 
@@ -298,7 +303,8 @@ export class RoundManager {
       media:
         question.media?.type === MEDIA_TYPES.IMAGE ? question.media : undefined,
       cooldown: question.cooldown,
-      type: question.type ?? "quiz",
+      type,
+      multiSelect,
       hideTextOnClient: this.options.hideTextOnClient,
       answersCount: question.answers?.length ?? 0,
       doublePoints: Boolean(question.doublePoints),
@@ -325,10 +331,8 @@ export class RoundManager {
       media: question.media,
       time,
       totalPlayer: this.opts.players.connectedCount(),
-      type: question.type ?? "quiz",
-      multiSelect:
-        (question.type ?? "quiz") === "quiz" &&
-        (question.solutions?.length ?? 0) > 1,
+      type,
+      multiSelect,
       hideTextOnClient: this.options.hideTextOnClient,
     })
     await this.opts.cooldown.start(time)

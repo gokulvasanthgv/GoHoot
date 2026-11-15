@@ -1,7 +1,5 @@
-import {
-  ANSWERS_COLORS,
-  ANSWERS_LABELS,
-} from "@razzia/web/features/game/utils/constants"
+import { ANSWERS_COLORS } from "@razzia/web/features/game/utils/constants"
+import AnswerShape, { useAnswerShapeName } from "./AnswerShape"
 import clsx from "clsx"
 import { useTranslation } from "react-i18next"
 
@@ -13,13 +11,14 @@ interface Props {
 
 const AnswerDistribution = ({ answers, responses, puzzle }: Props) => {
   const { t } = useTranslation()
+  const shapeName = useAnswerShapeName()
   const entries = puzzle
     ? [
         { label: t("game:roundResults.correct"), color: ANSWERS_COLORS[2] },
         { label: t("game:roundResults.incorrect"), color: ANSWERS_COLORS[5] },
       ]
     : answers.map((_, index) => ({
-        label: ANSWERS_LABELS[index],
+        label: shapeName(index),
         color: ANSWERS_COLORS[index],
       }))
   const maximum = Math.max(
@@ -60,7 +59,11 @@ const AnswerDistribution = ({ answers, responses, puzzle }: Props) => {
                 color,
               )}
             >
-              {label}
+              {puzzle ? (
+                label
+              ) : (
+                <AnswerShape index={index} className="size-5" />
+              )}
             </span>
           </li>
         )

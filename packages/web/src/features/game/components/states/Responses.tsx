@@ -1,17 +1,16 @@
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
 import QuestionMedia from "@razzia/web/components/QuestionMedia"
+import AnswerShape from "@razzia/web/features/game/components/AnswerShape"
 import AnswerDistribution from "@razzia/web/features/game/components/AnswerDistribution"
 import QuestionHeading from "@razzia/web/features/game/components/QuestionHeading"
-import {
-  ANSWERS_COLORS,
-  ANSWERS_LABELS,
-  SFX,
-} from "@razzia/web/features/game/utils/constants"
+import { ANSWERS_COLORS, SFX } from "@razzia/web/features/game/utils/constants"
 import clsx from "clsx"
 import { Check, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import useSound from "use-sound"
+import useGameSound, {
+  useGameSoundsEnabled,
+} from "@razzia/web/features/game/hooks/useGameSound"
 
 interface Props {
   data: ManagerStatusDataMap["SHOW_RESPONSES"]
@@ -22,8 +21,9 @@ const Responses = ({
 }: Props) => {
   const [showMedia, setShowMedia] = useState(false)
   const { t } = useTranslation()
-  const [sfxResults] = useSound(SFX.RESULTS_SOUND, { volume: 0.2 })
+  const [sfxResults] = useGameSound(SFX.RESULTS_SOUND, { volume: 0.2 })
   const isPuzzle = type === "puzzle"
+  const soundsEnabled = useGameSoundsEnabled()
 
   useEffect(() => {
     sfxResults()
@@ -56,6 +56,7 @@ const Responses = ({
           <div className="flex min-h-40 w-full items-center justify-center overflow-hidden">
             <QuestionMedia
               media={media}
+              muted={!soundsEnabled}
               alt={question}
               className="conductor-compact:m-0 conductor-compact:max-h-[45dvh] max-h-full max-w-full rounded-lg object-contain shadow-md"
             />
@@ -89,7 +90,11 @@ const Responses = ({
               )}
             >
               <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-black/20 text-sm font-extrabold">
-                {isPuzzle ? index + 1 : ANSWERS_LABELS[index]}
+                {isPuzzle ? (
+                  index + 1
+                ) : (
+                  <AnswerShape index={index} className="size-5" />
+                )}
               </span>
               <span data-answer-text="" className="min-w-0 flex-1 leading-snug">
                 {answer}

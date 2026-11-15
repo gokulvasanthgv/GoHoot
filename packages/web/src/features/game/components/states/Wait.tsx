@@ -1,4 +1,5 @@
 import type { PlayerStatusDataMap } from "@razzia/common/types/game/status"
+import GameMusic from "@razzia/web/features/game/components/GameMusic"
 import Loader from "@razzia/web/components/Loader"
 import { useTranslation } from "react-i18next"
 
@@ -11,6 +12,7 @@ const Wait = ({ data: { text } }: Props) => {
 
   return (
     <section className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-center">
+      {text === "game:waitingForPlayers" && <GameMusic />}
       <Loader className="h-30" />
       <h2 className="mt-5 text-center text-3xl font-bold text-white drop-shadow-lg md:text-4xl lg:text-5xl">
         {t(text)}

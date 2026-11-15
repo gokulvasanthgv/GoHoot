@@ -207,6 +207,22 @@ describe("socket authentication and authorization", () => {
 })
 
 describe("live game integrity and reconnection", () => {
+  it("announces the multi-select rule before and during the answer phase", async () => {
+    const quiz = quizData()
+    quiz.questions[0].solutions = [0, 1]
+    const { host, game } = await createGame(quiz)
+    const { player } = await join(game, "Player")
+    const prepared = status(player, STATUS.SHOW_PREPARED)
+    const reading = status(player, STATUS.SHOW_QUESTION)
+    const answering = status(player, STATUS.SELECT_ANSWER)
+    host.emit(EVENTS.MANAGER.START_GAME, { gameId: game.gameId })
+    expect((await prepared).data).toMatchObject({
+      type: "quiz",
+      multiSelect: true,
+    })
+    expect((await reading).data).toMatchObject({ multiSelect: true })
+    expect((await answering).data).toMatchObject({ multiSelect: true })
+  })
   it("does not count answers sent before the answer phase", async () => {
     const { host, game } = await createGame()
     const { player } = await join(game, "Player")
@@ -226,7 +242,11 @@ describe("live game integrity and reconnection", () => {
       gameId: game.gameId,
       data: { answerKey: [1] },
     })
-    expect((await result).data).toMatchObject({ correct: false, myPoints: 0 })
+    expect((await result).data).toMatchObject({
+      correct: false,
+      myPoints: 0,
+      streak: 0,
+    })
   })
   it("rejects duplicate indices and still accepts the player's valid answer", async () => {
     const { host, game } = await createGame()
@@ -252,6 +272,7 @@ describe("live game integrity and reconnection", () => {
       correct: true,
       points: 1000,
       myPoints: 1000,
+      streak: 1,
     })
   })
   it("keeps an already submitted answer when the socket reconnects", async () => {
@@ -282,7 +303,11 @@ describe("live game integrity and reconnection", () => {
       gameId: game.gameId,
       data: { answerKey: [0] },
     })
-    expect((await result).data).toMatchObject({ correct: true, myPoints: 1000 })
+    expect((await result).data).toMatchObject({
+      correct: true,
+      myPoints: 1000,
+      streak: 1,
+    })
   })
   it("retains disconnected lobby players and counts only connected players", async () => {
     const { game } = await createGame()

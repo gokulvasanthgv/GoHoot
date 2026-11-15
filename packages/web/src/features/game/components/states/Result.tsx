@@ -5,7 +5,7 @@ import { usePlayerStore } from "@razzia/web/features/game/stores/player"
 import { SFX } from "@razzia/web/features/game/utils/constants"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
-import useSound from "use-sound"
+import useGameSound from "@razzia/web/features/game/hooks/useGameSound"
 
 interface Props {
   data: CommonStatusDataMap["SHOW_RESULT"]
@@ -23,7 +23,7 @@ const Result = ({
   }
   const rankKey = rankKeyMap[rank] ?? "rank.other"
 
-  const [sfxResults] = useSound(SFX.RESULTS_SOUND, {
+  const [sfxResults] = useGameSound(SFX.RESULTS_SOUND, {
     volume: 0.2,
   })
 

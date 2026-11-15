@@ -2,6 +2,7 @@ import { EVENTS } from "@razzia/common/constants"
 import { STATUS, type Status } from "@razzia/common/types/game/status"
 import background from "@razzia/web/assets/background.png"
 import Button from "@razzia/web/components/Button"
+import GameAudioControls from "@razzia/web/features/game/components/GameAudioControls"
 import Loader from "@razzia/web/components/Loader"
 import AlertDialog from "@razzia/web/components/AlertDialog"
 import {
@@ -14,7 +15,7 @@ import { useManagerStore } from "@razzia/web/features/game/stores/manager"
 import { GameScreenContext } from "@razzia/web/features/game/contexts/game-screen-context"
 import { MANAGER_SKIP_BTN } from "@razzia/web/features/game/utils/constants"
 import clsx from "clsx"
-import { ChevronLeft } from "lucide-react"
+import { ChevronLeft, X } from "lucide-react"
 import { type PropsWithChildren, useEffect, useState } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
@@ -34,21 +35,17 @@ const GameWrapper = ({
   manager,
 }: Props) => {
   const { socket } = useSocket()
-  const {
-    gameId,
-    inviteCode,
-    wallpaper: managerWallpaper,
-    volume,
-    isMuted,
-    setVolume,
-    setIsMuted,
-  } = useManagerStore()
+  const { gameId, inviteCode, wallpaper: managerWallpaper } = useManagerStore()
   const { player, wallpaper: playerWallpaper } = usePlayerStore()
   const { questionStates, setQuestionStates } = useQuestionStore()
   const { t } = useTranslation()
   const [isDisabled, setIsDisabled] = useState(false)
+  const [resizeNoticeDismissed, setResizeNoticeDismissed] = useState(false)
   const next = statusName ? MANAGER_SKIP_BTN[statusName] : null
   const activeWallpaper = manager ? managerWallpaper : playerWallpaper
+  const dockFooter =
+    statusName === STATUS.SELECT_ANSWER || statusName === STATUS.FINISHED
+  const scrollStage = dockFooter || statusName === STATUS.SHOW_QUESTION
   const canEndQuiz =
     statusName &&
     statusName !== STATUS.FINISHED &&
@@ -102,6 +99,20 @@ const GameWrapper = ({
           </div>
         )}
 
+        {manager && !resizeNoticeDismissed && (
+          <aside className="conductor-resize-notice absolute inset-x-2 top-1/2 z-50 mx-auto w-fit max-w-[calc(100%-1rem)] -translate-y-1/2 items-center gap-2 rounded-xl border border-white/20 bg-slate-950 px-3 py-1 text-sm text-white shadow-xl">
+            <p role="status">{t("game:resizeWindow")}</p>
+            <button
+              type="button"
+              aria-label={t("game:dismissResizeNotice")}
+              onClick={() => setResizeNoticeDismissed(true)}
+              className="grid size-11 shrink-0 place-items-center rounded-lg hover:bg-white/15 focus-visible:outline-2"
+            >
+              <X className="size-5" aria-hidden="true" />
+            </button>
+          </aside>
+        )}
+
         <div className="z-10 flex min-h-0 w-full flex-1 flex-col justify-between overflow-hidden">
           {!statusName ? (
             <div className="flex h-full w-full flex-1 flex-col items-center justify-center">
@@ -141,52 +152,7 @@ const GameWrapper = ({
                 </div>
 
                 <div className="conductor-compact:ml-auto conductor-compact:min-w-0 conductor-compact:flex-wrap conductor-compact:justify-end conductor-compact:gap-1.5 flex items-center gap-2">
-                  {manager && (
-                    <div className="conductor-compact:mr-0 conductor-compact:gap-0 conductor-compact:bg-black/65 conductor-compact:py-0 conductor-compact:pr-2 conductor-compact:pl-0 mr-2 flex items-center gap-2 rounded-lg bg-white/10 px-3 py-1.5 backdrop-blur-sm">
-                      <button
-                        type="button"
-                        aria-label={t(
-                          isMuted ? "game:unmuteMusic" : "game:muteMusic",
-                        )}
-                        aria-pressed={isMuted}
-                        onClick={() => setIsMuted(!isMuted)}
-                        className="conductor-compact:grid conductor-compact:size-11 conductor-compact:place-items-center text-white transition hover:text-gray-200 active:scale-95"
-                      >
-                        {isMuted ? (
-                          <svg
-                            className="size-5 fill-current"
-                            viewBox="0 0 24 24"
-                          >
-                            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.21.05-.42.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
-                          </svg>
-                        ) : (
-                          <svg
-                            className="size-5 fill-current"
-                            viewBox="0 0 24 24"
-                          >
-                            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
-                          </svg>
-                        )}
-                      </button>
-                      <input
-                        type="range"
-                        aria-label={t("game:musicVolume")}
-                        min="0"
-                        max="1"
-                        step="0.05"
-                        value={volume}
-                        onChange={(e) => {
-                          const newVol = parseFloat(e.target.value)
-                          setVolume(newVol)
-
-                          if (newVol > 0 && isMuted) {
-                            setIsMuted(false)
-                          }
-                        }}
-                        className="conductor-compact:h-8 conductor-compact:w-15 conductor-compact:appearance-auto conductor-compact:bg-transparent h-1 w-20 cursor-pointer appearance-none rounded-lg bg-white/30 accent-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                      />
-                    </div>
-                  )}
+                  <GameAudioControls />
 
                   {manager && next && (
                     <Button
@@ -223,9 +189,11 @@ const GameWrapper = ({
                   <main
                     key={statusName}
                     className={clsx(
-                      "conductor-compact:overflow-x-hidden conductor-compact:overflow-y-auto conductor-compact:overscroll-y-contain flex min-h-0 w-full flex-1 flex-col",
-                      statusName === STATUS.SELECT_ANSWER &&
-                        "conductor-compact:scroll-pt-9",
+                      "flex min-h-0 w-full flex-1 flex-col",
+                      scrollStage
+                        ? "overflow-x-hidden overflow-y-auto overscroll-y-contain"
+                        : "conductor-compact:overflow-x-hidden conductor-compact:overflow-y-auto conductor-compact:overscroll-y-contain",
+                      statusName === STATUS.SELECT_ANSWER && "scroll-pt-12",
                     )}
                   >
                     {children}
@@ -233,13 +201,21 @@ const GameWrapper = ({
                   {(inviteCode || canEndQuiz) && (
                     <footer
                       className={clsx(
-                        "conductor-compact:flex conductor-compact:shrink-0 conductor-compact:flex-wrap conductor-compact:items-center conductor-compact:justify-between conductor-compact:gap-2 conductor-compact:px-2 conductor-compact:pt-1 conductor-compact:pb-2 contents",
+                        dockFooter
+                          ? "mx-auto flex w-full max-w-7xl shrink-0 flex-wrap items-center justify-between gap-2 px-2 pt-1 pb-2 sm:px-4"
+                          : "conductor-compact:flex conductor-compact:shrink-0 conductor-compact:flex-wrap conductor-compact:items-center conductor-compact:justify-between conductor-compact:gap-2 conductor-compact:px-2 conductor-compact:pt-1 conductor-compact:pb-2 contents",
                         statusName === STATUS.SHOW_ROOM &&
                           "conductor-compact:hidden",
                       )}
                     >
                       {inviteCode && (
-                        <div className="conductor-compact:static conductor-compact:z-auto fixed bottom-4 left-4 z-50 rounded bg-black/65 px-3 py-1.5 text-xs font-semibold text-white shadow-md backdrop-blur-sm">
+                        <div
+                          className={clsx(
+                            "rounded bg-black/65 px-3 py-1.5 text-xs font-semibold text-white shadow-md backdrop-blur-sm",
+                            !dockFooter &&
+                              "conductor-compact:static conductor-compact:z-auto fixed bottom-4 left-4 z-50",
+                          )}
+                        >
                           {t("game:gamePinLabel")}{" "}
                           <span className="font-bold tracking-wider">
                             {inviteCode}
@@ -247,7 +223,13 @@ const GameWrapper = ({
                         </div>
                       )}
                       {canEndQuiz && (
-                        <div className="conductor-compact:static conductor-compact:z-auto conductor-compact:ml-auto fixed right-4 bottom-4 z-50">
+                        <div
+                          className={
+                            dockFooter
+                              ? "ml-auto"
+                              : "conductor-compact:static conductor-compact:z-auto conductor-compact:ml-auto fixed right-4 bottom-4 z-50"
+                          }
+                        >
                           <AlertDialog
                             trigger={
                               <Button className="conductor-compact:min-h-11 conductor-compact:px-3 conductor-compact:text-base bg-red-600 px-4 font-bold text-white shadow-lg hover:bg-red-700 active:scale-95">

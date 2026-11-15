@@ -7,7 +7,7 @@ import {
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
-import ConductorMusic from "@razzia/web/features/game/components/ConductorMusic"
+import GameMusic from "@razzia/web/features/game/components/GameMusic"
 import { Maximize2, X } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import { useState } from "react"
@@ -59,7 +59,7 @@ const Room = ({ data: { text, inviteCode } }: Props) => {
 
   return (
     <section className="conductor-compact:shrink-0 conductor-compact:basis-auto conductor-compact:py-3 relative mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-center px-2">
-      <ConductorMusic />
+      <GameMusic />
       <div className="conductor-compact:mb-4 conductor-compact:w-full conductor-compact:max-w-lg conductor-compact:flex-row conductor-compact:items-center conductor-compact:gap-2 mb-10 flex flex-col-reverse items-center gap-3 md:flex-row md:items-stretch">
         <div className="conductor-compact:min-w-0 conductor-compact:flex-1 conductor-compact:flex-col conductor-compact:items-start conductor-compact:px-3 conductor-compact:py-2.5 flex flex-col items-center justify-center rounded-xl bg-white px-6 py-4 md:flex-row">
           <div className="min-w-0">

@@ -1,15 +1,13 @@
 import { MEDIA_TYPES } from "@razzia/common/constants"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
-import {
-  SFX,
-  ANSWERS_COLORS,
-  ANSWERS_LABELS,
-} from "@razzia/web/features/game/utils/constants"
+import { SFX, ANSWERS_COLORS } from "@razzia/web/features/game/utils/constants"
 import { useEffect } from "react"
-import useSound from "use-sound"
+import useGameSound from "@razzia/web/features/game/hooks/useGameSound"
 import clsx from "clsx"
 import { Sparkles } from "lucide-react"
 import { useIsManagerScreen } from "@razzia/web/features/game/contexts/game-screen-context"
+import AnswerShape from "@razzia/web/features/game/components/AnswerShape"
+import QuestionMode from "@razzia/web/features/game/components/QuestionMode"
 import QuestionHeading from "@razzia/web/features/game/components/QuestionHeading"
 
 interface Props {
@@ -23,13 +21,14 @@ const Question = ({
     cooldown,
     answersCount,
     type,
+    multiSelect,
     doublePoints,
     hideTextOnClient,
   },
 }: Props) => {
   const isManager = useIsManagerScreen()
   const hideText = Boolean(hideTextOnClient) && !isManager
-  const [sfxShow] = useSound(SFX.SHOW_SOUND, { volume: 0.5 })
+  const [sfxShow] = useGameSound(SFX.SHOW_SOUND, { volume: 0.5 })
 
   useEffect(() => {
     sfxShow()
@@ -38,8 +37,9 @@ const Question = ({
   const count = type === "true_or_false" ? 2 : answersCount || 4
 
   return (
-    <section className="conductor-compact:h-auto conductor-compact:shrink-0 conductor-compact:basis-auto conductor-compact:gap-4 conductor-compact:overflow-visible conductor-compact:px-2 conductor-compact:py-2 relative mx-auto flex h-full min-h-0 w-full max-w-7xl flex-1 flex-col items-center justify-between overflow-x-hidden overflow-y-auto px-4">
-      <div className="conductor-compact:basis-auto conductor-compact:gap-3 flex w-full flex-auto flex-col items-center justify-center gap-4 pb-3 md:gap-6">
+    <section className="conductor-question-preview conductor-compact:h-auto conductor-compact:shrink-0 conductor-compact:basis-auto conductor-compact:gap-4 conductor-compact:overflow-visible conductor-compact:px-2 conductor-compact:py-2 relative mx-auto flex h-full min-h-0 w-full max-w-7xl flex-1 flex-col items-center justify-between overflow-x-hidden overflow-y-auto px-4">
+      <div className="conductor-compact:basis-auto conductor-compact:gap-3 flex w-full flex-auto flex-col items-center justify-center gap-3 pb-3 md:gap-4">
+        <QuestionMode type={type} multiSelect={multiSelect} />
         {!hideText && (
           <QuestionHeading
             question={question}
@@ -59,19 +59,12 @@ const Question = ({
           <img
             alt={question}
             src={media.url}
-            className="conductor-compact:max-h-[clamp(6rem,35dvh,16rem)] max-h-[35dvh] max-w-full rounded-xl object-contain shadow-2xl sm:max-h-[42dvh]"
+            className="conductor-question-image max-h-[35dvh] max-w-full rounded-xl object-contain shadow-2xl sm:max-h-[42dvh]"
           />
         )}
 
         {type !== "slide" && (
           <div className="anim-show conductor-compact:mt-0 conductor-compact:gap-1 mt-4 flex max-w-full shrink-0 flex-col items-center gap-2">
-            <span className="conductor-compact:rounded-md conductor-compact:bg-black/65 conductor-compact:px-2 conductor-compact:py-1 conductor-compact:text-xs conductor-compact:text-white text-sm font-semibold tracking-widest text-white/60 uppercase">
-              {type === "true_or_false"
-                ? "True or False"
-                : type === "puzzle"
-                  ? "Puzzle"
-                  : `${count} Options`}
-            </span>
             {type === "true_or_false" ? (
               <div className="conductor-compact:gap-2 mt-2 flex justify-center gap-4 sm:gap-6">
                 <div
@@ -80,7 +73,7 @@ const Question = ({
                     ANSWERS_COLORS[0],
                   )}
                 >
-                  {ANSWERS_LABELS[0]}
+                  <AnswerShape index={0} className="size-5 sm:size-6" />
                 </div>
                 <div
                   className={clsx(
@@ -88,7 +81,7 @@ const Question = ({
                     ANSWERS_COLORS[1],
                   )}
                 >
-                  {ANSWERS_LABELS[1]}
+                  <AnswerShape index={1} className="size-5 sm:size-6" />
                 </div>
               </div>
             ) : type === "puzzle" ? (
@@ -115,7 +108,7 @@ const Question = ({
                           animClass,
                         )}
                       >
-                        {ANSWERS_LABELS[i]}
+                        <AnswerShape index={i} className="size-5 sm:size-6" />
                       </div>
                     )
                   })}
@@ -134,7 +127,7 @@ const Question = ({
                       animationDelay: `${i * 0.12}s`,
                     }}
                   >
-                    {ANSWERS_LABELS[i]}
+                    <AnswerShape index={i} className="size-5 sm:size-6" />
                   </div>
                 ))}
               </div>

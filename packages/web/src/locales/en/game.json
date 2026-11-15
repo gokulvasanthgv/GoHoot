@@ -28,6 +28,8 @@
   "wrong": "Too bad",
   "goToQuestion": "Go to previous question",
   "selectQuestion": "Select a previous question",
+  "resizeWindow": "Resize this window for a better experience.",
+  "dismissResizeNotice": "Dismiss resize notice",
   "endQuiz": "End Quiz",
   "muteMusic": "Mute background music",
   "unmuteMusic": "Unmute background music",
@@ -39,5 +41,25 @@
     "incorrect": "Incorrect",
     "showChart": "Show Chart",
     "showMedia": "Show Media"
+  },
+  "getReady": "Get ready!",
+  "muteSounds": "Mute sound effects and question audio",
+  "unmuteSounds": "Unmute sound effects and question audio",
+  "answerShapes": {
+    "triangle": "Triangle",
+    "diamond": "Diamond",
+    "circle": "Circle",
+    "hexagon": "Hexagon",
+    "plus": "Plus",
+    "square": "Square",
+    "pentagon": "Pentagon"
+  },
+  "questionMode": {
+    "single": "One correct answer",
+    "multiple": "Multi-select",
+    "trueOrFalse": "True or false",
+    "order": "Arrange in order",
+    "slide": "Slide",
+    "quiz": "Multiple choice"
   }
 }

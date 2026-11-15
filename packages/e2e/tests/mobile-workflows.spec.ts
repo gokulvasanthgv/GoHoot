@@ -61,36 +61,34 @@ const expectAnswerTypography = async (page: Page) => {
           Number.parseFloat(getComputedStyle(label).fontSize),
         )
         const range = document.createRange()
-        const wordsIntact = labels.every((label) => {
+        const splitWords: string[] = []
+        for (const label of labels) {
           const text = label.firstChild
 
           if (!(text instanceof Text)) {
-            return false
+            splitWords.push(label.textContent)
+
+            continue
           }
 
-          for (const match of text.data.matchAll(/\S+/gu)) {
-            const [word] = match
-
+          for (const { 0: word, index: start } of text.data.matchAll(/\S+/gu)) {
             if (word === "G".repeat(65)) {
               continue
             }
 
-            const start = match.index
             range.setStart(text, start)
             range.setEnd(text, start + word.length)
 
             if (range.getClientRects().length !== 1) {
-              return false
+              splitWords.push(word)
             }
           }
-
-          return true
-        })
+        }
 
         return {
           uniformSize: new Set(sizes).size === 1,
           readableSize: sizes.every((size) => size >= 16),
-          wordsIntact,
+          splitWords,
           textFits: labels.every(
             (label) =>
               label.scrollWidth <= label.clientWidth + 1 &&
@@ -102,7 +100,7 @@ const expectAnswerTypography = async (page: Page) => {
     .toEqual({
       uniformSize: true,
       readableSize: true,
-      wordsIntact: true,
+      splitWords: [],
       textFits: true,
     })
 }
@@ -340,7 +338,7 @@ test("mobile conductor can start a live quiz and scroll its stage with controls 
     const stage = page.locator("[data-conductor] main")
     const skip = page.getByRole("button", { name: "Skip", exact: true })
     const end = page.getByRole("button", { name: "End Quiz", exact: true })
-    const lastAnswer = page.getByRole("button", { name: /^G G+$/u })
+    const lastAnswer = page.getByRole("button", { name: /^G+$/u })
     await expect(skip).toBeInViewport({ ratio: 1 })
     await expect(lastAnswer).toBeDisabled()
     await expect(
@@ -380,16 +378,58 @@ test("mobile conductor can start a live quiz and scroll its stage with controls 
     await page.setViewportSize(landscape)
     await stage.evaluate((element) => element.scrollTo(0, 0))
     await expectAnswerTypography(page)
+    // This legacy 65-character word needs scrolling at this height with equal tiles.
+    await lastAnswer.scrollIntoViewIfNeeded()
     await expect(lastAnswer).toBeInViewport({ ratio: 0.99 })
+    await expect(end).toBeInViewport({ ratio: 1 })
     await page.screenshot({
       path: testInfo.outputPath("mobile-conductor-landscape.png"),
     })
 
+    const heading = page.getByRole("heading", {
+      name: questionText,
+      exact: true,
+    })
+    const image = page.getByRole("img", { name: questionText, exact: true })
+    const imageRatio = await image.evaluate(async (photo: HTMLImageElement) => {
+      await photo.decode()
+
+      return photo.naturalWidth / photo.naturalHeight
+    })
+    for (const viewport of [
+      { width: 800, height: 900 },
+      { width: 1280, height: 720 },
+    ]) {
+      await page.setViewportSize(viewport)
+      await expect(heading).toBeInViewport({ ratio: 1 })
+      await expect(image).toBeInViewport({ ratio: 1 })
+      await expect(lastAnswer).toBeInViewport({ ratio: 1 })
+      const titleBox = await heading.boundingBox()
+      const imageBox = await image.boundingBox()
+
+      if (!titleBox || !imageBox) {
+        throw new Error("Expected the question and its image")
+      }
+
+      expect(
+        Math.abs(imageBox.width - imageBox.height * imageRatio),
+      ).toBeLessThan(1)
+
+      if (viewport.width < viewport.height) {
+        expect(imageBox.y).toBeGreaterThan(titleBox.y + titleBox.height)
+        expect(
+          Math.abs(imageBox.x + imageBox.width / 2 - viewport.width / 2),
+        ).toBeLessThan(2)
+      } else {
+        expect(imageBox.x).toBeGreaterThan(titleBox.x + titleBox.width)
+      }
+    }
+
     await expectTextToScale(guest)
-    await guest.getByRole("button", { name: "B Blue", exact: true }).click()
+    await guest.getByRole("button", { name: "Blue", exact: true }).click()
     const chart = page.getByRole("list", { name: "Answer distribution" })
     await expect(
-      chart.getByRole("listitem", { name: "B: 1", exact: true }),
+      chart.getByRole("listitem", { name: "Diamond: 1", exact: true }),
     ).toBeVisible()
     await page.setViewportSize({ width: 390, height: 844 })
     await expect(chart).toBeInViewport({ ratio: 1 })

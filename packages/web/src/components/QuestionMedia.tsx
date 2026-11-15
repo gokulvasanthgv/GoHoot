@@ -6,6 +6,7 @@ interface Props {
   media?: QuestionMediaType
   alt?: string
   className?: string
+  muted?: boolean
 }
 
 export const getYoutubeId = (url: string): string | null => {
@@ -30,7 +31,12 @@ export const getYoutubeId = (url: string): string | null => {
   return null
 }
 
-const QuestionMedia = ({ media, alt = "", className }: Props) => {
+const QuestionMedia = ({
+  media,
+  alt = "",
+  className,
+  muted = false,
+}: Props) => {
   if (media?.type === MEDIA_TYPES.IMAGE) {
     return (
       <img
@@ -54,7 +60,7 @@ const QuestionMedia = ({ media, alt = "", className }: Props) => {
             "m-2 aspect-video w-full max-w-xl rounded-md px-4",
             className || "h-36 sm:h-60 md:h-100",
           )}
-          src={`https://www.youtube.com/embed/${youtubeId}`}
+          src={`https://www.youtube.com/embed/${youtubeId}${muted ? "?mute=1" : ""}`}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
           title={alt}
@@ -71,6 +77,7 @@ const QuestionMedia = ({ media, alt = "", className }: Props) => {
         src={media.url}
         autoPlay
         controls
+        muted={muted}
       />
     )
   }
@@ -82,6 +89,7 @@ const QuestionMedia = ({ media, alt = "", className }: Props) => {
         src={media.url}
         autoPlay
         controls
+        muted={muted}
       />
     )
   }

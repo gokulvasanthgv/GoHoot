@@ -1,5 +1,7 @@
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
 import QuestionMedia from "@razzia/web/components/QuestionMedia"
+import { useGameSoundsEnabled } from "@razzia/web/features/game/hooks/useGameSound"
+import QuestionMode from "@razzia/web/features/game/components/QuestionMode"
 import QuestionHeading from "@razzia/web/features/game/components/QuestionHeading"
 import { useEffect, useState } from "react"
 import clsx from "clsx"
@@ -34,10 +36,12 @@ const Slide = ({ data: { question, text, media } }: Props) => {
   }, [media])
 
   const isLandscape = aspectRatio === "landscape"
+  const soundsEnabled = useGameSoundsEnabled()
 
   return (
     <section className="conductor-compact:h-auto conductor-compact:shrink-0 conductor-compact:basis-auto conductor-compact:px-2 conductor-compact:py-2 relative mx-auto flex h-full min-h-0 w-full max-w-7xl flex-1 flex-col items-center justify-center px-4 py-4 select-none">
       <div className="conductor-compact:basis-auto conductor-compact:gap-2 flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-4">
+        <QuestionMode type="slide" />
         <QuestionHeading
           question={question}
           className="conductor-compact:rounded-xl conductor-compact:bg-black/35 conductor-compact:p-3 w-full shrink-0"
@@ -60,6 +64,7 @@ const Slide = ({ data: { question, text, media } }: Props) => {
             >
               <QuestionMedia
                 media={media}
+                muted={!soundsEnabled}
                 alt={question}
                 className="conductor-compact:m-0 conductor-compact:max-h-[clamp(6rem,45dvh,18rem)] max-h-full max-w-full object-contain"
               />

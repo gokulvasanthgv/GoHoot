@@ -28,5 +28,27 @@
   "wrong": "Schade",
   "goToQuestion": "Gehe zu vorheriger Frage",
   "selectQuestion": "Wähle eine vorherige Frage",
-  "endQuiz": "Quiz beenden"
+  "resizeWindow": "Ändere die Fenstergröße für eine bessere Darstellung.",
+  "dismissResizeNotice": "Hinweis zur Fenstergröße schließen",
+  "endQuiz": "Quiz beenden",
+  "getReady": "Mach dich bereit!",
+  "muteSounds": "Toneffekte und Frage-Audio stummschalten",
+  "unmuteSounds": "Toneffekte und Frage-Audio einschalten",
+  "answerShapes": {
+    "triangle": "Dreieck",
+    "diamond": "Raute",
+    "circle": "Kreis",
+    "hexagon": "Sechseck",
+    "plus": "Plus",
+    "square": "Quadrat",
+    "pentagon": "Fünfeck"
+  },
+  "questionMode": {
+    "single": "Eine richtige Antwort",
+    "multiple": "Mehrfachauswahl",
+    "trueOrFalse": "Richtig oder falsch",
+    "order": "In Reihenfolge bringen",
+    "slide": "Folie",
+    "quiz": "Multiple Choice"
+  }
 }
