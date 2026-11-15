@@ -22,15 +22,34 @@ GoHoot is a straightforward and open-source quiz platform, allowing users to hos
   <img width="30%" src=".github/previews/3.png" alt="Question Screen">
 </p>
 
-## 🚀 Key Features (Compared to Razzia)
+## Features
 
-GoHoot enhances the original Razzia platform with the following major upgrades:
+### Play and present
 
-- **⚙️ Extensive Pre-Game Options**: Configure classic or accuracy scoring modes, shuffle option orders, and set questions/options to be hidden on player devices.
-- **🧩 Interactive Touch Drag-and-Drop Puzzles**: Support for ordering-type questions. Players can slide options into the correct chronological or rank order using a smooth, responsive touch drag interface (powered by `@dnd-kit` with touch and keyboard support).
-- **📱 Responsive Layouts & Presenter Views**: Confined screen layouts that scale dynamically and prevent content overflow on the manager presentation screens. Features larger, high-visibility typography, automatic left/right column splits based on image aspect ratio, and dynamic font resizing for long questions.
-- **🔄 Session Reconnection**: Fully persistent player and manager connections via `localStorage` and backup cookie sessions. Players can reload the browser, open the browser app later, or lose connection, and automatically rejoin their active game state without losing points or re-entering details.
-- **📊 Extended Excel Results Exporter**: Export game statistics and modes directly into formatted spreadsheet files.
+- Join a live room from the browser or Android using a PIN or invite link. Play as a guest or sign in, reconnect to active rounds, and resume with your score.
+- Play single-answer, multi-select, true/false, and drag-to-reorder rounds. Use slides for information between questions. Question-type cues and matching answer colors and shapes keep the player and presenter screens in sync.
+- Host with QR invites and participant controls. Choose Classic or Accuracy scoring, shuffle questions or answers, double answer time, and hide question and answer text on player devices.
+- Use the responsive web Conductor or Android landscape presenter to show questions, images, timers, response counts, leaderboards, and the podium.
+- Control background music separately from sound effects and question audio. Android players start muted and can enable either channel in Quiz settings.
+- Review attendance and replay eligible quizzes in solo mode when signed in.
+
+### Create and manage
+
+- Create quizzes or import JSON, reorder questions, crop and upload images, and attach audio, video, or YouTube links. Set quiz and game defaults, including wallpaper and music.
+- Move quizzes to trash and restore them. Review game reports and export results to Excel (.xlsx).
+- Use role-based access for hosting, playing, analyzing reports, managing users, and handling password reset requests.
+
+### Native Android app
+
+[Download GoHoot Android v0.1](https://github.com/gokulvasanthgv/GoHoot/releases/tag/android-v0.1) for Android 8.0 or later. This first preview is a debug-signed APK.
+
+1. Install the APK on your phone.
+2. Select **Set server** and enter your GoHoot server's HTTPS address or reachable LAN HTTP address, including its port when required.
+3. Join a room using its PIN or invite link. Android and browser players can join the same game.
+
+The Kotlin and Jetpack Compose client has Material You styling, light and dark themes, and optional wallpaper colors on Android 12 and later. It caches images and direct media, preloads sound cues, uses native animations and touch feedback, and supports accessible puzzle controls. It also uses Android's file picker for imports and uploads and its save dialog for Excel exports.
+
+See the [Android project guide](android/README.md) for Android Studio setup, local builds, and performance checks.
 
 ## ⚙️ Prerequisites
 
