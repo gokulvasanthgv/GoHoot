@@ -152,6 +152,10 @@ class Game {
     return this.round.isStarted()
   }
 
+  get acceptsNewPlayers(): boolean {
+    return !this.round.hasFinished()
+  }
+
   // ── Status broadcasting ──────────────────────────────────────────────────
 
   private broadcastStatus<T extends Status>(status: T, data: StatusDataMap[T]) {
@@ -204,8 +208,8 @@ class Game {
       return
     }
 
-    if (this.started || this.round.hasFinished()) {
-      socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:game.alreadyStarted")
+    if (!this.acceptsNewPlayers) {
+      socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:game.expired")
 
       return
     }
@@ -313,13 +317,11 @@ class Game {
       }
     }
 
-    const status = this.playerStatus.get(oldSocketId) ??
-      this.lastBroadcastStatus ?? {
-        name: STATUS.WAIT,
-        data: { text: "game:waitingForPlayers" },
-      }
-
     const oldStatus = this.playerStatus.get(oldSocketId)
+    const status = this.round.getPlayerReconnectStatus(
+      oldStatus,
+      this.lastBroadcastStatus,
+    )
 
     if (oldStatus) {
       this.playerStatus.delete(oldSocketId)
@@ -329,7 +331,7 @@ class Game {
     socket.emit(EVENTS.PLAYER.SUCCESS_RECONNECT, {
       gameId: this.gameId,
       currentQuestion: this.round.getReconnectInfo(),
-      status: this.round.getReconnectStatus(status),
+      status,
       player: { username: player.username, points: player.points },
       wallpaper: this.wallpaper,
       audio: this.audio,

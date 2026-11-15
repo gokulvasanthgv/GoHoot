@@ -143,6 +143,12 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
       return
     }
 
+    if (!game.acceptsNewPlayers) {
+      socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:game.expired")
+
+      return
+    }
+
     socket.emit(EVENTS.GAME.SUCCESS_ROOM, {
       gameId: game.gameId,
       alreadyJoined: false,

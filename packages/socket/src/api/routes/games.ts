@@ -79,6 +79,10 @@ export const games = apiFactory
         (item) => item.clientId === c.get("claims").sub,
       )
 
+      if (!player && !game.acceptsNewPlayers) {
+        return c.json({ error: "errors:game.expired" }, 409)
+      }
+
       return c.json({
         gameId: game.gameId,
         alreadyJoined: Boolean(player),
@@ -121,8 +125,8 @@ export const games = apiFactory
         })
       }
 
-      if (game.started) {
-        return c.json({ error: "errors:game.alreadyStarted" }, 409)
+      if (!game.acceptsNewPlayers) {
+        return c.json({ error: "errors:game.expired" }, 409)
       }
 
       return c.json({

@@ -24,6 +24,7 @@
   "startGame": "Iniciar juego",
   "usernamePlaceholder": "Nombre de usuario aquí",
   "waitingForAnswers": "Esperando que los jugadores respondan",
+  "waitingForNextQuestion": "Esperando la siguiente pregunta",
   "waitingForPlayers": "Esperando jugadores",
   "wrong": "Mala suerte",
   "goToQuestion": "Ir a la pregunta anterior",

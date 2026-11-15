@@ -24,6 +24,7 @@
   "startGame": "Demarrer la partie",
   "usernamePlaceholder": "Pseudo",
   "waitingForAnswers": "En attente des réponses des joueurs",
+  "waitingForNextQuestion": "En attente de la prochaine question",
   "waitingForPlayers": "En attente des joueurs",
   "wrong": "Dommage",
   "goToQuestion": "Aller à la question précédente",

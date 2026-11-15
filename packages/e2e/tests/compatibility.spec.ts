@@ -126,7 +126,7 @@ test("all four fork question types work in solo mode and results export", async 
   expect((await downloadPromise).suggestedFilename()).toMatch(/\.xlsx$/u)
 })
 
-test("host and guest reconnect, retain game options, and finish a live round", async ({
+test("host and guest reconnect and a new player can join an open round", async ({
   page,
   browser,
 }) => {
@@ -156,14 +156,32 @@ test("host and guest reconnect, retain game options, and finish a live round", a
   await page.getByRole("button", { name: /Accuracy Mode/ }).click()
   await page.getByLabel("Double time").check()
   await page.getByRole("button", { name: "Start Game", exact: true }).click()
-  await guest.getByRole("button", { name: /Red/u }).click()
+  await expect(
+    guest.getByRole("button", { name: "Red", exact: true }),
+  ).toBeVisible()
+  const late = await browser.newPage()
+  await late.goto(new URL(`/?pin=${pin}`, page.url()).href)
+  await late.getByPlaceholder("Username here").fill("LatePlayer")
+  await late.getByRole("button", { name: "Submit", exact: true }).click()
+  await expect(
+    late.getByRole("button", { name: "Red", exact: true }),
+  ).toBeVisible()
+  await expect(page.getByText("0/2", { exact: true })).toBeVisible()
+
+  await guest.getByRole("button", { name: "Red", exact: true }).click()
+  await expect(page.getByText("1/2", { exact: true })).toBeVisible()
+  await late.getByRole("button", { name: "Red", exact: true }).click()
   await expect(guest.getByText("2000", { exact: true })).toBeVisible()
+  await expect(late.getByText("2000", { exact: true })).toBeVisible()
   await page.getByRole("button", { name: "End Quiz", exact: true }).click()
   await page
     .getByRole("alertdialog")
     .getByRole("button", { name: "End Quiz", exact: true })
     .click()
-  await expect(page.getByText("MobilePlayer", { exact: true })).toBeVisible()
+  await expect(
+    page.getByText("MobilePlayer, LatePlayer", { exact: true }),
+  ).toBeVisible()
+  await late.close()
   await guestContext.close()
 })
 

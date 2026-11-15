@@ -46,6 +46,7 @@ const Answers = ({
 
   const [cooldown, setCooldown] = useState(time)
   const [totalAnswer, setTotalAnswer] = useState(0)
+  const [playerCount, setPlayerCount] = useState(totalPlayer)
   const { t } = useTranslation()
 
   const [selectedKeys, setSelectedKeys] = useState<number[]>([])
@@ -176,6 +177,8 @@ const Answers = ({
     setCooldown(sec)
   })
 
+  useEvent(EVENTS.GAME.TOTAL_PLAYERS, setPlayerCount)
+
   useEvent(EVENTS.GAME.PLAYER_ANSWER, (count) => {
     setTotalAnswer(count)
     sfxPop()
@@ -248,7 +251,7 @@ const Answers = ({
           {t("game:hud.answers")}
         </span>
         <span className="font-extrabold">
-          {totalAnswer}/{totalPlayer}
+          {totalAnswer}/{playerCount}
         </span>
       </div>
     </div>

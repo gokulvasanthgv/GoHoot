@@ -43,8 +43,11 @@ const GameWrapper = ({
   const [resizeNoticeDismissed, setResizeNoticeDismissed] = useState(false)
   const next = statusName ? MANAGER_SKIP_BTN[statusName] : null
   const activeWallpaper = manager ? managerWallpaper : playerWallpaper
+  const isSlide = statusName === STATUS.SHOW_SLIDE
   const dockFooter =
-    statusName === STATUS.SELECT_ANSWER || statusName === STATUS.FINISHED
+    statusName === STATUS.SELECT_ANSWER ||
+    isSlide ||
+    statusName === STATUS.FINISHED
   const scrollStage = dockFooter || statusName === STATUS.SHOW_QUESTION
   const canEndQuiz =
     statusName &&
@@ -250,12 +253,24 @@ const GameWrapper = ({
                     </footer>
                   )}
                 </>
+              ) : isSlide ? (
+                <main
+                  data-attendee-slide=""
+                  className="flex min-h-0 w-full flex-1 flex-col"
+                >
+                  {children}
+                </main>
               ) : (
                 children
               )}
 
               {!manager && (
-                <div className="z-50 flex items-center justify-between bg-white px-4 py-2 text-lg font-bold text-white">
+                <div
+                  className={clsx(
+                    "z-50 flex items-center justify-between bg-white px-4 py-2 text-lg font-bold text-white",
+                    isSlide && "shrink-0",
+                  )}
+                >
                   <p className="text-gray-800">{player?.username}</p>
                   <div className="rounded-lg bg-gray-800 px-3 py-1 text-lg">
                     {player?.points}

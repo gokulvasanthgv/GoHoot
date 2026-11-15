@@ -26,7 +26,7 @@ GoHoot is a straightforward and open-source quiz platform, allowing users to hos
 
 ### Play and present
 
-- Join a live room from the browser or Android using a PIN or invite link. Play as a guest or sign in, reconnect to active rounds, and resume with your score.
+- Join a live room from the browser or Android using a PIN or invite link. Play as a guest or sign in, join a game in progress, and reconnect with your score.
 - Play single-answer, multi-select, true/false, and drag-to-reorder rounds. Use slides for information between questions. Question-type cues and matching answer colors and shapes keep the player and presenter screens in sync.
 - Host with QR invites and participant controls. Choose Classic or Accuracy scoring, shuffle questions or answers, double answer time, and hide question and answer text on player devices.
 - Use the responsive web Conductor or Android landscape presenter to show questions, images, timers, response counts, leaderboards, and the podium.

@@ -450,11 +450,67 @@ test("mobile conductor can start a live quiz and scroll its stage with controls 
     await expect(
       page.getByRole("heading", { name: "Leaderboard" }),
     ).toBeVisible()
+    for (const viewer of [page, guest]) {
+      await viewer.route("https://www.youtube.com/embed/**", (route) =>
+        route.fulfill({
+          contentType: "text/html",
+          body: "<p>Embed fixture</p>",
+        }),
+      )
+    }
     await next.tap()
     await expect(
       page.getByRole("heading", { name: "Information slide on a phone" }),
     ).toBeVisible()
-    await expect(end).toBeInViewport({ ratio: 1 })
+    for (const viewer of [page, guest]) {
+      const captioned = viewer.getByTitle("Information slide on a phone", {
+        exact: true,
+      })
+      await expect(captioned).toBeInViewport({ ratio: 1 })
+    }
+    await expect(
+      page.getByText(/The slide body stays readable/u),
+    ).toBeInViewport()
+
+    await next.tap()
+    for (const viewer of [page, guest]) {
+      const video = viewer.getByTitle("Video slide", { exact: true })
+      await expect(video).toHaveAttribute(
+        "src",
+        "https://www.youtube.com/embed/M7lc1UVf-VE",
+      )
+      for (const { width, height, minimumWidth } of [
+        { width: 1446, height: 908, minimumWidth: 850 },
+        { width: 1920, height: 1080, minimumWidth: 950 },
+        { width: 942, height: 901, minimumWidth: 800 },
+        { width: 800, height: 900, minimumWidth: 700 },
+        { width: 844, height: 390, minimumWidth: 240 },
+        { width: 390, height: 844, minimumWidth: 340 },
+      ]) {
+        await viewer.setViewportSize({ width, height })
+        await expect(video).toBeInViewport({ ratio: 0.99 })
+        const frame = await video.boundingBox()
+
+        if (!frame) {
+          throw new Error("The video player was not laid out")
+        }
+
+        expect(frame.width).toBeGreaterThan(minimumWidth)
+        expect(Math.abs(frame.width - frame.height * (16 / 9))).toBeLessThan(1)
+
+        if (viewer === page) {
+          await expect(next).toBeInViewport({ ratio: 1 })
+          await expect(end).toBeInViewport({ ratio: 1 })
+        } else {
+          const attendeeName = viewer.getByText("Mobile layout player", {
+            exact: true,
+          })
+          await expect(attendeeName).toBeInViewport({ ratio: 1 })
+          const scoreRow = await attendeeName.boundingBox()
+          expect(frame.y + frame.height).toBeLessThanOrEqual(scoreRow?.y ?? 0)
+        }
+      }
+    }
     await end.tap()
     await page
       .getByRole("alertdialog")

@@ -29,6 +29,11 @@ type Phase =
   | "leaderboard"
   | "slide"
   | "finished"
+interface GameStatus {
+  name: Status
+  data: StatusDataMap[Status]
+}
+
 type SendFn = <T extends Status>(
   _target: string,
   _status: T,
@@ -104,14 +109,15 @@ export class RoundManager {
   getReconnectInfo() {
     return { current: this.currentQuestion + 1, total: this.questions.length }
   }
-  getReconnectStatus(status: { name: Status; data: StatusDataMap[Status] }): {
-    name: Status
-    data: StatusDataMap[Status]
-  } {
+  getReconnectStatus(status: GameStatus): GameStatus {
     if (status.name === STATUS.SELECT_ANSWER && this.phase === "answer") {
       return {
         ...status,
-        data: { ...status.data, time: this.opts.cooldown.remaining() },
+        data: {
+          ...status.data,
+          time: this.opts.cooldown.remaining(),
+          totalPlayer: this.opts.players.connectedCount(),
+        },
       }
     }
 
@@ -124,6 +130,30 @@ export class RoundManager {
 
     return status
   }
+  getPlayerReconnectStatus(
+    personal: GameStatus | undefined,
+    broadcast: GameStatus | null,
+  ): GameStatus {
+    if (personal) {
+      return this.getReconnectStatus(personal)
+    }
+
+    if (
+      this.phase === "responses" ||
+      this.phase === "leaderboard" ||
+      (this.phase === "answer" && !this.acceptingAnswers)
+    ) {
+      return {
+        name: STATUS.WAIT,
+        data: { text: "game:waitingForNextQuestion" },
+      }
+    }
+
+    return broadcast
+      ? this.getReconnectStatus(broadcast)
+      : { name: STATUS.WAIT, data: { text: "game:waitingForPlayers" } }
+  }
+
   dispose(): void {
     this.run += 1
     this.phase = "finished"

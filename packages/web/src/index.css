@@ -43,6 +43,59 @@ button:not(:disabled),
   overflow-wrap: break-word;
 }
 
+.game-slide-with-video {
+  flex: 1 1 0%;
+  block-size: auto;
+  justify-content: flex-start;
+  overflow-y: auto;
+}
+
+.game-slide-with-video :is(.game-slide-body, .game-slide-content) {
+  flex: 1 1 0%;
+  justify-content: flex-start;
+}
+
+.game-slide-with-video .game-slide-content {
+  gap: clamp(0.5rem, 2dvh, 1.25rem);
+}
+
+@media (max-height: 32rem) {
+  [data-attendee-slide] .game-slide-with-video {
+    padding-block: 0.5rem;
+  }
+
+  [data-attendee-slide] .game-slide-with-video .game-slide-body {
+    gap: 0.5rem;
+  }
+}
+
+.game-slide-video-slot {
+  display: grid;
+  flex: 1 1 0%;
+  inline-size: 100%;
+  min-block-size: min(8rem, 45vi, 45dvh);
+  place-items: center;
+  container-type: size;
+}
+
+.game-slide-video-slot > :is(iframe, video) {
+  inline-size: min(100cqi, calc(100cqb * 16 / 9), 68rem);
+  block-size: auto;
+  max-inline-size: none;
+  max-block-size: none;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  margin: 0;
+  padding: 0;
+}
+
+.game-slide-with-video .game-slide-text {
+  flex: 0 1 auto;
+  min-block-size: min(3rem, 20dvh);
+  max-block-size: clamp(4rem, 24dvh, 14rem);
+  overflow-y: auto;
+}
+
 .answer-grid,
 .answer-puzzle,
 .round-answer-list {

@@ -24,6 +24,7 @@
   "startGame": "Start Game",
   "usernamePlaceholder": "Username here",
   "waitingForAnswers": "Waiting for the players to answer",
+  "waitingForNextQuestion": "Waiting for the next question",
   "waitingForPlayers": "Waiting for players",
   "wrong": "Too bad",
   "goToQuestion": "Go to previous question",

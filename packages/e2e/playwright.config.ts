@@ -57,7 +57,8 @@ if (!existsSync(join(configPath, "users.json"))) {
     id: "browser-presentation",
     creatorId: "browser-admin",
     subject: "Conductor presentation checks",
-    wallpaper: "http://127.0.0.1:18855/gohoot-logo-favicon.webp?wallpaper=presentation",
+    wallpaper:
+      "http://127.0.0.1:18855/gohoot-logo-favicon.webp?wallpaper=presentation",
     audio: "http://127.0.0.1:18855/sounds/answersMusic.mp3?conductor=1",
     questions: [
       {
@@ -121,6 +122,21 @@ if (!existsSync(join(configPath, "users.json"))) {
         ),
         answers: undefined,
         solutions: undefined,
+        media: {
+          type: "video",
+          url: "https://www.youtube.com/watch?v=M7lc1UVf-VE",
+        },
+      },
+      {
+        ...question,
+        type: "slide",
+        question: "Video slide",
+        answers: undefined,
+        solutions: undefined,
+        media: {
+          type: "video",
+          url: "https://www.youtube.com/watch?v=M7lc1UVf-VE",
+        },
       },
     ],
   })

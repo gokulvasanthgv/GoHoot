@@ -1,3 +1,4 @@
+import { MEDIA_TYPES } from "@razzia/common/constants"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
 import QuestionMedia from "@razzia/web/components/QuestionMedia"
 import { useGameSoundsEnabled } from "@razzia/web/features/game/hooks/useGameSound"
@@ -35,12 +36,18 @@ const Slide = ({ data: { question, text, media } }: Props) => {
     }
   }, [media])
 
-  const isLandscape = aspectRatio === "landscape"
+  const isVideo = media?.type === MEDIA_TYPES.VIDEO
+  const isLandscape = isVideo || aspectRatio === "landscape"
   const soundsEnabled = useGameSoundsEnabled()
 
   return (
-    <section className="conductor-compact:h-auto conductor-compact:shrink-0 conductor-compact:basis-auto conductor-compact:px-2 conductor-compact:py-2 relative mx-auto flex h-full min-h-0 w-full max-w-7xl flex-1 flex-col items-center justify-center px-4 py-4 select-none">
-      <div className="conductor-compact:basis-auto conductor-compact:gap-2 flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-4">
+    <section
+      className={clsx(
+        "conductor-compact:h-auto conductor-compact:shrink-0 conductor-compact:basis-auto conductor-compact:px-2 conductor-compact:py-2 relative mx-auto flex h-full min-h-0 w-full max-w-7xl flex-1 flex-col items-center justify-center px-4 py-4 select-none",
+        isVideo && "game-slide-with-video",
+      )}
+    >
+      <div className="game-slide-body conductor-compact:basis-auto conductor-compact:gap-2 flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-4">
         <QuestionMode type="slide" />
         <QuestionHeading
           question={question}
@@ -49,18 +56,22 @@ const Slide = ({ data: { question, text, media } }: Props) => {
 
         <div
           className={clsx(
-            "conductor-compact:basis-auto conductor-compact:gap-2 flex min-h-0 w-full flex-1 items-center justify-center gap-4 md:gap-8",
+            "game-slide-content conductor-compact:basis-auto conductor-compact:gap-2 flex min-h-0 w-full flex-1 items-center justify-center gap-4 md:gap-8",
             isLandscape ? "flex-col justify-center" : "flex-col md:flex-row",
           )}
         >
           {media && (
             <div
-              className={clsx(
-                "conductor-compact:h-auto conductor-compact:w-full conductor-compact:max-w-full flex min-h-0 shrink items-center justify-center overflow-hidden",
-                isLandscape
-                  ? "h-[30vh] w-auto sm:h-[35vh]"
-                  : "h-[35vh] w-full md:h-[50vh] md:max-w-[45%]",
-              )}
+              className={
+                isVideo
+                  ? "game-slide-video-slot"
+                  : clsx(
+                      "conductor-compact:h-auto conductor-compact:w-full conductor-compact:max-w-full flex min-h-0 shrink items-center justify-center overflow-hidden",
+                      isLandscape
+                        ? "h-[30vh] w-auto sm:h-[35vh]"
+                        : "h-[35vh] w-full md:h-[50vh] md:max-w-[45%]",
+                    )
+              }
             >
               <QuestionMedia
                 media={media}

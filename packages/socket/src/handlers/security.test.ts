@@ -5,7 +5,11 @@ import {
   type Socket as ClientSocket,
 } from "socket.io-client"
 import { app, createSocketServer } from "@razzia/socket/app"
-import type { Server } from "@razzia/common/types/game/socket"
+import type { Quizz } from "@razzia/common/types/game"
+import type {
+  Server,
+  ServerToClientEvents,
+} from "@razzia/common/types/game/socket"
 import { EVENTS } from "@razzia/common/constants"
 import { STATUS } from "@razzia/common/types/game/status"
 import type { SessionResponse } from "@razzia/common/types/auth"
@@ -22,6 +26,7 @@ import {
 import Registry from "@razzia/socket/services/registry"
 import Game from "@razzia/socket/services/game"
 import {
+  account,
   cleanupConfig,
   quizData,
   setupConfig,
@@ -100,7 +105,7 @@ afterEach(async () => {
     void io.close(() => resolve())
   })
 })
-const createGame = async (data = quizData()) => {
+const createGame = async (data: Quizz = quizData()) => {
   const host = await connect(fixture.session)
   const { id } = saveQuizz(data, fixture.admin.id)
   const hostSocket = io.sockets.sockets.get(host.id ?? "")
@@ -114,16 +119,41 @@ const createGame = async (data = quizData()) => {
 
   return { host, game }
 }
-const join = async (game: Game, username: string) => {
-  const session = await mintToken(newClientId())
+const requestJoin = (game: Game, session: SessionResponse, username: string) =>
+  fetch(`${url}/api/games/join`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${session.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ inviteCode: game.inviteCode, username }),
+  })
+
+const join = async (
+  game: Game,
+  username: string,
+  identity?: SessionResponse,
+) => {
+  const session = identity ?? (await mintToken(newClientId()))
+  const response = await requestJoin(game, session, username)
+  expect(response.status).toBe(200)
+  const { ticket } = (await response.json()) as { ticket: string }
   const player = await connect(session)
   const joined = event<string>(player, EVENTS.GAME.SUCCESS_JOIN)
-  player.emit(EVENTS.PLAYER.LOGIN, {
-    ticket: await mintJoinTicket(session.clientId, game.gameId, username),
-  })
+  player.emit(EVENTS.PLAYER.LOGIN, { ticket })
   expect(await joined).toBe(game.gameId)
 
   return { player, session }
+}
+
+const playerSnapshot = (player: ClientSocket, game: Game) => {
+  type Snapshot = Parameters<
+    ServerToClientEvents[typeof EVENTS.PLAYER.SUCCESS_RECONNECT]
+  >[0]
+  const snapshot = event<Snapshot>(player, EVENTS.PLAYER.SUCCESS_RECONNECT)
+  player.emit(EVENTS.PLAYER.RECONNECT, { gameId: game.gameId })
+
+  return snapshot
 }
 
 describe("socket authentication and authorization", () => {
@@ -223,6 +253,126 @@ describe("live game integrity and reconnection", () => {
     expect((await reading).data).toMatchObject({ multiSelect: true })
     expect((await answering).data).toMatchObject({ multiSelect: true })
   })
+  it("allows a new account to join and answer on the current round's clock", async () => {
+    const { host, game } = await createGame()
+    const { player } = await join(game, "First")
+    const lateAccount = await account("Late account", "quizzer")
+    const answering = status(host, STATUS.SELECT_ANSWER)
+    host.emit(EVENTS.MANAGER.START_GAME, {
+      gameId: game.gameId,
+      mode: "accuracy",
+      options: { hideTextOnClient: true },
+    })
+    await answering
+
+    const tick = event<number>(host, EVENTS.GAME.COOLDOWN, (time) => time < 120)
+    await tick
+    const count = event<number>(
+      host,
+      EVENTS.GAME.TOTAL_PLAYERS,
+      (total) => total === 2,
+    )
+    const late = await join(game, "Late player", lateAccount.session)
+    expect(await count).toBe(2)
+    const snapshot = await playerSnapshot(late.player, game)
+    expect(snapshot).toMatchObject({
+      status: {
+        name: STATUS.SELECT_ANSWER,
+        data: { totalPlayer: 2, hideTextOnClient: true },
+      },
+      player: { username: "Late player", points: 0 },
+      currentQuestion: { current: 1, total: 1 },
+    })
+    expect(snapshot.status.data).toHaveProperty("time", expect.any(Number))
+    const { time } = snapshot.status.data as { time: number }
+    expect(time).toBeGreaterThan(0)
+    expect(time).toBeLessThan(120)
+
+    const firstAnswered = status(player, STATUS.WAIT)
+    player.emit(EVENTS.PLAYER.SELECTED_ANSWER, {
+      gameId: game.gameId,
+      data: { answerKey: [0] },
+    })
+    await firstAnswered
+    const result = status(late.player, STATUS.SHOW_RESULT)
+    late.player.emit(EVENTS.PLAYER.SELECTED_ANSWER, {
+      gameId: game.gameId,
+      data: { answerKey: [0] },
+    })
+    expect((await result).data).toMatchObject({ correct: true, myPoints: 1000 })
+  })
+
+  it("lets new players wait through results and join a slide, while a finished room is closed", async () => {
+    const quiz = quizData()
+    const { host, game } = await createGame({
+      ...quiz,
+      questions: [
+        ...quiz.questions,
+        {
+          ...quiz.questions[0],
+          type: "slide",
+          question: "An information slide",
+        },
+      ],
+    })
+    const { player } = await join(game, "First")
+    const answering = status(host, STATUS.SELECT_ANSWER)
+    host.emit(EVENTS.MANAGER.START_GAME, { gameId: game.gameId })
+    await answering
+    const answersClosed = status(host, STATUS.SHOW_RESPONSES)
+    player.emit(EVENTS.PLAYER.SELECTED_ANSWER, {
+      gameId: game.gameId,
+      data: { answerKey: [0] },
+    })
+    await answersClosed
+    const late = await join(game, "Second")
+    expect(await playerSnapshot(late.player, game)).toMatchObject({
+      status: {
+        name: STATUS.WAIT,
+        data: { text: "game:waitingForNextQuestion" },
+      },
+      player: { points: 0 },
+    })
+
+    const board = status(host, STATUS.SHOW_LEADERBOARD)
+    host.emit(EVENTS.MANAGER.SHOW_LEADERBOARD, { gameId: game.gameId })
+    await board
+    expect((await playerSnapshot(late.player, game)).status.name).toBe(
+      STATUS.WAIT,
+    )
+    const slide = status(late.player, STATUS.SHOW_SLIDE)
+    host.emit(EVENTS.MANAGER.NEXT_QUESTION, { gameId: game.gameId })
+    await slide
+    const onSlide = await join(game, "Third")
+    expect(await playerSnapshot(onSlide.player, game)).toMatchObject({
+      status: {
+        name: STATUS.SHOW_SLIDE,
+        data: { question: "An information slide" },
+      },
+      currentQuestion: { current: 2, total: 2 },
+    })
+
+    const pendingSession = await mintToken(newClientId())
+    const pendingJoin = await requestJoin(game, pendingSession, "Fourth")
+    expect(pendingJoin.status).toBe(200)
+    const { ticket } = (await pendingJoin.json()) as { ticket: string }
+    const finished = status(host, STATUS.FINISHED)
+    host.emit(EVENTS.MANAGER.NEXT_QUESTION, { gameId: game.gameId })
+    await finished
+
+    const closed = await requestJoin(game, pendingSession, "Fourth")
+    expect(closed.status).toBe(409)
+    expect(await closed.json()).toEqual({ error: "errors:game.expired" })
+    const pendingPlayer = await connect(pendingSession)
+    const error = event<string>(pendingPlayer, EVENTS.GAME.ERROR_MESSAGE)
+    pendingPlayer.emit(EVENTS.PLAYER.LOGIN, { ticket })
+    expect(await error).toBe("errors:game.expired")
+    expect((await playerSnapshot(onSlide.player, game)).status.name).toBe(
+      STATUS.FINISHED,
+    )
+    expect(game.players).toHaveLength(3)
+  })
+
   it("does not count answers sent before the answer phase", async () => {
     const { host, game } = await createGame()
     const { player } = await join(game, "Player")
